@@ -198,7 +198,11 @@ describe('cash and expenses database', () => {
       paidCents: 0,
       pendingCents: 1000,
     });
-    expect(getCashState(database).activeExpensesCents).toBe(0);
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 1000,
+      cashExpensesCents: 0,
+      projectedResultCents: -1000,
+    });
 
     const partial = payExpense(database, {
       expenseId: expense.id,
@@ -212,7 +216,11 @@ describe('cash and expenses database', () => {
       paidCents: 400,
       pendingCents: 600,
     });
-    expect(getCashState(database).activeExpensesCents).toBe(400);
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 1000,
+      cashExpensesCents: 0,
+      projectedResultCents: -1000,
+    });
 
     const paid = payExpense(database, {
       expenseId: expense.id,
@@ -228,6 +236,7 @@ describe('cash and expenses database', () => {
     expect(getCashState(database)).toMatchObject({
       activeExpensesCents: 1000,
       cashExpensesCents: 600,
+      projectedResultCents: -1000,
     });
 
     const firstPayment = paid.payments.find((payment) => payment.amountCents === 400);
@@ -245,6 +254,11 @@ describe('cash and expenses database', () => {
       status: 'partial',
       paidCents: 600,
       pendingCents: 400,
+    });
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 1000,
+      cashExpensesCents: 600,
+      projectedResultCents: -1000,
     });
     expect(() =>
       refundExpensePayment(database, {
