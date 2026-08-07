@@ -98,9 +98,7 @@ export function ExpensePaymentsSection({
           </label>
           <button
             className="button button--secondary"
-            disabled={
-              busy || paymentAmountCents <= 0 || paymentAmountCents > expense.pendingCents
-            }
+            disabled={busy || paymentAmountCents <= 0 || paymentAmountCents > expense.pendingCents}
             type="submit"
           >
             Registrar pagamento
