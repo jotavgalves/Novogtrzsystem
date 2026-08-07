@@ -8,17 +8,16 @@ interface StructuredError extends Error {
   readonly issues?: unknown;
 }
 
-type IpcListener = (
-  event: IpcMainInvokeEvent,
-  payload: unknown,
-) => unknown | Promise<unknown>;
+type IpcListener = (event: IpcMainInvokeEvent, payload: unknown) => unknown | Promise<unknown>;
 
 function errorCode(error: Error): string | null {
   const candidate = (error as StructuredError).code;
   return typeof candidate === 'string' ? candidate : null;
 }
 
-function isValidationError(error: Error): error is StructuredError & { readonly issues: unknown[] } {
+function isValidationError(
+  error: Error,
+): error is StructuredError & { readonly issues: unknown[] } {
   return error.name === 'ZodError' && Array.isArray((error as StructuredError).issues);
 }
 

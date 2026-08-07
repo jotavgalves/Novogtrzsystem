@@ -1,8 +1,4 @@
-import {
-  appErrorPayloadSchema,
-  type AppErrorCode,
-  type AppErrorPayload,
-} from '@gtrz/contracts';
+import { appErrorPayloadSchema, type AppErrorCode, type AppErrorPayload } from '@gtrz/contracts';
 
 export interface AppErrorView {
   readonly code: AppErrorCode;

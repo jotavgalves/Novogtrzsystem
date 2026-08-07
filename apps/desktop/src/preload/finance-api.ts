@@ -80,11 +80,7 @@ export const expenseApi: ExpenseApi = {
 
   async previewCancel(input: PreviewCancelExpenseInput): Promise<ExpenseCancelPreview> {
     const parsedInput = previewCancelExpenseInputSchema.parse(input);
-    return invokeIpc(
-      IPC_CHANNELS.expensesPreviewCancel,
-      expenseCancelPreviewSchema,
-      parsedInput,
-    );
+    return invokeIpc(IPC_CHANNELS.expensesPreviewCancel, expenseCancelPreviewSchema, parsedInput);
   },
 
   async cancel(input: CancelExpenseInput): Promise<Expense> {
