@@ -1,9 +1,21 @@
 import { ipcRenderer } from 'electron';
 
-import { ipcResponseSchema } from '@gtrz/contracts';
+import { ipcResponseSchema, type AppErrorPayload } from '@gtrz/contracts';
 
 interface PayloadParser<T> {
   parse(value: unknown): T;
+}
+
+export class IpcClientError extends Error {
+  readonly code: AppErrorPayload['code'];
+  readonly details: AppErrorPayload['details'];
+
+  constructor(payload: AppErrorPayload) {
+    super(payload.message);
+    this.name = 'IpcClientError';
+    this.code = payload.code;
+    this.details = payload.details;
+  }
 }
 
 export async function invokeIpc<T>(
@@ -18,7 +30,7 @@ export async function invokeIpc<T>(
   const response = ipcResponseSchema.parse(rawResponse);
 
   if (!response.ok) {
-    throw response.error;
+    throw new IpcClientError(response.error);
   }
 
   return responseSchema.parse(response.data);
