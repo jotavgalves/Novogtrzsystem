@@ -6,7 +6,7 @@ interface PayloadParser<T> {
   parse(value: unknown): T;
 }
 
-export class IpcClientError extends Error {
+class IpcClientError extends Error {
   readonly code: AppErrorPayload['code'];
   readonly details: AppErrorPayload['details'];
 
