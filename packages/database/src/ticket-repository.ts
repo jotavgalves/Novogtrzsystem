@@ -68,6 +68,9 @@ function listCodes(database: DatabaseContext, saleId: string): readonly Database
 }
 
 export function mapTicketSale(database: DatabaseContext, row: TicketSaleRow): DatabaseTicketSale {
+  const codes = listCodes(database, row.id);
+  const validQuantity = codes.filter((code) => code.status === 'valid').length;
+
   return {
     id: row.id,
     eventId: row.event_id,
@@ -75,12 +78,12 @@ export function mapTicketSale(database: DatabaseContext, row: TicketSaleRow): Da
     lotName: row.lot_name,
     attendeeName: row.attendee_name,
     source: row.source,
-    quantity: row.quantity,
+    quantity: row.status === 'cancelled' ? 0 : validQuantity,
     unitPriceCents: row.unit_price_cents,
-    totalCents: row.total_cents,
+    totalCents: row.status === 'cancelled' ? 0 : row.total_cents,
     paymentMethod: row.payment_method,
     status: row.status,
-    codes: listCodes(database, row.id),
+    codes,
     createdAt: row.created_at,
     cancelledAt: row.cancelled_at,
     updatedAt: row.updated_at,
