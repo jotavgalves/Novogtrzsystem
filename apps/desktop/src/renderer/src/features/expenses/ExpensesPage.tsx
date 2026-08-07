@@ -35,7 +35,9 @@ export function ExpensesPage(): React.JSX.Element {
         <div>
           <span className="eyebrow">Obrigações e pagamentos do evento</span>
           <h1>Despesas</h1>
-          <p>Controle obrigações abertas, pagamentos parciais, edições e cancelamentos auditáveis.</p>
+          <p>
+            Controle obrigações abertas, pagamentos parciais, edições e cancelamentos auditáveis.
+          </p>
         </div>
         <button
           className="button button--secondary"
