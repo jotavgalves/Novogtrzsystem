@@ -5,13 +5,16 @@ import {
   cashStateSchema,
   closeCashRegisterInputSchema,
   createExpenseInputSchema,
+  expenseCancelPreviewSchema,
   expenseSchema,
   expenseStateSchema,
   IPC_CHANNELS,
   openCashRegisterInputSchema,
   payExpenseInputSchema,
+  previewCancelExpenseInputSchema,
   recordCashMovementInputSchema,
   refundExpensePaymentInputSchema,
+  updateExpenseInputSchema,
 } from '@gtrz/contracts';
 import {
   cancelExpense,
@@ -21,8 +24,10 @@ import {
   getExpenseState,
   openCashRegister,
   payExpense,
+  previewCancelExpense,
   recordCashMovement,
   refundExpensePayment,
+  updateExpense,
   type DatabaseContext,
 } from '@gtrz/database';
 
@@ -37,8 +42,10 @@ const FINANCE_CHANNELS = [
   IPC_CHANNELS.cashClose,
   IPC_CHANNELS.expensesGetState,
   IPC_CHANNELS.expensesCreate,
+  IPC_CHANNELS.expensesUpdate,
   IPC_CHANNELS.expensesPay,
   IPC_CHANNELS.expensesRefundPayment,
+  IPC_CHANNELS.expensesPreviewCancel,
   IPC_CHANNELS.expensesCancel,
 ] as const;
 
@@ -89,6 +96,11 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     return expenseSchema.parse(createExpense(options.getDatabase(), databaseInput));
   });
 
+  ipcMain.handle(IPC_CHANNELS.expensesUpdate, (_event, payload: unknown) => {
+    const input = updateExpenseInputSchema.parse(payload);
+    return expenseSchema.parse(updateExpense(options.getDatabase(), input));
+  });
+
   ipcMain.handle(IPC_CHANNELS.expensesPay, (_event, payload: unknown) => {
     const input = payExpenseInputSchema.parse(payload);
     const databaseInput =
@@ -110,6 +122,11 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
   ipcMain.handle(IPC_CHANNELS.expensesRefundPayment, (_event, payload: unknown) => {
     const input = refundExpensePaymentInputSchema.parse(payload);
     return expenseSchema.parse(refundExpensePayment(options.getDatabase(), input));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.expensesPreviewCancel, (_event, payload: unknown) => {
+    const input = previewCancelExpenseInputSchema.parse(payload);
+    return expenseCancelPreviewSchema.parse(previewCancelExpense(options.getDatabase(), input));
   });
 
   ipcMain.handle(IPC_CHANNELS.expensesCancel, (_event, payload: unknown) => {
