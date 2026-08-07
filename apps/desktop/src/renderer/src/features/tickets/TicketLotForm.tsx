@@ -84,7 +84,7 @@ export function TicketLotForm({ busy, onSubmit }: TicketLotFormProps): React.JSX
         </label>
       </div>
       <button
-        className="button"
+        className="button button--primary"
         disabled={busy || name.trim().length < 2 || parseMoney(price) < 0 || Number(capacity) <= 0}
         type="submit"
       >
