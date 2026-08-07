@@ -98,7 +98,22 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
 
   ipcMain.handle(IPC_CHANNELS.expensesUpdate, (_event, payload: unknown) => {
     const input = updateExpenseInputSchema.parse(payload);
-    return expenseSchema.parse(updateExpense(options.getDatabase(), input));
+    const databaseInput =
+      input.note === undefined
+        ? {
+            expenseId: input.expenseId,
+            category: input.category,
+            description: input.description,
+            amountCents: input.amountCents,
+          }
+        : {
+            expenseId: input.expenseId,
+            category: input.category,
+            description: input.description,
+            amountCents: input.amountCents,
+            note: input.note,
+          };
+    return expenseSchema.parse(updateExpense(options.getDatabase(), databaseInput));
   });
 
   ipcMain.handle(IPC_CHANNELS.expensesPay, (_event, payload: unknown) => {
