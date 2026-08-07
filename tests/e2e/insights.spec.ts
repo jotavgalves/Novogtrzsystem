@@ -39,7 +39,7 @@ test('SMK-INS-001 — consolida evento e pesquisa sua trilha de auditoria', asyn
     const main = window.getByRole('main');
     await expect(main.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
     await expect(main.getByText(eventName, { exact: true })).toBeVisible();
-    await expect(main.getByText('Faturamento', { exact: true })).toBeVisible();
+    await expect(main.getByText('Receita bruta', { exact: true })).toBeVisible();
     await expect(main.getByText('Resultado projetado', { exact: true })).toBeVisible();
 
     await window.getByRole('link', { name: 'Auditoria' }).click();

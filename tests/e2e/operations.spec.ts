@@ -55,7 +55,7 @@ test('SMK-OPR-001 — vende, estorna e devolve o estoque pela interface', async 
     await window.getByPlaceholder('Ex.: Mesa 12').fill(tableName);
     await window.getByRole('button', { name: 'Criar mesa' }).click();
 
-    const tableButton = window.getByRole('button', { name: new RegExp(tableName, 'u') });
+    const tableButton = window.locator('button.service-point-card').filter({ hasText: tableName });
     await expect(tableButton).toBeVisible();
     await tableButton.click();
 
@@ -69,9 +69,9 @@ test('SMK-OPR-001 — vende, estorna e devolve o estoque pela interface', async 
     await window.getByLabel('Valor recebido 1').fill('20.00');
     await window.getByRole('button', { name: 'Concluir venda' }).click();
     await expect(window.getByText('Venda concluída e estoque atualizado.')).toBeVisible();
-    await expect(window.getByRole('button', { name: new RegExp(tableName, 'u') })).toContainText(
-      'Livre',
-    );
+    await expect(
+      window.locator('button.service-point-card').filter({ hasText: tableName }),
+    ).toContainText('Livre');
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     productCard = window.locator('article.inventory-card').filter({ hasText: productName });
