@@ -8,7 +8,7 @@ interface StructuredError extends Error {
   readonly issues?: readonly unknown[];
 }
 
-type IpcListener = (event: IpcMainInvokeEvent, payload: unknown) => unknown | Promise<unknown>;
+type IpcListener = (event: IpcMainInvokeEvent, payload: unknown) => unknown;
 
 function errorCode(error: Error): string | null {
   return (error as StructuredError).code ?? null;
