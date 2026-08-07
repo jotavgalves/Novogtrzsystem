@@ -5,13 +5,16 @@ import {
   cashStateSchema,
   closeCashRegisterInputSchema,
   createExpenseInputSchema,
+  expenseCancelPreviewSchema,
   expenseSchema,
   expenseStateSchema,
   IPC_CHANNELS,
   openCashRegisterInputSchema,
   payExpenseInputSchema,
+  previewCancelExpenseInputSchema,
   recordCashMovementInputSchema,
   refundExpensePaymentInputSchema,
+  updateExpenseInputSchema,
   type CancelExpenseInput,
   type CashApi,
   type CashState,
@@ -19,11 +22,14 @@ import {
   type CreateExpenseInput,
   type Expense,
   type ExpenseApi,
+  type ExpenseCancelPreview,
   type ExpenseState,
   type OpenCashRegisterInput,
   type PayExpenseInput,
+  type PreviewCancelExpenseInput,
   type RecordCashMovementInput,
   type RefundExpensePaymentInput,
+  type UpdateExpenseInput,
 } from '@gtrz/contracts';
 
 export const cashApi: CashApi = {
@@ -63,6 +69,12 @@ export const expenseApi: ExpenseApi = {
     return expenseSchema.parse(payload);
   },
 
+  async update(input: UpdateExpenseInput): Promise<Expense> {
+    const parsedInput = updateExpenseInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(IPC_CHANNELS.expensesUpdate, parsedInput);
+    return expenseSchema.parse(payload);
+  },
+
   async pay(input: PayExpenseInput): Promise<Expense> {
     const parsedInput = payExpenseInputSchema.parse(input);
     const payload: unknown = await ipcRenderer.invoke(IPC_CHANNELS.expensesPay, parsedInput);
@@ -76,6 +88,15 @@ export const expenseApi: ExpenseApi = {
       parsedInput,
     );
     return expenseSchema.parse(payload);
+  },
+
+  async previewCancel(input: PreviewCancelExpenseInput): Promise<ExpenseCancelPreview> {
+    const parsedInput = previewCancelExpenseInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      IPC_CHANNELS.expensesPreviewCancel,
+      parsedInput,
+    );
+    return expenseCancelPreviewSchema.parse(payload);
   },
 
   async cancel(input: CancelExpenseInput): Promise<Expense> {
