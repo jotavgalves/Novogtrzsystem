@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import type { DatabaseContext } from './types';
 
 export interface DatabaseComboComponentInput {
@@ -71,7 +72,9 @@ interface ProductValidationRow {
 
 function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('Esta operação de combo exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'Esta operação de combo exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -86,7 +89,7 @@ function requireUniqueName(database: DatabaseContext, name: string, excludedId?:
     .get(name, excludedId ?? null, excludedId ?? null) as { readonly id: string } | undefined;
 
   if (duplicate !== undefined) {
-    throw new Error('Já existe um combo com esse nome.');
+    failDatabaseOperation('CONFLICT', 'Já existe um combo com esse nome.', { name });
   }
 }
 
@@ -95,18 +98,27 @@ function validateComponents(
   components: readonly DatabaseComboComponentInput[],
 ): void {
   if (components.length === 0) {
-    throw new Error('O combo precisa de pelo menos um produto.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O combo precisa de pelo menos um produto.', {
+      field: 'components',
+      minimumItems: 1,
+    });
   }
 
   const uniqueIds = new Set<string>();
 
   for (const component of components) {
     if (!Number.isInteger(component.quantity) || component.quantity <= 0) {
-      throw new Error('As quantidades dos componentes devem ser inteiras e positivas.');
+      failDatabaseOperation(
+        'VALIDATION_ERROR',
+        'As quantidades dos componentes devem ser inteiras e positivas.',
+        { productId: component.productId, quantity: component.quantity },
+      );
     }
 
     if (uniqueIds.has(component.productId)) {
-      throw new Error('Um produto não pode aparecer duas vezes no mesmo combo.');
+      failDatabaseOperation('CONFLICT', 'Um produto não pode aparecer duas vezes no mesmo combo.', {
+        productId: component.productId,
+      });
     }
 
     uniqueIds.add(component.productId);
@@ -115,11 +127,17 @@ function validateComponents(
       .get(component.productId) as ProductValidationRow | undefined;
 
     if (product === undefined) {
-      throw new Error('Um dos produtos informados não existe.');
+      failDatabaseOperation('NOT_FOUND', 'Um dos produtos informados não existe.', {
+        productId: component.productId,
+      });
     }
 
     if (product.active !== 1) {
-      throw new Error(`O produto ${product.name} está inativo e não pode compor o combo.`);
+      failDatabaseOperation(
+        'INVALID_STATE',
+        `O produto ${product.name} está inativo e não pode compor o combo.`,
+        { productId: product.id, productName: product.name, active: false },
+      );
     }
   }
 }
@@ -239,7 +257,7 @@ export function requireCombo(database: DatabaseContext, comboId: string): Databa
   const combo = listCombos(database).find((item) => item.id === comboId);
 
   if (combo === undefined) {
-    throw new Error('O combo informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O combo informado não existe.', { comboId });
   }
 
   return combo;
@@ -270,7 +288,11 @@ export function createCombo(
   validateComponents(database, input.components);
 
   if (!Number.isInteger(input.salePriceCents) || input.salePriceCents < 0) {
-    throw new Error('O preço do combo deve ser informado em centavos inteiros não negativos.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O preço do combo deve ser informado em centavos inteiros não negativos.',
+      { field: 'salePriceCents', value: input.salePriceCents },
+    );
   }
 
   const comboId = randomUUID();
@@ -311,7 +333,11 @@ export function updateCombo(
   validateComponents(database, input.components);
 
   if (!Number.isInteger(input.salePriceCents) || input.salePriceCents < 0) {
-    throw new Error('O preço do combo deve ser informado em centavos inteiros não negativos.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O preço do combo deve ser informado em centavos inteiros não negativos.',
+      { field: 'salePriceCents', value: input.salePriceCents },
+    );
   }
 
   const now = Date.now();
