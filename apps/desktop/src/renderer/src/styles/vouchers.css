@@ -89,6 +89,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  width: 100%;
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
@@ -101,6 +102,7 @@
 
 .voucher-card__impact span {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-3);
@@ -112,6 +114,26 @@
 
 .voucher-card__impact strong {
   color: var(--color-text);
+}
+
+.voucher-delete-details {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.voucher-delete-details > strong {
+  font-size: 0.78rem;
+}
+
+.voucher-delete-details > span {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
 }
 
 .voucher-card__edit .voucher-card__actions {
