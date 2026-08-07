@@ -18,7 +18,7 @@ export async function invokeIpc<T>(
   const response = ipcResponseSchema.parse(rawResponse);
 
   if (!response.ok) {
-    return Promise.reject(response.error);
+    throw response.error;
   }
 
   return responseSchema.parse(response.data);
