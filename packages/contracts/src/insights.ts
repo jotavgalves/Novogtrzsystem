@@ -17,6 +17,7 @@ export const insightAuditRecordSchema = z.object({
   after: z.record(z.string(), z.unknown()).nullable(),
   impact: z.record(z.string(), z.unknown()).nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
+  schemaVersion: z.number().int().nonnegative(),
   createdAt: z.number().int().nonnegative(),
 });
 

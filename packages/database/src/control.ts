@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 
+import { writeAuditRecord } from './audit-write';
 import type { DatabaseContext } from './types';
 
 export type DatabaseUserProfile = 'production' | 'cashier';
@@ -151,35 +152,15 @@ function writeAudit(
     readonly impact?: Readonly<Record<string, unknown>>;
   } = {},
 ): void {
-  database.sqlite
-    .prepare(
-      `INSERT INTO audit_log
-       (
-         event_id,
-         profile,
-         action,
-         entity_type,
-         entity_id,
-         details_json,
-         before_json,
-         after_json,
-         impact_json,
-         created_at
-       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
-      eventId,
-      getProfile(database),
-      action,
-      entityType,
-      entityId,
-      JSON.stringify(details),
-      structured.before === undefined ? null : JSON.stringify(structured.before),
-      structured.after === undefined ? null : JSON.stringify(structured.after),
-      structured.impact === undefined ? null : JSON.stringify(structured.impact),
-      Date.now(),
-    );
+  writeAuditRecord(database, {
+    profile: getProfile(database),
+    action,
+    entityType,
+    entityId,
+    eventId,
+    details,
+    ...structured,
+  });
 }
 
 export function ensureControlDefaults(database: DatabaseContext): void {

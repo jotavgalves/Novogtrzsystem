@@ -20,6 +20,7 @@ export interface DatabaseInsightAuditRecord {
   readonly after: Readonly<Record<string, unknown>> | null;
   readonly impact: Readonly<Record<string, unknown>> | null;
   readonly metadata: Readonly<Record<string, unknown>> | null;
+  readonly schemaVersion: number;
   readonly createdAt: number;
 }
 
@@ -153,7 +154,14 @@ function parseNullableDetails(value: string | null): Readonly<Record<string, unk
   return Object.keys(parsed).length === 0 ? null : parsed;
 }
 
+function getSchemaVersion(metadata: Readonly<Record<string, unknown>> | null): number {
+  const value = metadata?.schemaVersion;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
 function mapAuditRecord(row: AuditRow): DatabaseInsightAuditRecord {
+  const metadata = parseNullableDetails(row.metadata_json);
+
   return {
     id: row.id,
     eventId: row.event_id,
@@ -168,7 +176,8 @@ function mapAuditRecord(row: AuditRow): DatabaseInsightAuditRecord {
     before: parseNullableDetails(row.before_json),
     after: parseNullableDetails(row.after_json),
     impact: parseNullableDetails(row.impact_json),
-    metadata: parseNullableDetails(row.metadata_json),
+    metadata,
+    schemaVersion: getSchemaVersion(metadata),
     createdAt: row.created_at,
   };
 }

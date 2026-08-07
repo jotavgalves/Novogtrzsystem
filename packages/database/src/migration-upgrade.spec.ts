@@ -58,7 +58,12 @@ function dropIndexesUsingColumn(
 function downgradeToVersion11(filePath: string): void {
   const sqlite = new BetterSqlite3(filePath);
   sqlite.pragma('foreign_keys = OFF');
-  sqlite.exec('DROP TABLE IF EXISTS expense_payments;');
+  sqlite.exec(`
+    DROP TABLE IF EXISTS expense_payments;
+    DROP INDEX IF EXISTS audit_log_entity_created_idx;
+    DROP INDEX IF EXISTS audit_log_correlation_created_idx;
+    DROP INDEX IF EXISTS audit_log_profile_created_idx;
+  `);
 
   for (const column of [
     'actor_identifier',
