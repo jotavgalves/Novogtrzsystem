@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
+import { failDatabaseOperation } from './database-error';
 import { cancelOrder } from './operation-cancellation';
 import { requireOperationReason } from './operation-validation';
 import type { DatabaseContext } from './types';
@@ -47,11 +48,18 @@ export function previewDeleteVoucher(
   const voucher = requireVoucherById(database, input.voucherId);
 
   if (voucher.event_id !== eventId) {
-    throw new Error('O voucher não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'O voucher não pertence ao evento ativo.', {
+      voucherId: voucher.id,
+      voucherEventId: voucher.event_id,
+      activeEventId: eventId,
+    });
   }
 
   if (voucher.status === 'cancelled') {
-    throw new Error('Este voucher já está cancelado.');
+    failDatabaseOperation('CONFLICT', 'Este voucher já está cancelado.', {
+      voucherId: voucher.id,
+      status: voucher.status,
+    });
   }
 
   const impact = calculateVoucherDeleteImpact(database, voucher.id);
@@ -86,15 +94,27 @@ export function updateVoucher(
   const voucher = requireVoucherById(database, input.voucherId);
 
   if (voucher.event_id !== eventId) {
-    throw new Error('O voucher não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'O voucher não pertence ao evento ativo.', {
+      voucherId: voucher.id,
+      voucherEventId: voucher.event_id,
+      activeEventId: eventId,
+    });
   }
 
   if (voucher.status === 'cancelled') {
-    throw new Error('Reative o voucher antes de editá-lo.');
+    failDatabaseOperation('INVALID_STATE', 'Reative o voucher antes de editá-lo.', {
+      voucherId: voucher.id,
+      status: voucher.status,
+      requiredStatus: 'active-or-exhausted',
+    });
   }
 
   if (!Number.isInteger(input.addedBalanceCents) || input.addedBalanceCents < 0) {
-    throw new Error('O acréscimo de saldo deve ser informado em centavos inteiros.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O acréscimo de saldo deve ser informado em centavos inteiros.',
+      { field: 'addedBalanceCents', value: input.addedBalanceCents },
+    );
   }
 
   const code = normalizeCode(input.code);
@@ -109,7 +129,11 @@ export function updateVoucher(
     .get(eventId, code, voucher.id);
 
   if (duplicate !== undefined) {
-    throw new Error('Já existe um voucher com esse código no evento.');
+    failDatabaseOperation('CONFLICT', 'Já existe um voucher com esse código no evento.', {
+      eventId,
+      voucherId: voucher.id,
+      code,
+    });
   }
 
   const nextInitialBalance = voucher.initial_balance_cents + input.addedBalanceCents;
