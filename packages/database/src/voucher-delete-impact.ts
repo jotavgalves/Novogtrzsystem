@@ -92,17 +92,17 @@ function listStockReturns(
     return [];
   }
 
-  const notes = orderIds.map((orderId) => `order:${orderId}`);
+  const saleNotes = orderIds.map((orderId) => `Venda da comanda ${orderId}`);
   const rows = database.sqlite
     .prepare(
       `SELECT sm.product_id, p.name AS product_name, SUM(sm.quantity) AS quantity
        FROM stock_movements sm
        INNER JOIN products p ON p.id = sm.product_id
-       WHERE sm.type = 'sale' AND sm.note IN (${placeholders(notes)})
+       WHERE sm.type = 'sale' AND sm.note IN (${placeholders(saleNotes)})
        GROUP BY sm.product_id, p.name
        ORDER BY p.name COLLATE NOCASE`,
     )
-    .all(...notes) as StockImpactRow[];
+    .all(...saleNotes) as StockImpactRow[];
 
   return rows.map((row) => ({
     productId: row.product_id,
