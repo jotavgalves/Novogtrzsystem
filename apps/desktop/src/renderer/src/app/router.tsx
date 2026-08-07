@@ -1,4 +1,4 @@
-import { createHashRouter, Navigate } from 'react-router';
+import { createHashRouter } from 'react-router';
 
 import { AuditPage } from '../features/audit';
 import { BackupsPage } from '../features/backups';
@@ -37,7 +37,7 @@ export const router = createHashRouter([
       },
       { path: 'estoque', element: <InventoryPage /> },
       { path: 'mesas', element: <TablesPage /> },
-      { path: '*', element: <Navigate replace to="/" /> },
+      { path: '*', element: <div className="route-state">Tela não encontrada.</div> },
     ],
   },
 ]);
