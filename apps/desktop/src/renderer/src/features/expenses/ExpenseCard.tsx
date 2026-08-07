@@ -151,7 +151,7 @@ export function ExpenseCard({
             />
           </label>
           <button
-            className="button button--secondary button--compact"
+            className="button button--secondary"
             disabled={
               busy ||
               parseCurrencyInput(paymentAmount) <= 0 ||
@@ -242,7 +242,7 @@ export function ExpenseCard({
             />
           </label>
           <button
-            className="button button--ghost button--compact"
+            className="button button--danger"
             disabled={busy || reason.trim().length < 3}
             type="submit"
           >
