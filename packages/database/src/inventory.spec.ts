@@ -169,7 +169,7 @@ describe('inventory database', () => {
     database.close();
   });
 
-  it('desativa combos dependentes na mesma transação da exclusão do produto', async () => {
+  it('desativa combos dependentes na mesma transação e correlação da exclusão do produto', async () => {
     const database = await createTemporaryDatabase();
     createEvent(database, { name: 'Evento dependência combo', startsAt: Date.now() });
     const { productId } = createCatalog(database);
@@ -193,16 +193,22 @@ describe('inventory database', () => {
     });
     const auditRows = database.sqlite
       .prepare(
-        `SELECT action, entity_id
+        `SELECT action, entity_id, correlation_id
          FROM audit_log
          WHERE action IN ('combo.deactivated-by-product-deletion', 'inventory.product-deleted')
          ORDER BY id`,
       )
-      .all();
-    expect(auditRows).toEqual([
+      .all() as {
+      readonly action: string;
+      readonly entity_id: string;
+      readonly correlation_id: string | null;
+    }[];
+    expect(auditRows.map(({ action, entity_id }) => ({ action, entity_id }))).toEqual([
       { action: 'combo.deactivated-by-product-deletion', entity_id: combo.id },
       { action: 'inventory.product-deleted', entity_id: productId },
     ]);
+    expect(auditRows[0]?.correlation_id).not.toBeNull();
+    expect(new Set(auditRows.map((row) => row.correlation_id)).size).toBe(1);
     database.close();
   });
 
