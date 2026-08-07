@@ -1,12 +1,27 @@
-import { Ban, CreditCard, RotateCcw, WalletCards } from 'lucide-react';
-import { useState } from 'react';
+import {
+  Ban,
+  CreditCard,
+  Eye,
+  Pencil,
+  RotateCcw,
+  Save,
+  WalletCards,
+  X,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-import type { Expense, PaymentMethod } from '@gtrz/contracts';
-import { formatCurrency, parseCurrencyInput } from '@gtrz/domain';
+import type {
+  Expense,
+  ExpenseCancelPreview,
+  PaymentMethod,
+  UpdateExpenseInput,
+} from '@gtrz/contracts';
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@gtrz/domain';
 
 interface ExpenseCardProps {
   readonly expense: Expense;
   readonly busy: boolean;
+  readonly onUpdate: (input: UpdateExpenseInput) => Promise<void>;
   readonly onPay: (
     expenseId: string,
     amountCents: number,
@@ -14,6 +29,7 @@ interface ExpenseCardProps {
     note?: string,
   ) => Promise<void>;
   readonly onRefundPayment: (paymentId: string, reason: string) => Promise<void>;
+  readonly onPreviewCancel: (expenseId: string) => Promise<ExpenseCancelPreview>;
   readonly onCancel: (expenseId: string, reason: string) => Promise<void>;
 }
 
@@ -34,8 +50,10 @@ const STATUS_LABELS = {
 export function ExpenseCard({
   expense,
   busy,
+  onUpdate,
   onPay,
   onRefundPayment,
+  onPreviewCancel,
   onCancel,
 }: ExpenseCardProps): React.JSX.Element {
   const [reason, setReason] = useState('');
@@ -43,7 +61,30 @@ export function ExpenseCard({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [paymentNote, setPaymentNote] = useState('');
   const [refundReasons, setRefundReasons] = useState<Readonly<Record<string, string>>>({});
+  const [editing, setEditing] = useState(false);
+  const [editCategory, setEditCategory] = useState(expense.category);
+  const [editDescription, setEditDescription] = useState(expense.description);
+  const [editTotal, setEditTotal] = useState(formatCurrencyInput(expense.totalCents));
+  const [editNote, setEditNote] = useState(expense.note ?? '');
+  const [cancelPreview, setCancelPreview] = useState<ExpenseCancelPreview | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const canPay = expense.status !== 'cancelled' && expense.pendingCents > 0;
+  const editTotalCents = parseCurrencyInput(editTotal);
+
+  useEffect(() => {
+    if (editing) {
+      return;
+    }
+
+    setEditCategory(expense.category);
+    setEditDescription(expense.description);
+    setEditTotal(formatCurrencyInput(expense.totalCents));
+    setEditNote(expense.note ?? '');
+  }, [editing, expense.category, expense.description, expense.note, expense.totalCents]);
+
+  useEffect(() => {
+    setCancelPreview(null);
+  }, [expense.updatedAt]);
 
   return (
     <article className="expense-card">
@@ -85,6 +126,113 @@ export function ExpenseCard({
       </div>
 
       {expense.note === null ? null : <p>{expense.note}</p>}
+
+      {expense.status !== 'cancelled' ? (
+        <div className="expense-card__admin-actions">
+          <button
+            className="button button--secondary button--compact"
+            disabled={busy}
+            onClick={() => {
+              setEditing((current) => !current);
+            }}
+            type="button"
+          >
+            {editing ? <X size={15} aria-hidden="true" /> : <Pencil size={15} aria-hidden="true" />}
+            {editing ? 'Fechar edição' : 'Editar despesa'}
+          </button>
+        </div>
+      ) : null}
+
+      {editing && expense.status !== 'cancelled' ? (
+        <form
+          className="expense-edit-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+
+            if (
+              editCategory.trim().length < 2 ||
+              editDescription.trim().length < 2 ||
+              editTotalCents <= 0 ||
+              editTotalCents < expense.paidCents
+            ) {
+              return;
+            }
+
+            const normalizedNote = editNote.trim();
+            void onUpdate({
+              expenseId: expense.id,
+              category: editCategory.trim(),
+              description: editDescription.trim(),
+              amountCents: editTotalCents,
+              ...(normalizedNote.length === 0 ? {} : { note: normalizedNote }),
+            });
+          }}
+        >
+          <label className="form-field">
+            <span>Categoria</span>
+            <input
+              disabled={busy}
+              maxLength={80}
+              onChange={(event) => {
+                setEditCategory(event.target.value);
+              }}
+              value={editCategory}
+            />
+          </label>
+          <label className="form-field">
+            <span>Descrição</span>
+            <input
+              disabled={busy}
+              maxLength={160}
+              onChange={(event) => {
+                setEditDescription(event.target.value);
+              }}
+              value={editDescription}
+            />
+          </label>
+          <label className="form-field">
+            <span>Valor total</span>
+            <input
+              aria-invalid={editTotalCents > 0 && editTotalCents < expense.paidCents}
+              disabled={busy}
+              inputMode="decimal"
+              onChange={(event) => {
+                setEditTotal(event.target.value);
+              }}
+              value={editTotal}
+            />
+            {editTotalCents > 0 && editTotalCents < expense.paidCents ? (
+              <small>O total não pode ficar abaixo de {formatCurrency(expense.paidCents)} já pagos.</small>
+            ) : null}
+          </label>
+          <label className="form-field">
+            <span>Observação</span>
+            <input
+              disabled={busy}
+              maxLength={240}
+              onChange={(event) => {
+                setEditNote(event.target.value);
+              }}
+              placeholder="Opcional"
+              value={editNote}
+            />
+          </label>
+          <button
+            className="button button--primary"
+            disabled={
+              busy ||
+              editCategory.trim().length < 2 ||
+              editDescription.trim().length < 2 ||
+              editTotalCents <= 0 ||
+              editTotalCents < expense.paidCents
+            }
+            type="submit"
+          >
+            <Save size={15} aria-hidden="true" />
+            Salvar alterações
+          </button>
+        </form>
+      ) : null}
 
       {canPay ? (
         <form
@@ -214,42 +362,105 @@ export function ExpenseCard({
       ) : null}
 
       {expense.status !== 'cancelled' ? (
-        <form
-          className="expense-cancel-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const normalizedReason = reason.trim();
-
-            if (normalizedReason.length < 3) {
-              return;
-            }
-
-            void onCancel(expense.id, normalizedReason).then(() => {
-              setReason('');
-            });
-          }}
-        >
-          <label className="form-field">
-            <span>Motivo do cancelamento</span>
-            <input
-              disabled={busy}
-              maxLength={240}
-              onChange={(event) => {
-                setReason(event.target.value);
+        <section className="expense-cancel-section">
+          {cancelPreview === null ? (
+            <button
+              className="button button--ghost"
+              disabled={busy || previewBusy}
+              onClick={() => {
+                setPreviewBusy(true);
+                void onPreviewCancel(expense.id)
+                  .then((preview) => {
+                    setCancelPreview(preview);
+                  })
+                  .finally(() => {
+                    setPreviewBusy(false);
+                  });
               }}
-              placeholder="Ex.: lançamento duplicado"
-              value={reason}
-            />
-          </label>
-          <button
-            className="button button--danger"
-            disabled={busy || reason.trim().length < 3}
-            type="submit"
-          >
-            <Ban size={15} aria-hidden="true" />
-            Cancelar despesa
-          </button>
-        </form>
+              type="button"
+            >
+              <Eye size={15} aria-hidden="true" />
+              {previewBusy ? 'Calculando impacto…' : 'Ver impacto do cancelamento'}
+            </button>
+          ) : (
+            <div className="expense-cancel-preview">
+              <div>
+                <strong>Impacto antes de cancelar</strong>
+                <small>
+                  {cancelPreview.activePaymentCount} pagamento(s) ativo(s) serão estornados e o histórico será preservado.
+                </small>
+              </div>
+              <dl>
+                <div>
+                  <dt>Total da obrigação</dt>
+                  <dd>{formatCurrency(cancelPreview.totalCents)}</dd>
+                </div>
+                <div>
+                  <dt>Total já pago a estornar</dt>
+                  <dd>{formatCurrency(cancelPreview.refundTotalCents)}</dd>
+                </div>
+                <div>
+                  <dt>Impacto em dinheiro</dt>
+                  <dd>{formatCurrency(cancelPreview.refundCashCents)}</dd>
+                </div>
+                <div>
+                  <dt>Outros meios</dt>
+                  <dd>{formatCurrency(cancelPreview.refundDigitalCents)}</dd>
+                </div>
+              </dl>
+              <form
+                className="expense-cancel-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const normalizedReason = reason.trim();
+
+                  if (normalizedReason.length < 3) {
+                    return;
+                  }
+
+                  void onCancel(expense.id, normalizedReason).then(() => {
+                    setReason('');
+                    setCancelPreview(null);
+                  });
+                }}
+              >
+                <label className="form-field">
+                  <span>Motivo do cancelamento</span>
+                  <input
+                    disabled={busy}
+                    maxLength={240}
+                    onChange={(event) => {
+                      setReason(event.target.value);
+                    }}
+                    placeholder="Ex.: lançamento duplicado"
+                    value={reason}
+                  />
+                </label>
+                <div className="expense-cancel-form__actions">
+                  <button
+                    className="button button--ghost"
+                    disabled={busy}
+                    onClick={() => {
+                      setCancelPreview(null);
+                      setReason('');
+                    }}
+                    type="button"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    className="button button--danger"
+                    disabled={busy || reason.trim().length < 3}
+                    type="submit"
+                  >
+                    <Ban size={15} aria-hidden="true" />
+                    Confirmar cancelamento
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </section>
       ) : null}
     </article>
   );
