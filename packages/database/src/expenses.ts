@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { requireOperationReason } from './operation-validation';
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseContext } from './types';
 
@@ -41,6 +42,26 @@ export interface DatabaseExpense {
 export interface DatabaseExpenseState {
   readonly activeEventId: string | null;
   readonly expenses: readonly DatabaseExpense[];
+}
+
+export interface DatabaseExpenseCancelPreview {
+  readonly expenseId: string;
+  readonly category: string;
+  readonly description: string;
+  readonly status: 'open' | 'partial' | 'paid';
+  readonly totalCents: number;
+  readonly paidCents: number;
+  readonly pendingCents: number;
+  readonly activePaymentCount: number;
+  readonly refundTotalCents: number;
+  readonly refundCashCents: number;
+  readonly refundDigitalCents: number;
+  readonly activePayments: readonly {
+    readonly id: string;
+    readonly paymentMethod: DatabasePaymentMethod;
+    readonly amountCents: number;
+    readonly note: string | null;
+  }[];
 }
 
 interface ExpenseRow {
@@ -278,9 +299,14 @@ export function createExpense(
     throw new Error('O pagamento inicial deve ficar entre zero e o total da despesa.');
   }
 
-  const expenseId = randomUUID();
   const category = input.category.trim();
   const description = input.description.trim();
+
+  if (category.length < 2 || description.length < 2) {
+    throw new Error('Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.');
+  }
+
+  const expenseId = randomUUID();
   const note = normalizeOptionalText(input.note);
   const now = Date.now();
 
@@ -320,18 +346,100 @@ export function createExpense(
       entityType: 'expense',
       entityId: expenseId,
       eventId,
-      details: {
+      after: {
         category,
         description,
         initialPaymentCents,
         note,
-        paymentMethod: input.paymentMethod,
         totalCents: input.amountCents,
       },
+      impact: { paidCents: initialPaymentCents },
+      details: { paymentMethod: input.paymentMethod },
     });
   })();
 
   return getExpenseWithPayments(database, expenseId);
+}
+
+export function updateExpense(
+  database: DatabaseContext,
+  input: {
+    readonly expenseId: string;
+    readonly category: string;
+    readonly description: string;
+    readonly amountCents: number;
+    readonly note?: string;
+  },
+): DatabaseExpense {
+  requireProduction(database);
+  const eventId = requireActiveEvent(database);
+  const expense = getExpenseWithPayments(database, input.expenseId);
+
+  if (expense.eventId !== eventId) {
+    throw new Error('A despesa não pertence ao evento ativo.');
+  }
+
+  if (expense.status === 'cancelled') {
+    throw new Error('Despesa cancelada não pode ser editada.');
+  }
+
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw new Error('O valor total da despesa deve ser positivo.');
+  }
+
+  if (input.amountCents < expense.paidCents) {
+    throw new Error('O valor total não pode ficar abaixo do valor já pago.');
+  }
+
+  const category = input.category.trim();
+  const description = input.description.trim();
+
+  if (category.length < 2 || description.length < 2) {
+    throw new Error('Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.');
+  }
+
+  const note = normalizeOptionalText(input.note);
+  const now = Date.now();
+  const nextPendingCents = input.amountCents - expense.paidCents;
+  const nextStatus: DatabaseExpenseStatus =
+    expense.paidCents === 0 ? 'open' : nextPendingCents === 0 ? 'paid' : 'partial';
+
+  database.sqlite.transaction(() => {
+    database.sqlite
+      .prepare(
+        `UPDATE expenses
+         SET category = ?, description = ?, amount_cents = ?, note = ?, updated_at = ?
+         WHERE id = ?`,
+      )
+      .run(category, description, input.amountCents, note, now, expense.id);
+    appendAudit(database, {
+      action: 'expense.updated',
+      entityType: 'expense',
+      entityId: expense.id,
+      eventId,
+      before: {
+        category: expense.category,
+        description: expense.description,
+        note: expense.note,
+        paidCents: expense.paidCents,
+        pendingCents: expense.pendingCents,
+        status: expense.status,
+        totalCents: expense.totalCents,
+      },
+      after: {
+        category,
+        description,
+        note,
+        paidCents: expense.paidCents,
+        pendingCents: nextPendingCents,
+        status: nextStatus,
+        totalCents: input.amountCents,
+      },
+      impact: { totalDifferenceCents: input.amountCents - expense.totalCents },
+    });
+  })();
+
+  return getExpenseWithPayments(database, expense.id);
 }
 
 export function payExpense(
@@ -365,6 +473,10 @@ export function payExpense(
 
   const note = normalizeOptionalText(input.note);
   const now = Date.now();
+  const nextPaidCents = expense.paidCents + input.amountCents;
+  const nextPendingCents = expense.totalCents - nextPaidCents;
+  const nextStatus: DatabaseExpenseStatus = nextPendingCents === 0 ? 'paid' : 'partial';
+
   database.sqlite.transaction(() => {
     const paymentId = insertExpensePayment(database, {
       eventId,
@@ -380,12 +492,14 @@ export function payExpense(
       entityType: 'expense',
       entityId: expense.id,
       eventId,
-      details: {
-        amountCents: input.amountCents,
-        before: { paidCents: expense.paidCents, pendingCents: expense.pendingCents },
-        paymentId,
-        paymentMethod: input.paymentMethod,
+      before: {
+        paidCents: expense.paidCents,
+        pendingCents: expense.pendingCents,
+        status: expense.status,
       },
+      after: { paidCents: nextPaidCents, pendingCents: nextPendingCents, status: nextStatus },
+      impact: { amountCents: input.amountCents, paymentMethod: input.paymentMethod },
+      details: { paymentId, note },
     });
   })();
 
@@ -425,8 +539,13 @@ export function refundExpensePayment(
     throw new Error('Despesa cancelada não pode ter parcela estornada isoladamente.');
   }
 
-  const reason = input.reason.trim();
+  const reason = requireOperationReason(input.reason);
   const now = Date.now();
+  const correlationId = randomUUID();
+  const nextPaidCents = expense.paidCents - payment.amount_cents;
+  const nextPendingCents = expense.totalCents - nextPaidCents;
+  const nextStatus: DatabaseExpenseStatus = nextPaidCents === 0 ? 'open' : 'partial';
+
   database.sqlite.transaction(() => {
     database.sqlite
       .prepare(
@@ -438,24 +557,38 @@ export function refundExpensePayment(
     database.sqlite.prepare('UPDATE expenses SET updated_at = ? WHERE id = ?').run(now, expense.id);
     appendAudit(database, {
       action: 'expense.payment-refunded',
+      entityType: 'expense-payment',
+      entityId: payment.id,
+      eventId,
+      correlationId,
+      before: { status: payment.status },
+      after: { status: 'refunded', refundedAt: now },
+      impact: { amountCents: payment.amount_cents, paymentMethod: payment.payment_method },
+      details: { expenseId: expense.id, reason },
+    });
+    appendAudit(database, {
+      action: 'expense.recalculated-after-refund',
       entityType: 'expense',
       entityId: expense.id,
       eventId,
-      details: {
-        amountCents: payment.amount_cents,
-        paymentId: payment.id,
-        reason,
+      correlationId,
+      before: {
+        paidCents: expense.paidCents,
+        pendingCents: expense.pendingCents,
+        status: expense.status,
       },
+      after: { paidCents: nextPaidCents, pendingCents: nextPendingCents, status: nextStatus },
+      impact: { refundedCents: payment.amount_cents },
     });
   })();
 
   return getExpenseWithPayments(database, expense.id);
 }
 
-export function cancelExpense(
+export function previewCancelExpense(
   database: DatabaseContext,
-  input: { readonly expenseId: string; readonly reason: string },
-): DatabaseExpense {
+  input: { readonly expenseId: string },
+): DatabaseExpenseCancelPreview {
   requireProduction(database);
   const eventId = requireActiveEvent(database);
   const expense = getExpenseWithPayments(database, input.expenseId);
@@ -468,9 +601,71 @@ export function cancelExpense(
     throw new Error('Esta despesa já foi cancelada.');
   }
 
-  const reason = input.reason.trim();
+  const activePayments = expense.payments
+    .filter((payment) => payment.status === 'active')
+    .map((payment) => ({
+      id: payment.id,
+      paymentMethod: payment.paymentMethod,
+      amountCents: payment.amountCents,
+      note: payment.note,
+    }));
+  const refundCashCents = activePayments
+    .filter((payment) => payment.paymentMethod === 'cash')
+    .reduce((total, payment) => total + payment.amountCents, 0);
+  const refundTotalCents = activePayments.reduce(
+    (total, payment) => total + payment.amountCents,
+    0,
+  );
+
+  return {
+    expenseId: expense.id,
+    category: expense.category,
+    description: expense.description,
+    status: expense.status,
+    totalCents: expense.totalCents,
+    paidCents: expense.paidCents,
+    pendingCents: expense.pendingCents,
+    activePaymentCount: activePayments.length,
+    refundTotalCents,
+    refundCashCents,
+    refundDigitalCents: refundTotalCents - refundCashCents,
+    activePayments,
+  };
+}
+
+export function cancelExpense(
+  database: DatabaseContext,
+  input: { readonly expenseId: string; readonly reason: string },
+): DatabaseExpense {
+  const preview = previewCancelExpense(database, input);
+  const expense = getExpenseWithPayments(database, preview.expenseId);
+  const reason = requireOperationReason(input.reason);
+  const eventId = requireActiveEvent(database);
+  const correlationId = randomUUID();
   const now = Date.now();
+
   database.sqlite.transaction(() => {
+    const refundPayment = database.sqlite.prepare(
+      `UPDATE expense_payments
+       SET status = 'refunded', refunded_at = ?
+       WHERE id = ? AND status = 'active'`,
+    );
+
+    for (const payment of preview.activePayments) {
+      refundPayment.run(now, payment.id);
+      appendAudit(database, {
+        action: 'expense.payment-refunded-by-cancellation',
+        entityType: 'expense-payment',
+        entityId: payment.id,
+        eventId,
+        correlationId,
+        before: { status: 'active' },
+        after: { status: 'refunded', refundedAt: now },
+        impact: { amountCents: payment.amountCents, paymentMethod: payment.paymentMethod },
+        details: { expenseId: expense.id, reason },
+      });
+    }
+
     database.sqlite
       .prepare(
         `UPDATE expenses
@@ -483,15 +678,24 @@ export function cancelExpense(
       entityType: 'expense',
       entityId: expense.id,
       eventId,
-      details: {
-        before: {
-          paidCents: expense.paidCents,
-          pendingCents: expense.pendingCents,
-          status: expense.status,
-          totalCents: expense.totalCents,
-        },
-        reason,
+      correlationId,
+      before: {
+        category: expense.category,
+        description: expense.description,
+        note: expense.note,
+        paidCents: expense.paidCents,
+        pendingCents: expense.pendingCents,
+        status: expense.status,
+        totalCents: expense.totalCents,
       },
+      after: {
+        paidCents: 0,
+        pendingCents: 0,
+        status: 'cancelled',
+        totalCents: expense.totalCents,
+      },
+      impact: preview,
+      details: { reason },
     });
   })();
 
