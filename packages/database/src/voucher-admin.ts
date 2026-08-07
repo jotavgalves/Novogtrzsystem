@@ -4,7 +4,6 @@ import { appendAudit } from './audit';
 import { cancelOrder } from './operation-cancellation';
 import { requireOperationReason } from './operation-validation';
 import type { DatabaseContext } from './types';
-import { listAvailableVouchersForServicePoint } from './voucher-checkout-query';
 import {
   calculateVoucherDeleteImpact,
   type DatabaseVoucherDeleteFinancialImpact,
