@@ -1,6 +1,6 @@
 import type { DatabaseContext } from './types';
 
-export interface DatabaseDashboardAggregates {
+interface DatabaseDashboardAggregates {
   readonly grossRevenueCents: number;
   readonly discountsCents: number;
   readonly netRevenueCents: number;
