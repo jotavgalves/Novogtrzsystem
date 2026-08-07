@@ -119,20 +119,24 @@ describe('service point deletion', () => {
       reason: 'Mesa removida do mapa do evento',
     });
 
-    expect(getOperationState(database).servicePoints.some((item) => item.id === seeded.tableId)).toBe(
-      false,
-    );
+    expect(
+      getOperationState(database).servicePoints.some((item) => item.id === seeded.tableId),
+    ).toBe(false);
     expect(getOrder(database, seeded.paidOrderId).status).toBe('paid');
     expect(getOrder(database, open.id).status).toBe('cancelled');
     expect(getStock(database, seeded.eventId, seeded.productId)).toBe(4);
-    expect(getVoucherState(database).vouchers.find((item) => item.id === seeded.voucherId)).toMatchObject({
+    expect(
+      getVoucherState(database).vouchers.find((item) => item.id === seeded.voucherId),
+    ).toMatchObject({
       remainingBalanceCents: 1000,
       linkedServicePointId: null,
       linkedServicePointLabel: null,
     });
     expect(
       database.sqlite
-        .prepare("SELECT COUNT(*) AS value FROM audit_log WHERE action = 'operations.service-point-deleted'")
+        .prepare(
+          "SELECT COUNT(*) AS value FROM audit_log WHERE action = 'operations.service-point-deleted'",
+        )
         .get(),
     ).toEqual({ value: 1 });
     database.close();
@@ -150,7 +154,9 @@ describe('service point deletion', () => {
 
     expect(getOrder(database, seeded.paidOrderId).status).toBe('cancelled');
     expect(getStock(database, seeded.eventId, seeded.productId)).toBe(5);
-    expect(getVoucherState(database).vouchers.find((item) => item.id === seeded.voucherId)).toMatchObject({
+    expect(
+      getVoucherState(database).vouchers.find((item) => item.id === seeded.voucherId),
+    ).toMatchObject({
       remainingBalanceCents: 2000,
       linkedServicePointId: null,
       linkedServicePointLabel: null,
@@ -174,9 +180,9 @@ describe('service point deletion', () => {
       throw new Error('Balcão permanente não foi criado.');
     }
 
-    expect(() =>
-      previewDeleteServicePoint(database, { servicePointId: counter.id }),
-    ).toThrow('O balcão permanente não pode ser excluído.');
+    expect(() => previewDeleteServicePoint(database, { servicePointId: counter.id })).toThrow(
+      'O balcão permanente não pode ser excluído.',
+    );
 
     deleteServicePoint(database, {
       servicePointId: table.id,

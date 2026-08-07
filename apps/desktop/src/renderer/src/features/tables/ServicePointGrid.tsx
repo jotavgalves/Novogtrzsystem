@@ -1,11 +1,4 @@
-import {
-  Armchair,
-  CheckCircle2,
-  RotateCcw,
-  ShoppingBasket,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Armchair, CheckCircle2, RotateCcw, ShoppingBasket, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type {
@@ -92,7 +85,9 @@ export function ServicePointGrid({
           return (
             <div className="service-point-entry" key={servicePoint.id}>
               <button
-                className={open ? 'service-point-card service-point-card--open' : 'service-point-card'}
+                className={
+                  open ? 'service-point-card service-point-card--open' : 'service-point-card'
+                }
                 disabled={busy}
                 onClick={() => {
                   void onOpen(servicePoint);
@@ -139,8 +134,8 @@ export function ServicePointGrid({
               <span className="eyebrow">Exclusão de mesa</span>
               <h2>Excluir {deletePreview.label}?</h2>
               <p>
-                Escolha o que fazer com as vendas já concluídas. Se existir uma comanda aberta,
-                ela será cancelada nos dois modos antes de a mesa sair da operação.
+                Escolha o que fazer com as vendas já concluídas. Se existir uma comanda aberta, ela
+                será cancelada nos dois modos antes de a mesa sair da operação.
               </p>
             </div>
             <button
@@ -261,7 +256,9 @@ export function ServicePointGrid({
               type="button"
             >
               <Trash2 size={16} aria-hidden="true" />
-              {deleteMode === 'refund-sales' ? 'Excluir e estornar vendas' : 'Excluir e manter vendas'}
+              {deleteMode === 'refund-sales'
+                ? 'Excluir e estornar vendas'
+                : 'Excluir e manter vendas'}
             </button>
             <button
               className="button button--ghost"

@@ -120,11 +120,7 @@ export function useOperations(): OperationsViewState {
   );
 
   const deleteTable = useCallback(
-    async (
-      servicePointId: string,
-      mode: ServicePointDeleteMode,
-      reason: string,
-    ): Promise<void> => {
+    async (servicePointId: string, mode: ServicePointDeleteMode, reason: string): Promise<void> => {
       const successMessage =
         mode === 'refund-sales'
           ? 'Mesa excluída e vendas estornadas. Estoque e vouchers foram recompostos.'
