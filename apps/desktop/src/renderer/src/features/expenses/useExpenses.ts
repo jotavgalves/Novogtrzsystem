@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { CreateExpenseInput, ExpenseState, PaymentMethod } from '@gtrz/contracts';
+import type {
+  CreateExpenseInput,
+  ExpenseCancelPreview,
+  ExpenseState,
+  PaymentMethod,
+  UpdateExpenseInput,
+} from '@gtrz/contracts';
 
 interface ExpenseViewState {
   readonly state: ExpenseState | null;
@@ -10,6 +16,7 @@ interface ExpenseViewState {
   readonly message: string | null;
   readonly reload: () => Promise<void>;
   readonly createExpense: (input: CreateExpenseInput) => Promise<void>;
+  readonly updateExpense: (input: UpdateExpenseInput) => Promise<void>;
   readonly payExpense: (
     expenseId: string,
     amountCents: number,
@@ -17,6 +24,7 @@ interface ExpenseViewState {
     note?: string,
   ) => Promise<void>;
   readonly refundExpensePayment: (paymentId: string, reason: string) => Promise<void>;
+  readonly previewCancelExpense: (expenseId: string) => Promise<ExpenseCancelPreview>;
   readonly cancelExpense: (expenseId: string, reason: string) => Promise<void>;
 }
 
@@ -60,6 +68,7 @@ export function useExpenses(): ExpenseViewState {
         setMessage(successMessage);
       } catch (operationError: unknown) {
         setError(getErrorMessage(operationError));
+        throw operationError;
       } finally {
         setBusy(false);
       }
@@ -70,6 +79,13 @@ export function useExpenses(): ExpenseViewState {
   const createExpense = useCallback(
     async (input: CreateExpenseInput): Promise<void> => {
       await run(() => window.gtrz.expenses.create(input), 'Despesa registrada.');
+    },
+    [run],
+  );
+
+  const updateExpense = useCallback(
+    async (input: UpdateExpenseInput): Promise<void> => {
+      await run(() => window.gtrz.expenses.update(input), 'Despesa atualizada.');
     },
     [run],
   );
@@ -100,6 +116,19 @@ export function useExpenses(): ExpenseViewState {
     [run],
   );
 
+  const previewCancelExpense = useCallback(
+    async (expenseId: string): Promise<ExpenseCancelPreview> => {
+      setError(null);
+      try {
+        return await window.gtrz.expenses.previewCancel({ expenseId });
+      } catch (previewError: unknown) {
+        setError(getErrorMessage(previewError));
+        throw previewError;
+      }
+    },
+    [],
+  );
+
   const cancelExpense = useCallback(
     async (expenseId: string, reason: string): Promise<void> => {
       await run(() => window.gtrz.expenses.cancel({ expenseId, reason }), 'Despesa cancelada.');
@@ -115,8 +144,10 @@ export function useExpenses(): ExpenseViewState {
     message,
     reload,
     createExpense,
+    updateExpense,
     payExpense,
     refundExpensePayment,
+    previewCancelExpense,
     cancelExpense,
   };
 }
