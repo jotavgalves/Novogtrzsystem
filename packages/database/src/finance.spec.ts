@@ -214,7 +214,9 @@ describe('cash and expenses database', () => {
          WHERE action = 'expense.updated' AND entity_id = ?
          ORDER BY id DESC LIMIT 1`,
       )
-      .get(expense.id) as { readonly before_json: string; readonly after_json: string } | undefined;
+      .get(expense.id) as
+      | { readonly before_json: string; readonly after_json: string }
+      | undefined;
     expect(JSON.parse(audit?.before_json ?? '{}')).toMatchObject({ totalCents: 1000 });
     expect(JSON.parse(audit?.after_json ?? '{}')).toMatchObject({
       totalCents: 1200,
@@ -290,7 +292,9 @@ describe('cash and expenses database', () => {
       .all(expense.id) as { readonly action: string; readonly correlation_id: string | null }[];
     const correlationIds = new Set(auditRows.map((row) => row.correlation_id));
     expect(correlationIds.size).toBe(1);
-    expect(auditRows.filter((row) => row.action === 'expense.payment-refunded-by-cancellation')).toHaveLength(2);
+    expect(
+      auditRows.filter((row) => row.action === 'expense.payment-refunded-by-cancellation'),
+    ).toHaveLength(2);
     expect(() => previewCancelExpense(database, { expenseId: expense.id })).toThrow(
       'Esta despesa já foi cancelada.',
     );
