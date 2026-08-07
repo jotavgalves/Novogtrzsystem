@@ -201,6 +201,28 @@
   margin: 0;
 }
 
+.expense-card__admin-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.expense-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+
+.expense-edit-form > .button {
+  grid-column: 1 / -1;
+  justify-self: flex-start;
+  min-height: 2.75rem;
+}
+
 .expense-payment-form {
   display: grid;
   grid-template-columns: minmax(7rem, 0.8fr) minmax(7rem, 0.7fr) minmax(0, 1fr) auto;
@@ -243,17 +265,70 @@
   box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
+.expense-cancel-section {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.expense-cancel-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger-soft);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+
+.expense-cancel-preview > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.expense-cancel-preview small,
+.expense-cancel-preview dt {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.expense-cancel-preview dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.expense-cancel-preview dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.expense-cancel-preview dd {
+  margin: 0;
+  font-weight: 800;
+}
+
 .expense-cancel-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
+}
+
+.expense-cancel-form__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .expense-payment-form > .button,
-.expense-cancel-form > .button {
+.expense-cancel-form > .button,
+.expense-cancel-form__actions > .button {
   min-height: 2.75rem;
 }
 
@@ -271,10 +346,16 @@
   .finance-inline-form,
   .finance-movement-form,
   .expense-form__row,
+  .expense-edit-form,
   .expense-payment-form,
   .expense-payment-row,
   .expense-cancel-form,
+  .expense-cancel-preview dl,
   .cash-movement-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .expense-cancel-form__actions {
+    flex-wrap: wrap;
   }
 }
