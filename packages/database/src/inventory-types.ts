@@ -1,3 +1,4 @@
+// Tipos canônicos compartilhados pelas regras de cadastro e movimentação de estoque.
 export type DatabaseProductKind = 'food' | 'drink';
 
 export type DatabaseStockMovementType =
