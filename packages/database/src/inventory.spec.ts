@@ -163,9 +163,9 @@ describe('inventory database', () => {
       active: false,
       quantity: 4,
     });
-    expect(() =>
-      deleteProduct(database, { productId, reason: 'Excluir novamente' }),
-    ).toThrow('Este produto já está inativo.');
+    expect(() => deleteProduct(database, { productId, reason: 'Excluir novamente' })).toThrow(
+      'Este produto já está inativo.',
+    );
     database.close();
   });
 
