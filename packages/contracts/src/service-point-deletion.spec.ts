@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  deleteServicePointInputSchema,
-  servicePointDeletePreviewSchema,
-} from './operations';
+import { deleteServicePointInputSchema, servicePointDeletePreviewSchema } from './operations';
 
 describe('service point deletion contracts', () => {
   it('aceita os dois modos explícitos de exclusão de mesa', () => {
