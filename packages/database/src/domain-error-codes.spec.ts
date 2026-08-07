@@ -8,8 +8,10 @@ import {
   createEvent,
   createInventoryProduct,
   createProductCategory,
+  createVoucher,
   openDatabase,
   recordStockMovement,
+  redeemVouchers,
   switchProfile,
   type DatabaseContext,
 } from './index';
@@ -33,7 +35,7 @@ afterEach(async () => {
 
 function expectDatabaseError(
   operation: () => unknown,
-  expectedCode: 'FORBIDDEN' | 'NOT_FOUND' | 'INSUFFICIENT_STOCK',
+  expectedCode: 'FORBIDDEN' | 'NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'INSUFFICIENT_BALANCE',
 ): Readonly<Record<string, unknown>> | null {
   try {
     operation();
@@ -54,9 +56,9 @@ describe('stable domain error codes', () => {
     const database = await createTemporaryDatabase();
     const event = createEvent(database, { name: 'Evento erros', startsAt: Date.now() });
 
-    expect(expectDatabaseError(() => requireTicketLot(database, event.id, 'missing'), 'NOT_FOUND')).toEqual(
-      { eventId: event.id, lotId: 'missing' },
-    );
+    expect(
+      expectDatabaseError(() => requireTicketLot(database, event.id, 'missing'), 'NOT_FOUND'),
+    ).toEqual({ eventId: event.id, lotId: 'missing' });
 
     switchProfile(database, 'cashier');
     expect(expectDatabaseError(() => requireTicketProduction(database), 'FORBIDDEN')).toEqual({
@@ -90,6 +92,36 @@ describe('stable domain error codes', () => {
       itemId: product.id,
       requestedQuantity: 2,
       availableQuantity: 1,
+    });
+    database.close();
+  });
+
+  it('expõe saldo de voucher insuficiente sem analisar a mensagem formatada', async () => {
+    const database = await createTemporaryDatabase();
+    const event = createEvent(database, { name: 'Evento voucher tipado', startsAt: Date.now() });
+    const voucher = createVoucher(database, {
+      code: 'SALDO-200',
+      label: 'Saldo limitado',
+      initialBalanceCents: 200,
+    });
+
+    expect(
+      expectDatabaseError(
+        () =>
+          redeemVouchers(
+            database,
+            event.id,
+            'ordem-ainda-nao-persistida',
+            [{ code: voucher.code, amountCents: 300 }],
+            Date.now(),
+          ),
+        'INSUFFICIENT_BALANCE',
+      ),
+    ).toMatchObject({
+      voucherId: voucher.id,
+      code: voucher.code,
+      requestedCents: 300,
+      availableCents: 200,
     });
     database.close();
   });

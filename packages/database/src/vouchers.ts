@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import type { DatabaseContext } from './types';
 import type {
   DatabaseVoucher,
@@ -67,7 +68,9 @@ interface RefundRow {
 
 export function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('A administração de vouchers exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'A administração de vouchers exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -75,7 +78,11 @@ export function requireActiveEvent(database: DatabaseContext): string {
   const eventId = getSessionState(database).activeEvent?.id;
 
   if (eventId === undefined) {
-    throw new Error('Selecione um evento aberto antes de administrar vouchers.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de administrar vouchers.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return eventId;
@@ -131,7 +138,7 @@ export function requireVoucherById(database: DatabaseContext, voucherId: string)
     .get(voucherId) as VoucherRow | undefined;
 
   if (row === undefined) {
-    throw new Error('O voucher informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O voucher informado não existe.', { voucherId });
   }
 
   return row;
@@ -142,6 +149,7 @@ function requireVoucherByCode(
   eventId: string,
   code: string,
 ): VoucherRow {
+  const normalizedCode = normalizeCode(code);
   const row = database.sqlite
     .prepare(
       `SELECT id, event_id, code, label, linked_service_point_id, linked_service_point_label,
@@ -149,10 +157,13 @@ function requireVoucherByCode(
        FROM vouchers
        WHERE event_id = ? AND code = ? COLLATE NOCASE`,
     )
-    .get(eventId, normalizeCode(code)) as VoucherRow | undefined;
+    .get(eventId, normalizedCode) as VoucherRow | undefined;
 
   if (row === undefined) {
-    throw new Error(`Voucher ${normalizeCode(code)} não encontrado neste evento.`);
+    failDatabaseOperation('NOT_FOUND', `Voucher ${normalizedCode} não encontrado neste evento.`, {
+      eventId,
+      code: normalizedCode,
+    });
   }
 
   return row;
@@ -243,11 +254,17 @@ export function createVoucher(
     .get(eventId, code);
 
   if (duplicate !== undefined) {
-    throw new Error('Já existe um voucher com esse código no evento.');
+    failDatabaseOperation('CONFLICT', 'Já existe um voucher com esse código no evento.', {
+      eventId,
+      code,
+    });
   }
 
   if (!Number.isInteger(input.initialBalanceCents) || input.initialBalanceCents <= 0) {
-    throw new Error('O saldo inicial do voucher deve ser positivo.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O saldo inicial do voucher deve ser positivo.', {
+      field: 'initialBalanceCents',
+      value: input.initialBalanceCents,
+    });
   }
 
   const voucherId = randomUUID();
@@ -311,11 +328,18 @@ export function changeVoucherStatus(
   const voucher = requireVoucherById(database, input.voucherId);
 
   if (voucher.event_id !== eventId) {
-    throw new Error('O voucher não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'O voucher não pertence ao evento ativo.', {
+      voucherId: voucher.id,
+      voucherEventId: voucher.event_id,
+      activeEventId: eventId,
+    });
   }
 
   if (input.status === 'active' && voucher.remaining_balance_cents === 0) {
-    throw new Error('Um voucher sem saldo não pode ser reativado.');
+    failDatabaseOperation('INVALID_STATE', 'Um voucher sem saldo não pode ser reativado.', {
+      voucherId: voucher.id,
+      remainingBalanceCents: 0,
+    });
   }
 
   if (voucher.status === input.status) {
@@ -361,23 +385,41 @@ export function redeemVouchers(
   const normalizedCodes = uses.map((use) => normalizeCode(use.code));
 
   if (new Set(normalizedCodes).size !== normalizedCodes.length) {
-    throw new Error('O mesmo voucher não pode ser informado duas vezes na comanda.');
+    failDatabaseOperation('CONFLICT', 'O mesmo voucher não pode ser informado duas vezes na comanda.', {
+      eventId,
+      orderId,
+      codes: normalizedCodes,
+    });
   }
 
   return uses.map((use) => {
     if (!Number.isInteger(use.amountCents) || use.amountCents <= 0) {
-      throw new Error('O valor utilizado do voucher deve ser positivo.');
+      failDatabaseOperation('VALIDATION_ERROR', 'O valor utilizado do voucher deve ser positivo.', {
+        field: 'amountCents',
+        value: use.amountCents,
+      });
     }
 
     const voucher = requireVoucherByCode(database, eventId, use.code);
 
     if (voucher.status !== 'active') {
-      throw new Error(`O voucher ${voucher.code} não está ativo.`);
+      failDatabaseOperation('INVALID_STATE', `O voucher ${voucher.code} não está ativo.`, {
+        voucherId: voucher.id,
+        code: voucher.code,
+        status: voucher.status,
+      });
     }
 
     if (voucher.remaining_balance_cents < use.amountCents) {
-      throw new Error(
+      failDatabaseOperation(
+        'INSUFFICIENT_BALANCE',
         `Saldo insuficiente no voucher ${voucher.code}. Disponível: ${formatMoney(voucher.remaining_balance_cents)}.`,
+        {
+          voucherId: voucher.id,
+          code: voucher.code,
+          requestedCents: use.amountCents,
+          availableCents: voucher.remaining_balance_cents,
+        },
       );
     }
 
@@ -442,7 +484,10 @@ export function refundOrderVouchers(
     .get(orderId);
 
   if (alreadyRefunded !== undefined) {
-    throw new Error('Os vouchers desta comanda já foram restituídos.');
+    failDatabaseOperation('CONFLICT', 'Os vouchers desta comanda já foram restituídos.', {
+      eventId,
+      orderId,
+    });
   }
 
   const redemptions = listOrderVoucherRedemptions(database, orderId);
@@ -451,13 +496,26 @@ export function refundOrderVouchers(
     const voucher = requireVoucherById(database, redemption.voucherId);
 
     if (voucher.event_id !== eventId) {
-      throw new Error('Um voucher utilizado não pertence ao evento da comanda.');
+      failDatabaseOperation('INVALID_STATE', 'Um voucher utilizado não pertence ao evento da comanda.', {
+        voucherId: voucher.id,
+        voucherEventId: voucher.event_id,
+        orderEventId: eventId,
+        orderId,
+      });
     }
 
     const nextBalance = voucher.remaining_balance_cents + redemption.amountCents;
 
     if (nextBalance > voucher.initial_balance_cents) {
-      throw new Error(`A restituição ultrapassaria o saldo inicial do voucher ${voucher.code}.`);
+      failDatabaseOperation(
+        'INTEGRITY_ERROR',
+        `A restituição ultrapassaria o saldo inicial do voucher ${voucher.code}.`,
+        {
+          voucherId: voucher.id,
+          initialBalanceCents: voucher.initial_balance_cents,
+          attemptedBalanceCents: nextBalance,
+        },
+      );
     }
 
     const nextStatus: DatabaseVoucherStatus =
