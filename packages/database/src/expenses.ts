@@ -16,6 +16,8 @@ import {
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseContext } from './types';
 
+export { cancelExpense, previewCancelExpense, refundExpensePayment } from './expense-cancellation';
+export type { DatabaseExpenseCancelPreview } from './expense-cancellation';
 export type {
   DatabaseExpense,
   DatabaseExpensePayment,
