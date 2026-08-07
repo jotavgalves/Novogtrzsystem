@@ -68,7 +68,11 @@ describe('stable domain error codes', () => {
     ).toEqual({ eventId: event.id, lotId: 'missing' });
 
     switchProfile(database, 'cashier');
-    expect(expectDatabaseError(() => requireTicketProduction(database), 'FORBIDDEN')).toEqual({
+    expect(
+      expectDatabaseError(() => {
+        requireTicketProduction(database);
+      }, 'FORBIDDEN'),
+    ).toEqual({
       requiredProfile: 'production',
     });
     database.close();

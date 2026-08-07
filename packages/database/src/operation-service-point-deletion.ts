@@ -59,7 +59,7 @@ function requireActiveTable(database: DatabaseContext, servicePointId: string): 
     )
     .get(servicePointId) as ServicePointRow | undefined;
 
-  if (servicePoint === undefined || servicePoint.event_id !== eventId) {
+  if (servicePoint?.event_id !== eventId) {
     failDatabaseOperation('NOT_FOUND', 'A mesa informada não existe no evento ativo.', {
       servicePointId,
       eventId,

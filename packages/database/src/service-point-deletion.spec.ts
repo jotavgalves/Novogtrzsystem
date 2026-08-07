@@ -207,9 +207,10 @@ describe('service point deletion', () => {
     deleteEvent(database, { eventId: event.id });
 
     expect(listEvents(database).some((item) => item.id === event.id)).toBe(false);
-    expect(
-      database.sqlite.prepare('SELECT deleted_at FROM events WHERE id = ?').get(event.id),
-    ).toMatchObject({ deleted_at: expect.any(Number) });
+    const deletedEvent = database.sqlite
+      .prepare('SELECT deleted_at FROM events WHERE id = ?')
+      .get(event.id) as { readonly deleted_at: number | null } | undefined;
+    expect(typeof deletedEvent?.deleted_at).toBe('number');
     expect(
       database.sqlite.prepare('SELECT id FROM service_points WHERE id = ?').get(table.id),
     ).toEqual({ id: table.id });
