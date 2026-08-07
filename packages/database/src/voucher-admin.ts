@@ -4,6 +4,13 @@ import { appendAudit } from './audit';
 import { cancelOrder } from './operation-cancellation';
 import { requireOperationReason } from './operation-validation';
 import type { DatabaseContext } from './types';
+import { listAvailableVouchersForServicePoint } from './voucher-checkout-query';
+import {
+  calculateVoucherDeleteImpact,
+  type DatabaseVoucherDeleteFinancialImpact,
+  type DatabaseVoucherDeletePaymentImpact,
+  type DatabaseVoucherDeleteStockImpact,
+} from './voucher-delete-impact';
 import type { DatabaseVoucher, DatabaseVoucherStatus } from './voucher-types';
 import { resolveLinkedServicePoint } from './voucher-service-points';
 import {
@@ -15,6 +22,8 @@ import {
   requireVoucherById,
 } from './vouchers';
 
+export { listAvailableVouchersForServicePoint } from './voucher-checkout-query';
+
 export interface DatabaseVoucherDeletePreview {
   readonly voucherId: string;
   readonly code: string;
@@ -25,44 +34,9 @@ export interface DatabaseVoucherDeletePreview {
   readonly paidOrderIds: readonly string[];
   readonly refundVoucherCents: number;
   readonly affectedOrderTotalCents: number;
-}
-
-interface VoucherImpactOrderRow {
-  readonly order_id: string;
-  readonly order_total_cents: number;
-  readonly voucher_cents: number;
-}
-
-function getVoucherDeleteImpact(
-  database: DatabaseContext,
-  voucherId: string,
-): {
-  readonly openAllocations: number;
-  readonly paidOrders: readonly VoucherImpactOrderRow[];
-} {
-  const openAllocations = database.sqlite
-    .prepare(
-      `SELECT COUNT(*) AS value
-       FROM order_voucher_allocations ova
-       INNER JOIN orders o ON o.id = ova.order_id
-       WHERE ova.voucher_id = ? AND o.status = 'open'`,
-    )
-    .get(voucherId) as { readonly value: number };
-  const paidOrders = database.sqlite
-    .prepare(
-      `SELECT
-         o.id AS order_id,
-         o.total_cents AS order_total_cents,
-         SUM(vt.amount_cents) AS voucher_cents
-       FROM voucher_transactions vt
-       INNER JOIN orders o ON o.id = vt.order_id
-       WHERE vt.voucher_id = ? AND vt.type = 'redemption' AND o.status = 'paid'
-       GROUP BY o.id, o.total_cents
-       ORDER BY o.closed_at DESC, o.id DESC`,
-    )
-    .all(voucherId) as VoucherImpactOrderRow[];
-
-  return { openAllocations: openAllocations.value, paidOrders };
+  readonly affectedPayments: readonly DatabaseVoucherDeletePaymentImpact[];
+  readonly stockReturns: readonly DatabaseVoucherDeleteStockImpact[];
+  readonly financialImpact: DatabaseVoucherDeleteFinancialImpact;
 }
 
 export function previewDeleteVoucher(
@@ -81,7 +55,7 @@ export function previewDeleteVoucher(
     throw new Error('Este voucher já está cancelado.');
   }
 
-  const impact = getVoucherDeleteImpact(database, voucher.id);
+  const impact = calculateVoucherDeleteImpact(database, voucher.id);
   return {
     voucherId: voucher.id,
     code: voucher.code,
@@ -90,11 +64,11 @@ export function previewDeleteVoucher(
     openAllocations: impact.openAllocations,
     paidOrders: impact.paidOrders.length,
     paidOrderIds: impact.paidOrders.map((order) => order.order_id),
-    refundVoucherCents: impact.paidOrders.reduce((total, order) => total + order.voucher_cents, 0),
-    affectedOrderTotalCents: impact.paidOrders.reduce(
-      (total, order) => total + order.order_total_cents,
-      0,
-    ),
+    refundVoucherCents: impact.financialImpact.voucherRefundCents,
+    affectedOrderTotalCents: impact.financialImpact.affectedRevenueCents,
+    affectedPayments: impact.affectedPayments,
+    stockReturns: impact.stockReturns,
+    financialImpact: impact.financialImpact,
   };
 }
 
@@ -192,20 +166,18 @@ export function updateVoucher(
       entityType: 'voucher',
       entityId: voucher.id,
       eventId,
-      details: {
-        after: {
-          code,
-          label,
-          linkedServicePointId: linkedServicePoint.linkedServicePointId,
-          linkedServicePointLabel: linkedServicePoint.linkedServicePointLabel,
-          initialBalanceCents: nextInitialBalance,
-          remainingBalanceCents: nextRemainingBalance,
-          status: nextStatus,
-        },
-        before,
-        impact: {
-          addedBalanceCents: input.addedBalanceCents,
-        },
+      before,
+      after: {
+        code,
+        label,
+        linkedServicePointId: linkedServicePoint.linkedServicePointId,
+        linkedServicePointLabel: linkedServicePoint.linkedServicePointLabel,
+        initialBalanceCents: nextInitialBalance,
+        remainingBalanceCents: nextRemainingBalance,
+        status: nextStatus,
+      },
+      impact: {
+        addedBalanceCents: input.addedBalanceCents,
       },
     });
   })();
@@ -247,10 +219,7 @@ export function deleteVoucher(
       entityId: preview.voucherId,
       eventId,
       correlationId,
-      details: {
-        impact: preview,
-        reason,
-      },
+      details: { reason },
       before,
       after,
       impact: preview,
