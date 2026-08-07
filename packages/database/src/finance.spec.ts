@@ -214,9 +214,7 @@ describe('cash and expenses database', () => {
          WHERE action = 'expense.updated' AND entity_id = ?
          ORDER BY id DESC LIMIT 1`,
       )
-      .get(expense.id) as
-      | { readonly before_json: string; readonly after_json: string }
-      | undefined;
+      .get(expense.id) as { readonly before_json: string; readonly after_json: string } | undefined;
     expect(JSON.parse(audit?.before_json ?? '{}')).toMatchObject({ totalCents: 1000 });
     expect(JSON.parse(audit?.after_json ?? '{}')).toMatchObject({
       totalCents: 1200,
