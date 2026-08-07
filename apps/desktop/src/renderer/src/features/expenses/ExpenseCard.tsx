@@ -128,11 +128,7 @@ export function ExpenseCard({
             }}
             type="button"
           >
-            {editing ? (
-              <X size={15} aria-hidden="true" />
-            ) : (
-              <Pencil size={15} aria-hidden="true" />
-            )}
+            {editing ? <X size={15} aria-hidden="true" /> : <Pencil size={15} aria-hidden="true" />}
             {editing ? 'Fechar edição' : 'Editar despesa'}
           </button>
         </div>
