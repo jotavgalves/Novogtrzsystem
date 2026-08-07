@@ -35,7 +35,7 @@ export const ticketSaleSchema = z.object({
   lotName: z.string().trim().min(2).max(100),
   attendeeName: z.string().trim().min(2).max(120),
   source: ticketSaleSourceSchema,
-  quantity: z.number().int().positive(),
+  quantity: z.number().int().nonnegative(),
   unitPriceCents: z.number().int().nonnegative(),
   totalCents: z.number().int().nonnegative(),
   paymentMethod: paymentMethodSchema.nullable(),
