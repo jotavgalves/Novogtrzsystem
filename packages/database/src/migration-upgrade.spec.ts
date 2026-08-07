@@ -39,7 +39,11 @@ afterEach(async () => {
   }
 });
 
-function dropIndexesUsingColumn(sqlite: BetterSqlite3.Database, table: string, column: string): void {
+function dropIndexesUsingColumn(
+  sqlite: BetterSqlite3.Database,
+  table: string,
+  column: string,
+): void {
   const indexes = sqlite
     .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = ?")
     .all(table) as { readonly name: string; readonly sql: string | null }[];
@@ -74,7 +78,10 @@ function downgradeToVersion11(filePath: string): void {
   sqlite.close();
 }
 
-function migrationState(database: DatabaseContext): { readonly count: number; readonly max: number } {
+function migrationState(database: DatabaseContext): {
+  readonly count: number;
+  readonly max: number;
+} {
   return database.sqlite
     .prepare('SELECT COUNT(*) AS count, MAX(version) AS max FROM schema_migrations')
     .get() as { readonly count: number; readonly max: number };
@@ -126,11 +133,15 @@ describe('upgrade from previous database schema', () => {
     expect(verifyDatabaseIntegrity(upgraded)).toBe(true);
     expect(migrationState(upgraded)).toEqual({ count: 14, max: 14 });
     expect(listEvents(upgraded).map((item) => item.id)).toContain(event.id);
-    expect(getInventoryState(upgraded).products.find((item) => item.id === product.id)).toMatchObject({
+    expect(
+      getInventoryState(upgraded).products.find((item) => item.id === product.id),
+    ).toMatchObject({
       name: 'Produto legado',
       quantity: 7,
     });
-    expect(getVoucherState(upgraded).vouchers.find((item) => item.id === voucher.id)).toMatchObject({
+    expect(
+      getVoucherState(upgraded).vouchers.find((item) => item.id === voucher.id),
+    ).toMatchObject({
       code: 'LEGADO-01',
       remainingBalanceCents: 1500,
     });
@@ -139,7 +150,9 @@ describe('upgrade from previous database schema', () => {
       quantity: 1,
       totalCents: 3000,
     });
-    const migratedExpense = getExpenseState(upgraded).expenses.find((item) => item.id === expense.id);
+    const migratedExpense = getExpenseState(upgraded).expenses.find(
+      (item) => item.id === expense.id,
+    );
     expect(migratedExpense).toMatchObject({
       description: 'Despesa legada',
       totalCents: 1000,
@@ -172,7 +185,9 @@ describe('upgrade from previous database schema', () => {
       .prepare('SELECT COUNT(*) AS value FROM expense_payments WHERE expense_id = ?')
       .get(expense.id) as { readonly value: number };
     expect(paymentCount.value).toBe(1);
-    expect(getExpenseState(reopened).expenses.find((item) => item.id === newExpense.id)).toMatchObject({
+    expect(
+      getExpenseState(reopened).expenses.find((item) => item.id === newExpense.id),
+    ).toMatchObject({
       status: 'partial',
       paidCents: 300,
       pendingCents: 500,
