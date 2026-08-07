@@ -10,6 +10,7 @@ import type { TicketApi } from './tickets';
 import type { VoucherApi } from './vouchers';
 
 export * from './combos';
+export * from './errors';
 export * from './event-close';
 export * from './finance';
 export * from './insights';
