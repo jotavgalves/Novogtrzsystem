@@ -162,7 +162,7 @@ export function TicketSaleCard({
             />
           </label>
           <button
-            className="button button--ghost button--compact"
+            className="button button--danger"
             disabled={busy || reason.trim().length < 3}
             type="submit"
           >
