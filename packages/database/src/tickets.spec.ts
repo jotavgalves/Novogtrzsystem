@@ -116,7 +116,7 @@ describe('tickets database', () => {
       reason: 'Pagamento duplicado',
     });
 
-    expect(cancelled.status).toBe('cancelled');
+    expect(cancelled).toMatchObject({ status: 'cancelled', quantity: 0, totalCents: 0 });
     expect(cancelled.codes.every((code) => code.status === 'cancelled')).toBe(true);
     expect(getTicketState(database).lots[0]?.availableQuantity).toBe(4);
     expect(getTicketState(database).activeRevenueCents).toBe(0);
@@ -144,6 +144,13 @@ describe('tickets database', () => {
       manualCodes: ['IND-001', 'IND-002', 'IND-003'],
     });
 
+    expect(() =>
+      cancelTicketCode(database, {
+        codeId: sale.codes[0]?.id ?? '',
+        reason: '  ',
+      }),
+    ).toThrow('Informe uma justificativa com pelo menos 3 caracteres.');
+
     const partiallyCancelled = cancelTicketCode(database, {
       codeId: sale.codes[0]?.id ?? '',
       reason: 'Pessoa desistiu',
@@ -168,7 +175,7 @@ describe('tickets database', () => {
       reason: 'Cancelado',
     });
 
-    expect(fullyCancelled.status).toBe('cancelled');
+    expect(fullyCancelled).toMatchObject({ status: 'cancelled', quantity: 0, totalCents: 0 });
     expect(fullyCancelled.codes.every((code) => code.status === 'cancelled')).toBe(true);
     expect(getTicketState(database).lots[0]?.availableQuantity).toBe(5);
     expect(getCashState(database).grossSalesCents).toBe(0);
