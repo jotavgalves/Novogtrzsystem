@@ -1,11 +1,27 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 
-import type { AppErrorPayload, IpcResponse } from '@gtrz/contracts';
+import type { AppErrorCode, AppErrorPayload, IpcResponse } from '@gtrz/contracts';
 import { isDatabaseError } from '@gtrz/database/errors';
 
 interface StructuredError extends Error {
   readonly code?: string;
   readonly issues?: readonly unknown[];
+}
+
+class IpcOperationError extends Error {
+  readonly code: AppErrorCode;
+  readonly details: Readonly<Record<string, unknown>> | null;
+
+  constructor(
+    code: AppErrorCode,
+    message: string,
+    details: Readonly<Record<string, unknown>> | null,
+  ) {
+    super(message);
+    this.name = 'IpcOperationError';
+    this.code = code;
+    this.details = details;
+  }
 }
 
 type IpcListener = (event: IpcMainInvokeEvent, payload: unknown) => unknown;
@@ -19,6 +35,14 @@ function isValidationError(error: Error): error is StructuredError {
 }
 
 function toAppErrorPayload(error: unknown): AppErrorPayload {
+  if (error instanceof IpcOperationError) {
+    return {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    };
+  }
+
   if (isDatabaseError(error)) {
     return {
       code: error.code,
@@ -66,6 +90,14 @@ function toAppErrorPayload(error: unknown): AppErrorPayload {
     message: error.message || 'Não foi possível concluir a operação.',
     details: { errorName: error.name },
   };
+}
+
+export function failIpcOperation(
+  code: AppErrorCode,
+  message: string,
+  details: Readonly<Record<string, unknown>> | null = null,
+): never {
+  throw new IpcOperationError(code, message, details);
 }
 
 export function handleIpc(channel: string, listener: IpcListener): void {

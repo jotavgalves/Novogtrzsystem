@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   changeVoucherStatusInputSchema,
   createVoucherInputSchema,
@@ -23,6 +21,8 @@ import {
   type VoucherDeletePreview,
   type VoucherState,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const voucherApi: VoucherApi = {
   async getState(): Promise<VoucherState> {

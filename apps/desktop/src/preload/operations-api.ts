@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   addOrderItemInputSchema,
   bindOrderVoucherInputSchema,
@@ -27,6 +25,8 @@ import {
   type ServicePoint,
   type UnbindOrderVoucherInput,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const operationsApi: OperationsApi = {
   async getState(): Promise<OperationState> {

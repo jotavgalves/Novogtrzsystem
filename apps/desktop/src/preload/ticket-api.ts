@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   cancelTicketCodeInputSchema,
   cancelTicketSaleInputSchema,
@@ -20,6 +18,8 @@ import {
   type TicketState,
   type UpdateTicketLotInput,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const ticketApi: TicketApi = {
   async getState(): Promise<TicketState> {

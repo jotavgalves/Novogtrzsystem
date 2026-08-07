@@ -29,6 +29,8 @@ import {
   type DatabaseContext,
 } from '@gtrz/database';
 
+import { handleIpc } from './ipc-handler';
+
 interface RegisterInventoryIpcOptions {
   readonly getDatabase: () => DatabaseContext;
 }
@@ -50,36 +52,36 @@ export function registerInventoryIpcHandlers(options: RegisterInventoryIpcOption
     ipcMain.removeHandler(channel);
   }
 
-  ipcMain.handle(IPC_CHANNELS.inventoryGetState, () => {
+  handleIpc(IPC_CHANNELS.inventoryGetState, () => {
     return inventoryStateSchema.parse(getInventoryState(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryCreateCategory, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryCreateCategory, (_event, payload: unknown) => {
     const input = createCategoryInputSchema.parse(payload);
     return productCategorySchema.parse(createProductCategory(options.getDatabase(), input.name));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryCreateProduct, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryCreateProduct, (_event, payload: unknown) => {
     const input = createProductInputSchema.parse(payload);
     return inventoryProductSchema.parse(createInventoryProduct(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryUpdateProduct, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryUpdateProduct, (_event, payload: unknown) => {
     const input = updateProductInputSchema.parse(payload);
     return inventoryProductSchema.parse(updateInventoryProduct(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryPreviewDeleteProduct, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryPreviewDeleteProduct, (_event, payload: unknown) => {
     const input = previewDeleteProductInputSchema.parse(payload);
     return productDeletePreviewSchema.parse(previewDeleteProduct(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryDeleteProduct, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryDeleteProduct, (_event, payload: unknown) => {
     const input = deleteProductInputSchema.parse(payload);
     return inventoryProductSchema.parse(deleteProduct(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryRecordMovement, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryRecordMovement, (_event, payload: unknown) => {
     const input = recordStockMovementInputSchema.parse(payload);
     const movementInput =
       input.note === undefined
@@ -98,11 +100,11 @@ export function registerInventoryIpcHandlers(options: RegisterInventoryIpcOption
     return inventoryProductSchema.parse(recordStockMovement(options.getDatabase(), movementInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryListTransfers, () => {
+  handleIpc(IPC_CHANNELS.inventoryListTransfers, () => {
     return stockTransferListSchema.parse(listStockTransfers(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.inventoryTransferStock, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.inventoryTransferStock, (_event, payload: unknown) => {
     const input = transferStockInputSchema.parse(payload);
     const transferInput =
       input.note === undefined

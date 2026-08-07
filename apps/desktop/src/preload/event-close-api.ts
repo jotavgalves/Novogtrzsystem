@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   completeEventCloseInputSchema,
   eventClosePreviewInputSchema,
@@ -12,6 +10,8 @@ import {
   type EventCloseResult,
   type EventCloseSummary,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const eventCloseApi: EventCloseApi = {
   async preview(input: EventClosePreviewInput): Promise<EventCloseSummary> {

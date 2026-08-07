@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge } from 'electron';
 
 import {
   backupRecordSchema,
@@ -41,6 +41,7 @@ import { eventCloseApi } from './event-close-api';
 import { cashApi, expenseApi } from './finance-api';
 import { auditApi, dashboardApi } from './insights-api';
 import { inventoryApi } from './inventory-api';
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 import { operationsApi } from './operations-api';
 import { ticketApi } from './ticket-api';
 import { voucherApi } from './voucher-api';

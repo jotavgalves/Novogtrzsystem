@@ -21,6 +21,8 @@ import {
   type DatabaseContext,
 } from '@gtrz/database';
 
+import { handleIpc } from './ipc-handler';
+
 interface RegisterTicketIpcOptions {
   readonly getDatabase: () => DatabaseContext;
 }
@@ -39,21 +41,21 @@ export function registerTicketIpcHandlers(options: RegisterTicketIpcOptions): vo
     ipcMain.removeHandler(channel);
   }
 
-  ipcMain.handle(IPC_CHANNELS.ticketsGetState, () => {
+  handleIpc(IPC_CHANNELS.ticketsGetState, () => {
     return ticketStateSchema.parse(getTicketState(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.ticketsCreateLot, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.ticketsCreateLot, (_event, payload: unknown) => {
     const input = createTicketLotInputSchema.parse(payload);
     return ticketLotSchema.parse(createTicketLot(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.ticketsUpdateLot, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.ticketsUpdateLot, (_event, payload: unknown) => {
     const input = updateTicketLotInputSchema.parse(payload);
     return ticketLotSchema.parse(updateTicketLot(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.ticketsCreateSale, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.ticketsCreateSale, (_event, payload: unknown) => {
     const input = createTicketSaleInputSchema.parse(payload);
     const databaseInput = {
       lotId: input.lotId,
@@ -66,12 +68,12 @@ export function registerTicketIpcHandlers(options: RegisterTicketIpcOptions): vo
     return ticketSaleSchema.parse(createTicketSale(options.getDatabase(), databaseInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.ticketsCancelSale, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.ticketsCancelSale, (_event, payload: unknown) => {
     const input = cancelTicketSaleInputSchema.parse(payload);
     return ticketSaleSchema.parse(cancelTicketSale(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.ticketsCancelCode, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.ticketsCancelCode, (_event, payload: unknown) => {
     const input = cancelTicketCodeInputSchema.parse(payload);
     return ticketSaleSchema.parse(cancelTicketCode(options.getDatabase(), input));
   });

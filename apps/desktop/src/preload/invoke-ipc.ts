@@ -18,11 +18,7 @@ class IpcClientError extends Error {
   }
 }
 
-export async function invokeIpc<T>(
-  channel: string,
-  responseSchema: PayloadParser<T>,
-  payload?: unknown,
-): Promise<T> {
+async function invokeEnvelope(channel: string, payload?: unknown): Promise<unknown> {
   const rawResponse: unknown =
     payload === undefined
       ? await ipcRenderer.invoke(channel)
@@ -33,5 +29,19 @@ export async function invokeIpc<T>(
     throw new IpcClientError(response.error);
   }
 
-  return responseSchema.parse(response.data);
+  return response.data;
+}
+
+export const typedIpcRenderer = {
+  invoke(channel: string, payload?: unknown): Promise<unknown> {
+    return invokeEnvelope(channel, payload);
+  },
+};
+
+export async function invokeIpc<T>(
+  channel: string,
+  responseSchema: PayloadParser<T>,
+  payload?: unknown,
+): Promise<T> {
+  return responseSchema.parse(await typedIpcRenderer.invoke(channel, payload));
 }

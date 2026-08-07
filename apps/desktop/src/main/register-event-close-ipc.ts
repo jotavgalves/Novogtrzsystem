@@ -16,6 +16,7 @@ import {
 } from '@gtrz/database';
 
 import type { BackupService } from './backup-service';
+import { failIpcOperation, handleIpc } from './ipc-handler';
 
 interface RegisterEventCloseIpcOptions {
   readonly getDatabase: () => DatabaseContext;
@@ -26,23 +27,30 @@ export function registerEventCloseIpcHandlers(options: RegisterEventCloseIpcOpti
   ipcMain.removeHandler(IPC_CHANNELS.eventClosePreview);
   ipcMain.removeHandler(IPC_CHANNELS.eventCloseComplete);
 
-  ipcMain.handle(IPC_CHANNELS.eventClosePreview, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.eventClosePreview, (_event, payload: unknown) => {
     const input = eventClosePreviewInputSchema.parse(payload);
     return eventCloseSummarySchema.parse(previewEventClose(options.getDatabase(), input.eventId));
   });
 
-  ipcMain.handle(IPC_CHANNELS.eventCloseComplete, async (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.eventCloseComplete, async (_event, payload: unknown) => {
     const input = completeEventCloseInputSchema.parse(payload);
     const database = options.getDatabase();
     const initial = previewEventClose(database, input.eventId);
 
     if (!initial.canClose) {
-      throw new Error(initial.blockers.join(' '));
+      failIpcOperation('INVALID_STATE', initial.blockers.join(' '), {
+        eventId: input.eventId,
+        blockers: initial.blockers,
+      });
     }
 
     if (initial.requiresCashCount) {
       if (input.countedCashCents === undefined) {
-        throw new Error('Informe o valor contado para conciliar e fechar o caixa.');
+        failIpcOperation(
+          'VALIDATION_ERROR',
+          'Informe o valor contado para conciliar e fechar o caixa.',
+          { field: 'countedCashCents' },
+        );
       }
 
       closeCashRegister(database, input.countedCashCents);
@@ -51,8 +59,10 @@ export function registerEventCloseIpcHandlers(options: RegisterEventCloseIpcOpti
     const summary = previewEventClose(database, input.eventId);
 
     if (!summary.canClose || summary.requiresCashCount) {
-      throw new Error(
+      failIpcOperation(
+        'INVALID_STATE',
         'O caixa não foi conciliado corretamente. Revise o fechamento antes de tentar novamente.',
+        { eventId: input.eventId },
       );
     }
 
