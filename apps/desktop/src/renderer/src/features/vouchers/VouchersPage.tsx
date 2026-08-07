@@ -29,6 +29,7 @@ export function VouchersPage(): React.JSX.Element {
     (total, voucher) => total + voucher.remainingBalanceCents,
     0,
   );
+  const initialLoading = loading && state === null;
 
   return (
     <section className="feature-page">
@@ -70,7 +71,9 @@ export function VouchersPage(): React.JSX.Element {
         </article>
       </div>
 
-      {state?.activeEventId === null || state === null ? (
+      {initialLoading ? <div className="route-state">Carregando vouchers…</div> : null}
+
+      {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de emitir vouchers.</span>
@@ -86,7 +89,9 @@ export function VouchersPage(): React.JSX.Element {
             <VoucherForm busy={busy} onSubmit={createVoucher} servicePoints={state.servicePoints} />
           </article>
           <div className="voucher-list" aria-live="polite">
-            {loading ? <div className="route-state">Carregando vouchers…</div> : null}
+            {loading && vouchers.length === 0 ? (
+              <div className="route-state">Carregando vouchers…</div>
+            ) : null}
             {!loading && vouchers.length === 0 ? (
               <div className="empty-state">
                 <Ticket size={32} aria-hidden="true" />
