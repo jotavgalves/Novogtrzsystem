@@ -36,4 +36,6 @@ describe('service point deletion contracts', () => {
       voucherConsumedCents: 1200,
     });
   });
+
+  // O protocolo torna explícita a escolha entre preservar ou estornar vendas históricas.
 });
