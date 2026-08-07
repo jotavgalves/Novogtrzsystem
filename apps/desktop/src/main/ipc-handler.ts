@@ -4,20 +4,17 @@ import type { AppErrorPayload, IpcResponse } from '@gtrz/contracts';
 import { isDatabaseError } from '@gtrz/database/errors';
 
 interface StructuredError extends Error {
-  readonly code?: unknown;
-  readonly issues?: unknown;
+  readonly code?: string;
+  readonly issues?: readonly unknown[];
 }
 
 type IpcListener = (event: IpcMainInvokeEvent, payload: unknown) => unknown | Promise<unknown>;
 
 function errorCode(error: Error): string | null {
-  const candidate = (error as StructuredError).code;
-  return typeof candidate === 'string' ? candidate : null;
+  return (error as StructuredError).code ?? null;
 }
 
-function isValidationError(
-  error: Error,
-): error is StructuredError & { readonly issues: unknown[] } {
+function isValidationError(error: Error): error is StructuredError {
   return error.name === 'ZodError' && Array.isArray((error as StructuredError).issues);
 }
 
@@ -42,7 +39,7 @@ export function toAppErrorPayload(error: unknown): AppErrorPayload {
     return {
       code: 'VALIDATION_ERROR',
       message: 'Os dados informados não são válidos.',
-      details: { issues: error.issues },
+      details: { issues: error.issues ?? [] },
     };
   }
 
