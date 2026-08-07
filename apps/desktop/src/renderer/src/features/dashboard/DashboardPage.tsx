@@ -3,23 +3,20 @@ import {
   Banknote,
   Boxes,
   CircleDollarSign,
+  ReceiptText,
   RefreshCw,
   Ticket,
   TriangleAlert,
   TrendingUp,
+  WalletCards,
 } from 'lucide-react';
+
+import { formatCurrency } from '@gtrz/domain';
 
 import gtrzSymbol from '../../assets/brand/gtrz-symbol.svg';
 import { describeAuditAction, describeEntityType } from '../../shared/insights/audit-labels';
 import { OperationalHealth, SalesMethods, TicketCapacity } from './DashboardPanels';
 import { useDashboard } from './useDashboard';
-
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
-}
 
 function formatDate(timestamp: number): string {
   return new Intl.DateTimeFormat('pt-BR', {
@@ -42,9 +39,9 @@ function formatMargin(value: number | null): string {
 export function DashboardPage(): React.JSX.Element {
   const { state, loading, error, reload } = useDashboard();
   const resultMargin =
-    state === null || state.grossSalesCents === 0
+    state === null || state.netRevenueCents === 0
       ? null
-      : state.projectedResultCents / state.grossSalesCents;
+      : state.projectedResultCents / state.netRevenueCents;
   const hasOperationalWarning =
     state !== null && (state.orders.open > 0 || state.inventory.lowStockProducts > 0);
 
@@ -119,15 +116,21 @@ export function DashboardPage(): React.JSX.Element {
           <div className="summary-grid">
             <article className="summary-card summary-card--accent">
               <CircleDollarSign className="summary-card__icon" size={20} aria-hidden="true" />
-              <span>Faturamento</span>
-              <strong>{formatMoney(state.grossSalesCents)}</strong>
-              <small>{state.orders.paid} vendas concluídas</small>
+              <span>Receita bruta</span>
+              <strong>{formatCurrency(state.grossRevenueCents)}</strong>
+              <small>Antes dos descontos concedidos</small>
             </article>
             <article className="summary-card">
-              <Banknote className="summary-card__icon" size={20} aria-hidden="true" />
-              <span>Despesas ativas</span>
-              <strong>{formatMoney(state.activeExpensesCents)}</strong>
-              <small>Valores não cancelados</small>
+              <ReceiptText className="summary-card__icon" size={20} aria-hidden="true" />
+              <span>Descontos</span>
+              <strong>{formatCurrency(state.discountsCents)}</strong>
+              <small>Reduções aplicadas às comandas</small>
+            </article>
+            <article className="summary-card summary-card--accent">
+              <TrendingUp className="summary-card__icon" size={20} aria-hidden="true" />
+              <span>Receita líquida</span>
+              <strong>{formatCurrency(state.netRevenueCents)}</strong>
+              <small>{state.completedSales} vendas concluídas</small>
             </article>
             <article
               className={
@@ -138,14 +141,39 @@ export function DashboardPage(): React.JSX.Element {
             >
               <TrendingUp className="summary-card__icon" size={20} aria-hidden="true" />
               <span>Resultado projetado</span>
-              <strong>{formatMoney(state.projectedResultCents)}</strong>
-              <small>Receita menos despesas</small>
+              <strong>{formatCurrency(state.projectedResultCents)}</strong>
+              <small>Receita líquida menos despesas</small>
             </article>
-            <article className="summary-card">
-              <Banknote className="summary-card__icon" size={20} aria-hidden="true" />
+          </div>
+
+          <div className="insight-kpi-grid">
+            <article className="insight-kpi">
+              <ReceiptText size={19} aria-hidden="true" />
+              <span>Vendas concluídas</span>
+              <strong>{state.completedSales}</strong>
+              <small>{state.orders.paid} comandas pagas</small>
+            </article>
+            <article className="insight-kpi">
+              <Banknote size={19} aria-hidden="true" />
+              <span>Despesas ativas</span>
+              <strong>{formatCurrency(state.activeExpensesCents)}</strong>
+              <small>Valores não cancelados</small>
+            </article>
+            <article className="insight-kpi">
+              <Banknote size={19} aria-hidden="true" />
               <span>Caixa físico esperado</span>
-              <strong>{formatMoney(state.expectedCashCents)}</strong>
-              <small>Dinheiro após movimentações</small>
+              <strong>{formatCurrency(state.expectedCashCents)}</strong>
+              <small>
+                {state.cashVarianceCents === null
+                  ? 'Aguardando conciliação final'
+                  : `Diferença: ${formatCurrency(state.cashVarianceCents)}`}
+              </small>
+            </article>
+            <article className="insight-kpi">
+              <WalletCards size={19} aria-hidden="true" />
+              <span>Vouchers utilizados</span>
+              <strong>{formatCurrency(state.vouchersUsedCents)}</strong>
+              <small>Créditos consumidos em vendas</small>
             </article>
           </div>
 
@@ -159,18 +187,18 @@ export function DashboardPage(): React.JSX.Element {
               <Ticket size={19} aria-hidden="true" />
               <span>Ingressos pagos</span>
               <strong>{state.tickets.sold}</strong>
-              <small>{formatMoney(state.tickets.revenueCents)} em receita</small>
+              <small>{formatCurrency(state.tickets.revenueCents)} em receita</small>
             </article>
             <article className="insight-kpi">
               <Boxes size={19} aria-hidden="true" />
               <span>Estoque do evento</span>
               <strong>{state.inventory.units} un.</strong>
-              <small>{formatMoney(state.inventory.stockCostCents)} em custo</small>
+              <small>{formatCurrency(state.inventory.stockCostCents)} em custo</small>
             </article>
             <article className="insight-kpi">
               <Banknote size={19} aria-hidden="true" />
               <span>Saldo em vouchers</span>
-              <strong>{formatMoney(state.vouchers.outstandingBalanceCents)}</strong>
+              <strong>{formatCurrency(state.vouchers.outstandingBalanceCents)}</strong>
               <small>{state.vouchers.active} vouchers ativos</small>
             </article>
             <article className="insight-kpi">
