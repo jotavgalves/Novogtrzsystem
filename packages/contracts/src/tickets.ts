@@ -28,23 +28,49 @@ export const ticketCodeSchema = z.object({
   createdAt: z.number().int().nonnegative(),
 });
 
-export const ticketSaleSchema = z.object({
-  id: z.uuid(),
-  eventId: z.uuid(),
-  lotId: z.uuid(),
-  lotName: z.string().trim().min(2).max(100),
-  attendeeName: z.string().trim().min(2).max(120),
-  source: ticketSaleSourceSchema,
-  quantity: z.number().int().nonnegative(),
-  unitPriceCents: z.number().int().nonnegative(),
-  totalCents: z.number().int().nonnegative(),
-  paymentMethod: paymentMethodSchema.nullable(),
-  status: ticketSaleStatusSchema,
-  codes: z.array(ticketCodeSchema),
-  createdAt: z.number().int().nonnegative(),
-  cancelledAt: z.number().int().nonnegative().nullable(),
-  updatedAt: z.number().int().nonnegative(),
-});
+export const ticketSaleSchema = z
+  .object({
+    id: z.uuid(),
+    eventId: z.uuid(),
+    lotId: z.uuid(),
+    lotName: z.string().trim().min(2).max(100),
+    attendeeName: z.string().trim().min(2).max(120),
+    source: ticketSaleSourceSchema,
+    quantity: z.number().int().nonnegative(),
+    unitPriceCents: z.number().int().nonnegative(),
+    totalCents: z.number().int().nonnegative(),
+    paymentMethod: paymentMethodSchema.nullable(),
+    status: ticketSaleStatusSchema,
+    codes: z.array(ticketCodeSchema),
+    createdAt: z.number().int().nonnegative(),
+    cancelledAt: z.number().int().nonnegative().nullable(),
+    updatedAt: z.number().int().nonnegative(),
+  })
+  .superRefine((sale, context) => {
+    if (sale.status === 'active' && sale.quantity <= 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['quantity'],
+        message: 'Venda ativa precisa possuir ao menos um ingresso válido.',
+      });
+    }
+
+    if (sale.status === 'cancelled' && sale.quantity !== 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['quantity'],
+        message: 'Venda cancelada não pode possuir ingressos válidos.',
+      });
+    }
+
+    if (sale.status === 'cancelled' && sale.totalCents !== 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['totalCents'],
+        message: 'Venda cancelada não pode permanecer no faturamento ativo.',
+      });
+    }
+  });
 
 export const ticketStateSchema = z.object({
   activeEventId: z.uuid().nullable(),
