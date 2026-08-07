@@ -1,0 +1,11 @@
+{
+  "runId": 31110281107,
+  "runNumber": 1083,
+  "runAttempt": 1,
+  "commitSha": "a09668fb4f0a15f8dfbf8394072795a7f64bd4a9",
+  "artifactName": "GTRZ-System-Windows",
+  "installerFileName": "GTRZ-System-0.1.0-Setup.exe",
+  "sizeBytes": 113720156,
+  "sha256": "0221270db31da87b54d8fba7eb1a7a6c678ff83a0d468f686bc8adec997c986b",
+  "publishedAt": "2026-08-06T14:25:19.1246674Z"
+}

@@ -1,0 +1,104 @@
+.order-cancellation {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.cancellation-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.cancellation-form__button {
+  border-color: rgb(239 68 68 / 30%);
+  color: #fca5a5;
+}
+
+.cancellation-form__button:hover:not(:disabled) {
+  border-color: rgb(239 68 68 / 50%);
+  background: var(--color-danger-soft);
+  color: #fecaca;
+}
+
+.recent-orders-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.recent-order-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.recent-order-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+
+.recent-order-card__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.recent-order-card__summary > span:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.recent-order-card__summary small,
+.recent-order-card__items {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.recent-order-card__items {
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-order-card__cancel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.recent-order-card__cancel > svg {
+  margin-bottom: 0.7rem;
+  color: #fca5a5;
+}
+
+@media (max-width: 1050px) {
+  .recent-order-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .cancellation-form,
+  .recent-order-card__summary,
+  .recent-order-card__cancel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .recent-order-card__cancel > svg {
+    display: none;
+  }
+}

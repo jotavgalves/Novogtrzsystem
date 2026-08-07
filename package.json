@@ -1,0 +1,55 @@
+{
+  "name": "gtrz-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PDV desktop offline e modular para eventos GTRZ.",
+  "license": "UNLICENSED",
+  "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @gtrz/desktop",
+    "build": "npm run quality && npm run build --workspace @gtrz/desktop",
+    "package:win": "npm run package:win --workspace @gtrz/desktop",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "architecture:check": "node scripts/check-architecture.mjs",
+    "cycles:check": "madge --circular --extensions ts,tsx apps/desktop/src packages",
+    "deadcode:check": "knip",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:smoke": "vitest run tests/smoke",
+    "test:e2e": "npm run build --workspace @gtrz/desktop && playwright test",
+    "quality": "npm run format:check && npm run typecheck && npm run lint && npm run architecture:check && npm run cycles:check && npm run deadcode:check && npm run test",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@playwright/test": "1.62.0",
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "24.3.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "electron": "43.2.0",
+    "electron-builder": "26.15.3",
+    "eslint": "9.39.1",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.4.24",
+    "globals": "16.5.0",
+    "knip": "5.64.0",
+    "madge": "8.0.0",
+    "playwright": "1.62.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.65.0",
+    "vitest": "4.1.10"
+  }
+}

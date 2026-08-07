@@ -1,0 +1,200 @@
+.ticket-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ticket-form,
+.ticket-history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ticket-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.ticket-form__row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ticket-form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.ticket-form small {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+.ticket-lot-list,
+.ticket-sale-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.ticket-lot-card,
+.ticket-sale-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(145deg, var(--color-surface), var(--color-bg-raised));
+  box-shadow: var(--shadow-panel);
+}
+
+.ticket-lot-card--inactive {
+  opacity: 0.68;
+}
+
+.ticket-lot-card__header,
+.ticket-sale-card__header,
+.ticket-lot-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ticket-lot-card__header > span:first-child,
+.ticket-sale-card__header > span:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ticket-sale-card__header > span:first-child > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ticket-sale-card__header small {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+.ticket-lot-card__metrics,
+.ticket-sale-card__summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.ticket-sale-card__summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ticket-lot-card__metrics > span,
+.ticket-sale-card__summary > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-active);
+}
+
+.ticket-lot-card__metrics small,
+.ticket-sale-card__summary small {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+}
+
+.ticket-capacity-bar {
+  overflow: hidden;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--color-surface-active);
+}
+
+.ticket-capacity-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-brand);
+}
+
+.ticket-lot-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.6fr) minmax(7rem, 0.5fr) auto;
+  gap: var(--space-2);
+}
+
+.ticket-code-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ticket-code-control {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ticket-code-control--cancelled {
+  opacity: 0.64;
+}
+
+.ticket-code {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-active);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.ticket-code code {
+  color: var(--color-brand-hover);
+  font-size: 0.7rem;
+}
+
+.ticket-sale-cancel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 1180px) {
+  .ticket-admin-grid,
+  .ticket-lot-list,
+  .ticket-sale-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 780px) {
+  .ticket-form__row,
+  .ticket-form__row--three,
+  .ticket-lot-edit,
+  .ticket-code-control,
+  .ticket-sale-cancel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ticket-lot-card__metrics,
+  .ticket-sale-card__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@gtrz/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./schema": {
+      "types": "./src/schema.ts",
+      "default": "./src/schema.ts"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.1",
+    "drizzle-orm": "0.45.2"
+  }
+}
