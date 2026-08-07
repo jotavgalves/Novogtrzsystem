@@ -27,7 +27,7 @@ export function AppShell(): React.JSX.Element {
   const { state: sessionState, loading: sessionLoading, error: sessionError } = useSession();
   const activeProfile = sessionState?.profile ?? null;
   const activeEvent = sessionState?.activeEvent ?? null;
-  const sessionReady = !sessionLoading && sessionState !== null && sessionError === null;
+  const sessionReady = sessionState !== null;
 
   useEffect(() => {
     let mounted = true;
@@ -132,9 +132,10 @@ export function AppShell(): React.JSX.Element {
           <div>
             <strong>Operação local</strong>
             <span>
-              {sessionLoading
-                ? 'Carregando sessão local'
-                : (sessionError ?? 'Dados armazenados exclusivamente neste computador')}
+              {sessionError ??
+                (sessionLoading && !sessionReady
+                  ? 'Carregando sessão local'
+                  : 'Dados armazenados exclusivamente neste computador')}
             </span>
           </div>
 

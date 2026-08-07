@@ -17,6 +17,7 @@ export const insightAuditRecordSchema = z.object({
   after: z.record(z.string(), z.unknown()).nullable(),
   impact: z.record(z.string(), z.unknown()).nullable(),
   metadata: z.record(z.string(), z.unknown()).nullable(),
+  schemaVersion: z.number().int().nonnegative(),
   createdAt: z.number().int().nonnegative(),
 });
 
@@ -30,9 +31,14 @@ export const dashboardStateSchema = z.object({
     })
     .nullable(),
   grossSalesCents: z.number().int().nonnegative(),
+  grossRevenueCents: z.number().int().nonnegative(),
+  discountsCents: z.number().int().nonnegative(),
+  netRevenueCents: z.number().int().nonnegative(),
+  completedSales: z.number().int().nonnegative(),
   activeExpensesCents: z.number().int().nonnegative(),
   projectedResultCents: z.number().int(),
   expectedCashCents: z.number().int(),
+  cashVarianceCents: z.number().int().nullable(),
   cashRegisterStatus: z.enum(['not-opened', 'open', 'closed']),
   salesByMethod: z.object({
     cashCents: z.number().int().nonnegative(),
@@ -41,6 +47,7 @@ export const dashboardStateSchema = z.object({
     debitCardCents: z.number().int().nonnegative(),
     voucherCents: z.number().int().nonnegative(),
   }),
+  vouchersUsedCents: z.number().int().nonnegative(),
   orders: z.object({
     open: z.number().int().nonnegative(),
     paid: z.number().int().nonnegative(),

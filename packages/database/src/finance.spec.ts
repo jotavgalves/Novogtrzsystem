@@ -16,16 +16,17 @@ import {
   createProductCategory,
   createVoucher,
   getCashState,
-  getExpenseState,
   getOperationState,
   openCashRegister,
   openDatabase,
-  payExpense,
   openOrder,
+  payExpense,
+  previewCancelExpense,
   recordCashMovement,
   recordStockMovement,
   refundExpensePayment,
   switchProfile,
+  updateExpense,
   type DatabaseContext,
 } from './index';
 
@@ -161,24 +162,139 @@ describe('cash and expenses database', () => {
     database.close();
   });
 
-  it('retira despesa cancelada dos totais e preserva o histórico', async () => {
+  it('edita despesa sem reescrever parcelas e impede total abaixo do já pago', async () => {
     const database = await createTemporaryDatabase();
-    createEvent(database, { name: 'Evento despesa', startsAt: Date.now() });
+    createEvent(database, { name: 'Evento edição', startsAt: Date.now() });
+    const expense = createExpense(database, {
+      category: 'Fornecedor',
+      description: 'Estrutura inicial',
+      amountCents: 1000,
+      initialPaymentCents: 400,
+      paymentMethod: 'pix',
+      note: 'Versão inicial',
+    });
+    const paymentId = expense.payments[0]?.id;
+
+    if (paymentId === undefined) {
+      throw new Error('Parcela inicial não encontrada.');
+    }
+
+    const updated = updateExpense(database, {
+      expenseId: expense.id,
+      category: 'Estrutura',
+      description: 'Estrutura revisada',
+      amountCents: 1200,
+      note: 'Contrato revisado',
+    });
+
+    expect(updated).toMatchObject({
+      category: 'Estrutura',
+      description: 'Estrutura revisada',
+      totalCents: 1200,
+      paidCents: 400,
+      pendingCents: 800,
+      status: 'partial',
+      note: 'Contrato revisado',
+    });
+    expect(updated.payments[0]?.id).toBe(paymentId);
+    expect(() =>
+      updateExpense(database, {
+        expenseId: expense.id,
+        category: 'Estrutura',
+        description: 'Valor inválido',
+        amountCents: 300,
+      }),
+    ).toThrow('O valor total não pode ficar abaixo do valor já pago.');
+
+    const audit = database.sqlite
+      .prepare(
+        `SELECT before_json, after_json
+         FROM audit_log
+         WHERE action = 'expense.updated' AND entity_id = ?
+         ORDER BY id DESC LIMIT 1`,
+      )
+      .get(expense.id) as { readonly before_json: string; readonly after_json: string } | undefined;
+    expect(JSON.parse(audit?.before_json ?? '{}')).toMatchObject({ totalCents: 1000 });
+    expect(JSON.parse(audit?.after_json ?? '{}')).toMatchObject({
+      totalCents: 1200,
+      paidCents: 400,
+      pendingCents: 800,
+    });
+    database.close();
+  });
+
+  it('pré-visualiza e cancela despesa estornando parcelas com correlação única', async () => {
+    const database = await createTemporaryDatabase();
+    createEvent(database, { name: 'Evento cancelamento', startsAt: Date.now() });
+    openCashRegister(database, 1000);
     const expense = createExpense(database, {
       category: 'Equipe',
       description: 'Alimentação',
       amountCents: 800,
-      paymentMethod: 'pix',
+      initialPaymentCents: 300,
+      paymentMethod: 'cash',
       note: 'Plantão',
     });
-    expect(getCashState(database).activeExpensesCents).toBe(800);
+    payExpense(database, {
+      expenseId: expense.id,
+      amountCents: 200,
+      paymentMethod: 'pix',
+    });
 
-    cancelExpense(database, { expenseId: expense.id, reason: 'Fornecedor devolveu o valor' });
-    expect(getCashState(database).activeExpensesCents).toBe(0);
-    expect(getExpenseState(database).expenses[0]).toMatchObject({
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 800,
+      cashExpensesCents: 300,
+      expectedCashCents: 700,
+    });
+
+    const preview = previewCancelExpense(database, { expenseId: expense.id });
+    expect(preview).toMatchObject({
+      totalCents: 800,
+      paidCents: 500,
+      pendingCents: 300,
+      activePaymentCount: 2,
+      refundTotalCents: 500,
+      refundCashCents: 300,
+      refundDigitalCents: 200,
+    });
+
+    const cancelled = cancelExpense(database, {
+      expenseId: expense.id,
+      reason: 'Fornecedor devolveu os valores',
+    });
+    expect(cancelled).toMatchObject({
       id: expense.id,
       status: 'cancelled',
+      paidCents: 0,
+      pendingCents: 0,
     });
+    expect(cancelled.payments.every((payment) => payment.status === 'refunded')).toBe(true);
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 0,
+      cashExpensesCents: 0,
+      expectedCashCents: 1000,
+    });
+
+    const auditRows = database.sqlite
+      .prepare(
+        `SELECT action, correlation_id
+         FROM audit_log
+         WHERE correlation_id = (
+           SELECT correlation_id FROM audit_log
+           WHERE action = 'expense.cancelled' AND entity_id = ?
+           ORDER BY id DESC LIMIT 1
+         )
+         ORDER BY id`,
+      )
+      .all(expense.id) as { readonly action: string; readonly correlation_id: string | null }[];
+    const correlationIds = new Set(auditRows.map((row) => row.correlation_id));
+    expect(correlationIds.size).toBe(1);
+    expect(
+      auditRows.filter((row) => row.action === 'expense.payment-refunded-by-cancellation'),
+    ).toHaveLength(2);
+    expect(() => previewCancelExpense(database, { expenseId: expense.id })).toThrow(
+      'Esta despesa já foi cancelada.',
+    );
     database.close();
   });
 
@@ -198,7 +314,11 @@ describe('cash and expenses database', () => {
       paidCents: 0,
       pendingCents: 1000,
     });
-    expect(getCashState(database).activeExpensesCents).toBe(0);
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 1000,
+      cashExpensesCents: 0,
+      projectedResultCents: -1000,
+    });
 
     const partial = payExpense(database, {
       expenseId: expense.id,
@@ -212,7 +332,6 @@ describe('cash and expenses database', () => {
       paidCents: 400,
       pendingCents: 600,
     });
-    expect(getCashState(database).activeExpensesCents).toBe(400);
 
     const paid = payExpense(database, {
       expenseId: expense.id,
@@ -224,10 +343,6 @@ describe('cash and expenses database', () => {
       status: 'paid',
       paidCents: 1000,
       pendingCents: 0,
-    });
-    expect(getCashState(database)).toMatchObject({
-      activeExpensesCents: 1000,
-      cashExpensesCents: 600,
     });
 
     const firstPayment = paid.payments.find((payment) => payment.amountCents === 400);
@@ -246,6 +361,11 @@ describe('cash and expenses database', () => {
       paidCents: 600,
       pendingCents: 400,
     });
+    expect(getCashState(database)).toMatchObject({
+      activeExpensesCents: 1000,
+      cashExpensesCents: 600,
+      projectedResultCents: -1000,
+    });
     expect(() =>
       refundExpensePayment(database, {
         paymentId: firstPayment.id,
@@ -258,6 +378,13 @@ describe('cash and expenses database', () => {
   it('restringe toda a administração financeira no perfil Caixa', async () => {
     const database = await createTemporaryDatabase();
     createEvent(database, { name: 'Evento perfil Caixa', startsAt: Date.now() });
+    const expense = createExpense(database, {
+      category: 'Permitida antes',
+      description: 'Despesa de teste',
+      amountCents: 100,
+      initialPaymentCents: 0,
+      paymentMethod: 'cash',
+    });
     switchProfile(database, 'cashier');
 
     expect(() => openCashRegister(database, 0)).toThrow(
@@ -271,6 +398,17 @@ describe('cash and expenses database', () => {
         paymentMethod: 'cash',
       }),
     ).toThrow('A administração de despesas exige o perfil Produção.');
+    expect(() =>
+      updateExpense(database, {
+        expenseId: expense.id,
+        category: 'Proibida',
+        description: 'Edição proibida',
+        amountCents: 100,
+      }),
+    ).toThrow('A administração de despesas exige o perfil Produção.');
+    expect(() => previewCancelExpense(database, { expenseId: expense.id })).toThrow(
+      'A administração de despesas exige o perfil Produção.',
+    );
     database.close();
   });
 });

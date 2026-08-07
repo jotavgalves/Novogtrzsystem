@@ -37,6 +37,7 @@ export function BackupsPage(): React.JSX.Element {
   const latestBackup = state?.backups.find((backup) => backup.integrity === 'valid');
   const invalidCount =
     state?.backups.filter((backup) => backup.integrity === 'invalid').length ?? 0;
+  const initialLoading = loading && state === null;
 
   async function confirmImport(): Promise<void> {
     const confirmed = window.confirm(
@@ -106,66 +107,68 @@ export function BackupsPage(): React.JSX.Element {
 
       {error === null ? null : <p className="form-error">{error}</p>}
       {message === null ? null : <p className="form-success">{message}</p>}
+      {initialLoading ? <div className="route-state">Carregando backups…</div> : null}
 
-      <div className="backup-layout">
-        <aside className="panel backup-settings">
-          <div className="panel__heading">
-            <FolderCog size={20} aria-hidden="true" />
-            <div>
-              <h2>Destino configurado</h2>
-              <p>Escolha uma pasta fixa, pendrive ou HD externo.</p>
+      {!initialLoading ? (
+        <div className="backup-layout">
+          <aside className="panel backup-settings">
+            <div className="panel__heading">
+              <FolderCog size={20} aria-hidden="true" />
+              <div>
+                <h2>Destino configurado</h2>
+                <p>Escolha uma pasta fixa, pendrive ou HD externo.</p>
+              </div>
             </div>
-          </div>
-          <code className="backup-destination">
-            {state?.destinationPath ?? 'Carregando pasta de destino…'}
-          </code>
-          <button
-            className="button button--secondary"
-            disabled={busy}
-            onClick={() => {
-              void chooseDestination();
-            }}
-            type="button"
-          >
-            <FolderCog size={17} aria-hidden="true" />
-            Alterar destino
-          </button>
+            <code className="backup-destination">
+              {state?.destinationPath ?? 'Pasta de destino indisponível'}
+            </code>
+            <button
+              className="button button--secondary"
+              disabled={busy}
+              onClick={() => {
+                void chooseDestination();
+              }}
+              type="button"
+            >
+              <FolderCog size={17} aria-hidden="true" />
+              Alterar destino
+            </button>
 
-          <div className="backup-protection-note">
-            <ShieldCheck size={20} aria-hidden="true" />
-            <p>
-              Cada pacote recebe checksum SHA-256 e contém um snapshot SQLite verificado antes de
-              ser aceito.
-            </p>
-          </div>
-
-          <button
-            className="button button--ghost"
-            disabled={busy}
-            onClick={() => {
-              void confirmImport();
-            }}
-            type="button"
-          >
-            <Import size={17} aria-hidden="true" />
-            Importar e restaurar
-          </button>
-        </aside>
-
-        <div className="backup-list" aria-live="polite">
-          {loading ? <div className="route-state">Carregando backups…</div> : null}
-          {!loading && state?.backups.length === 0 ? (
-            <div className="empty-state">
-              <ArchiveRestore size={32} aria-hidden="true" />
-              <h2>Nenhum backup encontrado</h2>
-              <p>Crie o primeiro pacote manual ou aguarde o backup automático.</p>
+            <div className="backup-protection-note">
+              <ShieldCheck size={20} aria-hidden="true" />
+              <p>
+                Cada pacote recebe checksum SHA-256 e contém um snapshot SQLite verificado antes de
+                ser aceito.
+              </p>
             </div>
-          ) : null}
-          {state?.backups.map((record) => (
-            <BackupCard busy={busy} key={record.filePath} onVerify={verify} record={record} />
-          ))}
+
+            <button
+              className="button button--ghost"
+              disabled={busy}
+              onClick={() => {
+                void confirmImport();
+              }}
+              type="button"
+            >
+              <Import size={17} aria-hidden="true" />
+              Importar e restaurar
+            </button>
+          </aside>
+
+          <div className="backup-list" aria-live="polite">
+            {!loading && state?.backups.length === 0 ? (
+              <div className="empty-state">
+                <ArchiveRestore size={32} aria-hidden="true" />
+                <h2>Nenhum backup encontrado</h2>
+                <p>Crie o primeiro pacote manual ou aguarde o backup automático.</p>
+              </div>
+            ) : null}
+            {state?.backups.map((record) => (
+              <BackupCard busy={busy} key={record.filePath} onVerify={verify} record={record} />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

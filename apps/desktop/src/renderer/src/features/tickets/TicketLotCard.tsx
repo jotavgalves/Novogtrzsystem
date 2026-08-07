@@ -115,7 +115,7 @@ export function TicketLotCard({ lot, busy, onUpdate }: TicketLotCardProps): Reac
             type="number"
             value={capacity}
           />
-          <button className="button button--compact" disabled={busy} type="submit">
+          <button className="button button--primary" disabled={busy} type="submit">
             <Save size={15} aria-hidden="true" />
             Salvar
           </button>

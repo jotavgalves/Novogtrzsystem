@@ -1,0 +1,198 @@
+.service-point-entry {
+  position: relative;
+  min-width: 0;
+}
+
+.service-point-entry .service-point-card {
+  width: 100%;
+  height: 100%;
+}
+
+.service-point-delete-trigger {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgb(239 68 68 / 24%);
+  border-radius: var(--radius-sm);
+  background: rgb(127 29 29 / 22%);
+  color: #fca5a5;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.service-point-delete-trigger:hover:not(:disabled) {
+  border-color: rgb(239 68 68 / 48%);
+  background: rgb(127 29 29 / 42%);
+  transform: translateY(-1px);
+}
+
+.service-point-delete-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.service-point-delete-panel {
+  display: grid;
+  gap: var(--space-5);
+  border-color: rgb(239 68 68 / 24%);
+}
+
+.service-point-delete-panel__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.service-point-delete-panel__heading h2 {
+  margin: var(--space-1) 0 var(--space-2);
+  font-size: 1.2rem;
+}
+
+.service-point-delete-panel__heading p {
+  max-width: 54rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.service-point-delete-impact {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.service-point-delete-impact > span {
+  display: flex;
+  min-width: 0;
+  min-height: 5rem;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.service-point-delete-impact small {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+.service-point-delete-impact strong {
+  overflow: hidden;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-point-delete-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.service-point-delete-option {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.service-point-delete-option:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+}
+
+.service-point-delete-option--selected {
+  border-color: rgb(242 13 50 / 42%);
+  background: var(--color-brand-soft);
+}
+
+.service-point-delete-option input {
+  margin-top: 0.2rem;
+}
+
+.service-point-delete-option > svg {
+  color: var(--color-brand-hover);
+}
+
+.service-point-delete-option > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.service-point-delete-option strong {
+  font-size: 0.9rem;
+}
+
+.service-point-delete-option small {
+  color: var(--color-text-muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.service-point-delete-note {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.service-point-delete-reason textarea {
+  width: 100%;
+  resize: vertical;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  outline: none;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.service-point-delete-reason textarea:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
+.service-point-delete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (max-width: 1100px) {
+  .service-point-delete-impact,
+  .service-point-delete-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .service-point-delete-impact,
+  .service-point-delete-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

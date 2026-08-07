@@ -1,9 +1,7 @@
 import { getCashState } from './cash';
 import { getSessionState, listEvents } from './control';
-import { getInventoryState } from './inventory';
-import { getTicketState } from './tickets';
+import { getDashboardAggregates } from './dashboard-queries';
 import type { DatabaseContext } from './types';
-import { getVoucherState } from './vouchers';
 
 export type DatabaseInsightProfile = 'production' | 'cashier';
 
@@ -22,6 +20,7 @@ export interface DatabaseInsightAuditRecord {
   readonly after: Readonly<Record<string, unknown>> | null;
   readonly impact: Readonly<Record<string, unknown>> | null;
   readonly metadata: Readonly<Record<string, unknown>> | null;
+  readonly schemaVersion: number;
   readonly createdAt: number;
 }
 
@@ -33,9 +32,14 @@ export interface DatabaseDashboardState {
     readonly startsAt: number;
   } | null;
   readonly grossSalesCents: number;
+  readonly grossRevenueCents: number;
+  readonly discountsCents: number;
+  readonly netRevenueCents: number;
+  readonly completedSales: number;
   readonly activeExpensesCents: number;
   readonly projectedResultCents: number;
   readonly expectedCashCents: number;
+  readonly cashVarianceCents: number | null;
   readonly cashRegisterStatus: 'not-opened' | 'open' | 'closed';
   readonly salesByMethod: {
     readonly cashCents: number;
@@ -44,6 +48,7 @@ export interface DatabaseDashboardState {
     readonly debitCardCents: number;
     readonly voucherCents: number;
   };
+  readonly vouchersUsedCents: number;
   readonly orders: {
     readonly open: number;
     readonly paid: number;
@@ -149,7 +154,14 @@ function parseNullableDetails(value: string | null): Readonly<Record<string, unk
   return Object.keys(parsed).length === 0 ? null : parsed;
 }
 
+function getSchemaVersion(metadata: Readonly<Record<string, unknown>> | null): number {
+  const value = metadata?.schemaVersion;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
 function mapAuditRecord(row: AuditRow): DatabaseInsightAuditRecord {
+  const metadata = parseNullableDetails(row.metadata_json);
+
   return {
     id: row.id,
     eventId: row.event_id,
@@ -164,7 +176,8 @@ function mapAuditRecord(row: AuditRow): DatabaseInsightAuditRecord {
     before: parseNullableDetails(row.before_json),
     after: parseNullableDetails(row.after_json),
     impact: parseNullableDetails(row.impact_json),
-    metadata: parseNullableDetails(row.metadata_json),
+    metadata,
+    schemaVersion: getSchemaVersion(metadata),
     createdAt: row.created_at,
   };
 }
@@ -338,66 +351,56 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
   const session = getSessionState(database);
   const activeEvent = session.activeEvent;
   const cashState = getCashState(database);
-  const inventoryState = getInventoryState(database);
-  const ticketState = getTicketState(database);
-  const voucherState = getVoucherState(database);
-  const activeTicketSales = ticketState.sales.filter((sale) => sale.status === 'active');
-  const activeVouchers = voucherState.vouchers.filter((voucher) => voucher.status === 'active');
+
+  if (activeEvent === null) {
+    return {
+      activeEvent: null,
+      grossSalesCents: 0,
+      grossRevenueCents: 0,
+      discountsCents: 0,
+      netRevenueCents: 0,
+      completedSales: 0,
+      activeExpensesCents: 0,
+      projectedResultCents: 0,
+      expectedCashCents: 0,
+      cashVarianceCents: null,
+      cashRegisterStatus: 'not-opened',
+      salesByMethod: cashState.salesByMethod,
+      vouchersUsedCents: 0,
+      orders: { open: 0, paid: 0, cancelled: 0 },
+      tickets: { sold: 0, courtesy: 0, available: 0, revenueCents: 0 },
+      vouchers: { active: 0, outstandingBalanceCents: 0 },
+      inventory: { units: 0, activeProducts: 0, lowStockProducts: 0, stockCostCents: 0 },
+      recentActivity: [],
+    };
+  }
+
+  const aggregates = getDashboardAggregates(database, activeEvent.id);
 
   return {
-    activeEvent:
-      activeEvent === null
-        ? null
-        : {
-            id: activeEvent.id,
-            name: activeEvent.name,
-            status: activeEvent.status,
-            startsAt: activeEvent.startsAt,
-          },
-    grossSalesCents: cashState.grossSalesCents,
+    activeEvent: {
+      id: activeEvent.id,
+      name: activeEvent.name,
+      status: activeEvent.status,
+      startsAt: activeEvent.startsAt,
+    },
+    grossSalesCents: aggregates.netRevenueCents,
+    grossRevenueCents: aggregates.grossRevenueCents,
+    discountsCents: aggregates.discountsCents,
+    netRevenueCents: aggregates.netRevenueCents,
+    completedSales: aggregates.completedSales,
     activeExpensesCents: cashState.activeExpensesCents,
-    projectedResultCents: cashState.projectedResultCents,
+    projectedResultCents: aggregates.netRevenueCents - cashState.activeExpensesCents,
     expectedCashCents: cashState.expectedCashCents,
+    cashVarianceCents: cashState.register?.varianceCents ?? null,
     cashRegisterStatus: cashState.register?.status ?? 'not-opened',
     salesByMethod: cashState.salesByMethod,
-    orders:
-      activeEvent === null
-        ? { open: 0, paid: 0, cancelled: 0 }
-        : getOrderCounts(database, activeEvent.id),
-    tickets: {
-      sold: activeTicketSales
-        .filter((sale) => sale.source !== 'courtesy')
-        .reduce((total, sale) => total + sale.quantity, 0),
-      courtesy: activeTicketSales
-        .filter((sale) => sale.source === 'courtesy')
-        .reduce((total, sale) => total + sale.quantity, 0),
-      available: ticketState.lots
-        .filter((lot) => lot.active)
-        .reduce((total, lot) => total + lot.availableQuantity, 0),
-      revenueCents: ticketState.activeRevenueCents,
-    },
-    vouchers: {
-      active: activeVouchers.length,
-      outstandingBalanceCents: activeVouchers.reduce(
-        (total, voucher) => total + voucher.remainingBalanceCents,
-        0,
-      ),
-    },
-    inventory: {
-      units: inventoryState.products.reduce((total, product) => total + product.quantity, 0),
-      activeProducts: inventoryState.products.filter((product) => product.active).length,
-      lowStockProducts: inventoryState.products.filter(
-        (product) => product.active && product.lowStock,
-      ).length,
-      stockCostCents: inventoryState.products.reduce(
-        (total, product) => total + product.quantity * (product.financials?.costCents ?? 0),
-        0,
-      ),
-    },
-    recentActivity: listAuditRecords(database, {
-      ...(activeEvent === null ? {} : { eventId: activeEvent.id }),
-      limit: 8,
-    }).records,
+    vouchersUsedCents: cashState.salesByMethod.voucherCents,
+    orders: getOrderCounts(database, activeEvent.id),
+    tickets: aggregates.tickets,
+    vouchers: aggregates.vouchers,
+    inventory: aggregates.inventory,
+    recentActivity: listAuditRecords(database, { eventId: activeEvent.id, limit: 8 }).records,
   };
 }
 

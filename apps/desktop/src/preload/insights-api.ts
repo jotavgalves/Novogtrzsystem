@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   auditQueryInputSchema,
   auditStateSchema,
@@ -8,6 +6,8 @@ import {
   type AuditApi,
   type DashboardApi,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const dashboardApi: DashboardApi = {
   async getState() {

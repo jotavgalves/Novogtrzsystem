@@ -2,54 +2,25 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
+import type {
+  DatabaseInventoryProduct,
+  DatabaseInventoryState,
+  DatabaseProductCategory,
+  DatabaseProductFinancials,
+  DatabaseProductKind,
+  DatabaseStockMovementType,
+} from './inventory-types';
 import type { DatabaseContext } from './types';
 
-export type DatabaseProductKind = 'food' | 'drink';
-export type DatabaseStockMovementType =
-  | 'purchase'
-  | 'correction-positive'
-  | 'correction-negative'
-  | 'loss'
-  | 'breakage'
-  | 'internal-consumption'
-  | 'courtesy'
-  | 'return';
-
-export interface DatabaseProductCategory {
-  readonly id: string;
-  readonly name: string;
-  readonly active: boolean;
-  readonly createdAt: number;
-  readonly updatedAt: number;
-}
-
-export interface DatabaseProductFinancials {
-  readonly costCents: number;
-  readonly grossProfitCents: number;
-  readonly marginPercent: number;
-}
-
-export interface DatabaseInventoryProduct {
-  readonly id: string;
-  readonly categoryId: string;
-  readonly categoryName: string;
-  readonly name: string;
-  readonly kind: DatabaseProductKind;
-  readonly salePriceCents: number;
-  readonly lowStockThreshold: number;
-  readonly active: boolean;
-  readonly quantity: number;
-  readonly lowStock: boolean;
-  readonly financials: DatabaseProductFinancials | null;
-  readonly createdAt: number;
-  readonly updatedAt: number;
-}
-
-export interface DatabaseInventoryState {
-  readonly activeEventId: string | null;
-  readonly categories: readonly DatabaseProductCategory[];
-  readonly products: readonly DatabaseInventoryProduct[];
-}
+export type {
+  DatabaseInventoryProduct,
+  DatabaseInventoryState,
+  DatabaseProductCategory,
+  DatabaseProductFinancials,
+  DatabaseProductKind,
+  DatabaseStockMovementType,
+} from './inventory-types';
 
 interface CategoryRow {
   readonly id: string;
@@ -91,7 +62,9 @@ const POSITIVE_MOVEMENTS = new Set<DatabaseStockMovementType>([
 
 function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('Esta operação de estoque exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'Esta operação de estoque exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -99,7 +72,11 @@ function requireActiveEvent(database: DatabaseContext): string {
   const event = getSessionState(database).activeEvent;
 
   if (event === null) {
-    throw new Error('Selecione um evento aberto antes de movimentar o estoque.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de movimentar o estoque.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return event.id;
@@ -196,7 +173,7 @@ function requireCategory(database: DatabaseContext, categoryId: string): Databas
     .get(categoryId) as CategoryRow | undefined;
 
   if (row === undefined) {
-    throw new Error('A categoria informada não existe.');
+    failDatabaseOperation('NOT_FOUND', 'A categoria informada não existe.', { categoryId });
   }
 
   return mapCategory(row);
@@ -225,7 +202,7 @@ function requireProductRow(database: DatabaseContext, productId: string): Produc
     .get(productId) as ProductRow | undefined;
 
   if (row === undefined) {
-    throw new Error('O produto informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O produto informado não existe.', { productId });
   }
 
   return row;
@@ -246,8 +223,10 @@ function requireUniqueName(
     .get(name, excludedId ?? null, excludedId ?? null) as { readonly id: string } | undefined;
 
   if (row !== undefined) {
-    throw new Error(
+    failDatabaseOperation(
+      'CONFLICT',
       table === 'products' ? 'Já existe um produto com esse nome.' : 'Já existe essa categoria.',
+      { entityType: table === 'products' ? 'product' : 'product-category', name },
     );
   }
 }
@@ -260,7 +239,7 @@ export function getProduct(
   const product = listProducts(database, eventId).find((item) => item.id === productId);
 
   if (product === undefined) {
-    throw new Error('O produto informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O produto informado não existe.', { productId });
   }
 
   return product;
@@ -311,7 +290,11 @@ export function createInventoryProduct(
   const category = requireCategory(database, input.categoryId);
 
   if (!category.active) {
-    throw new Error('Não é possível cadastrar produto em uma categoria inativa.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Não é possível cadastrar produto em uma categoria inativa.',
+      { categoryId: category.id, active: category.active },
+    );
   }
 
   const name = input.name.trim();
@@ -365,7 +348,11 @@ export function updateInventoryProduct(
   const category = requireCategory(database, input.categoryId);
 
   if (!category.active) {
-    throw new Error('Não é possível mover o produto para uma categoria inativa.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Não é possível mover o produto para uma categoria inativa.',
+      { categoryId: category.id, productId: input.productId, active: category.active },
+    );
   }
 
   const name = input.name.trim();
@@ -432,7 +419,17 @@ export function recordStockMovement(
   const nextQuantity = currentQuantity + delta;
 
   if (nextQuantity < 0) {
-    throw new Error(`Estoque insuficiente. Saldo atual: ${String(currentQuantity)}.`);
+    failDatabaseOperation(
+      'INSUFFICIENT_STOCK',
+      `Estoque insuficiente. Saldo atual: ${String(currentQuantity)}.`,
+      {
+        eventId,
+        productId: input.productId,
+        movementType: input.type,
+        requestedQuantity: input.quantity,
+        availableQuantity: currentQuantity,
+      },
+    );
   }
 
   const movementId = randomUUID();

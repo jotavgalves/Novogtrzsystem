@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   comboListSchema,
   comboDeletePreviewSchema,
@@ -17,6 +15,8 @@ import {
   type PreviewDeleteComboInput,
   type UpdateComboInput,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const comboApi: ComboApi = {
   async list(): Promise<readonly InventoryCombo[]> {

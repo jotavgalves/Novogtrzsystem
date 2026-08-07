@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./errors": {
+      "types": "./src/database-error.ts",
+      "default": "./src/database-error.ts"
+    },
     "./schema": {
       "types": "./src/schema.ts",
       "default": "./src/schema.ts"

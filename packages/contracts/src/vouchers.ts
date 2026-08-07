@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { servicePointSchema } from './operations';
+import { paymentMethodSchema, servicePointSchema } from './operations';
 
 export const voucherStatusSchema = z.enum(['active', 'exhausted', 'cancelled']);
 export const voucherTransactionTypeSchema = z.enum([
@@ -25,6 +25,8 @@ export const voucherSchema = z.object({
   updatedAt: z.number().int().nonnegative(),
 });
 
+export const voucherListSchema = z.array(voucherSchema);
+
 export const voucherTransactionSchema = z.object({
   id: z.uuid(),
   eventId: z.uuid(),
@@ -42,7 +44,7 @@ export const voucherTransactionSchema = z.object({
 export const voucherStateSchema = z.object({
   activeEventId: z.uuid().nullable(),
   servicePoints: z.array(servicePointSchema),
-  vouchers: z.array(voucherSchema),
+  vouchers: voucherListSchema,
   transactions: z.array(voucherTransactionSchema),
 });
 
@@ -51,6 +53,10 @@ export const createVoucherInputSchema = z.object({
   label: z.string().trim().min(2).max(100),
   linkedServicePointId: z.uuid().nullable().optional(),
   initialBalanceCents: z.number().int().positive(),
+});
+
+export const listVouchersForServicePointInputSchema = z.object({
+  servicePointId: z.uuid(),
 });
 
 export const changeVoucherStatusInputSchema = z.object({
@@ -76,6 +82,30 @@ export const voucherDeletePreviewSchema = z.object({
   paidOrderIds: z.array(z.uuid()),
   refundVoucherCents: z.number().int().nonnegative(),
   affectedOrderTotalCents: z.number().int().nonnegative(),
+  affectedPayments: z.array(
+    z.object({
+      id: z.uuid(),
+      orderId: z.uuid(),
+      method: paymentMethodSchema,
+      amountCents: z.number().int().positive(),
+      receivedCents: z.number().int().nonnegative().nullable(),
+      changeCents: z.number().int().nonnegative(),
+    }),
+  ),
+  stockReturns: z.array(
+    z.object({
+      productId: z.uuid(),
+      productName: z.string().trim().min(1),
+      quantity: z.number().int().positive(),
+    }),
+  ),
+  financialImpact: z.object({
+    affectedRevenueCents: z.number().int().nonnegative(),
+    nonVoucherPaymentCents: z.number().int().nonnegative(),
+    voucherRefundCents: z.number().int().nonnegative(),
+    paymentRecordCount: z.number().int().nonnegative(),
+    voucherRedemptionRecordCount: z.number().int().nonnegative(),
+  }),
 });
 
 export const previewDeleteVoucherInputSchema = z.object({
@@ -93,6 +123,9 @@ export type Voucher = z.infer<typeof voucherSchema>;
 export type VoucherTransaction = z.infer<typeof voucherTransactionSchema>;
 export type VoucherState = z.infer<typeof voucherStateSchema>;
 export type CreateVoucherInput = z.infer<typeof createVoucherInputSchema>;
+export type ListVouchersForServicePointInput = z.infer<
+  typeof listVouchersForServicePointInputSchema
+>;
 export type ChangeVoucherStatusInput = z.infer<typeof changeVoucherStatusInputSchema>;
 export type UpdateVoucherInput = z.infer<typeof updateVoucherInputSchema>;
 export type VoucherDeletePreview = z.infer<typeof voucherDeletePreviewSchema>;
@@ -101,6 +134,7 @@ export type DeleteVoucherInput = z.infer<typeof deleteVoucherInputSchema>;
 
 export interface VoucherApi {
   getState(): Promise<VoucherState>;
+  listForServicePoint(input: ListVouchersForServicePointInput): Promise<readonly Voucher[]>;
   create(input: CreateVoucherInput): Promise<Voucher>;
   update(input: UpdateVoucherInput): Promise<Voucher>;
   previewDelete(input: PreviewDeleteVoucherInput): Promise<VoucherDeletePreview>;

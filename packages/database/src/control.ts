@@ -1,5 +1,7 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
 
+import { writeAuditRecord } from './audit-write';
+import { failDatabaseOperation } from './database-error';
 import type { DatabaseContext } from './types';
 
 export type DatabaseUserProfile = 'production' | 'cashier';
@@ -126,7 +128,7 @@ function requireEvent(database: DatabaseContext, eventId: string): DatabaseEvent
   const event = getEventById(database, eventId);
 
   if (event === null) {
-    throw new Error('O evento informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O evento informado não existe.', { eventId });
   }
 
   return event;
@@ -134,7 +136,9 @@ function requireEvent(database: DatabaseContext, eventId: string): DatabaseEvent
 
 function requireProduction(database: DatabaseContext): void {
   if (getProfile(database) !== 'production') {
-    throw new Error('Esta operação exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'Esta operação exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -151,35 +155,15 @@ function writeAudit(
     readonly impact?: Readonly<Record<string, unknown>>;
   } = {},
 ): void {
-  database.sqlite
-    .prepare(
-      `INSERT INTO audit_log
-       (
-         event_id,
-         profile,
-         action,
-         entity_type,
-         entity_id,
-         details_json,
-         before_json,
-         after_json,
-         impact_json,
-         created_at
-       )
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
-      eventId,
-      getProfile(database),
-      action,
-      entityType,
-      entityId,
-      JSON.stringify(details),
-      structured.before === undefined ? null : JSON.stringify(structured.before),
-      structured.after === undefined ? null : JSON.stringify(structured.after),
-      structured.impact === undefined ? null : JSON.stringify(structured.impact),
-      Date.now(),
-    );
+  writeAuditRecord(database, {
+    profile: getProfile(database),
+    action,
+    entityType,
+    entityId,
+    eventId,
+    details,
+    ...structured,
+  });
 }
 
 export function ensureControlDefaults(database: DatabaseContext): void {
@@ -220,8 +204,10 @@ export function deleteEvent(
   requireProduction(database);
   const current = getAnyEventById(database, input.eventId);
 
-  if (current === null || current.deleted_at !== null) {
-    throw new Error('O evento informado não existe.');
+  if (current?.deleted_at !== null) {
+    failDatabaseOperation('NOT_FOUND', 'O evento informado não existe.', {
+      eventId: input.eventId,
+    });
   }
 
   const deleted = mapEvent(current);
@@ -401,7 +387,11 @@ export function setActiveEvent(
     const event = requireEvent(database, eventId);
 
     if (event.status !== 'open') {
-      throw new Error('Somente eventos abertos podem ser selecionados para operação.');
+      failDatabaseOperation(
+        'INVALID_STATE',
+        'Somente eventos abertos podem ser selecionados para operação.',
+        { eventId, status: event.status, requiredStatus: 'open' },
+      );
     }
 
     setMeta(database, META_KEYS.activeEventId, eventId);
@@ -426,7 +416,10 @@ export function switchProfile(
     targetProfile === 'production' &&
     (password === undefined || !verifyProductionPassword(database, password))
   ) {
-    throw new Error('Senha de Produção inválida.');
+    failDatabaseOperation('FORBIDDEN', 'Senha de Produção inválida.', {
+      targetProfile,
+      reason: 'invalid-production-password',
+    });
   }
 
   database.sqlite.transaction(() => {
@@ -448,7 +441,9 @@ export function changeProductionPassword(
   requireProduction(database);
 
   if (!verifyProductionPassword(database, currentPassword)) {
-    throw new Error('A senha atual está incorreta.');
+    failDatabaseOperation('FORBIDDEN', 'A senha atual está incorreta.', {
+      reason: 'invalid-current-production-password',
+    });
   }
 
   database.sqlite.transaction(() => {

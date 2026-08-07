@@ -157,6 +157,9 @@ describe('combo database', () => {
       ],
       historicalSales: 0,
     });
+    expect(() => deleteCombo(database, { comboId: combo.id, reason: '  ' })).toThrow(
+      'Informe uma justificativa com pelo menos 3 caracteres.',
+    );
 
     const deleted = deleteCombo(database, {
       comboId: combo.id,
@@ -169,6 +172,9 @@ describe('combo database', () => {
     expect(stored?.active).toBe(false);
     expect(stored?.components.map((component) => component.productId).sort()).toEqual(
       [beerId, snackId].sort(),
+    );
+    expect(() => deleteCombo(database, { comboId: combo.id, reason: 'Excluir novamente' })).toThrow(
+      'Este combo já está inativo.',
     );
     database.close();
   });

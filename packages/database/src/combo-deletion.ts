@@ -1,6 +1,7 @@
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
 import { requireCombo, type DatabaseInventoryCombo } from './combos';
+import { requireOperationReason } from './operation-validation';
 import type { DatabaseContext } from './types';
 
 export interface DatabaseComboDeletePreview {
@@ -53,7 +54,12 @@ export function deleteCombo(
   input: { readonly comboId: string; readonly reason: string },
 ): DatabaseInventoryCombo {
   const preview = previewDeleteCombo(database, input);
-  const reason = input.reason.trim();
+
+  if (!preview.active) {
+    throw new Error('Este combo já está inativo.');
+  }
+
+  const reason = requireOperationReason(input.reason);
   const now = Date.now();
 
   database.sqlite.transaction(() => {

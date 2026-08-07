@@ -214,8 +214,12 @@
   margin-top: auto;
 }
 
-.combo-card__footer .button {
+.combo-card__footer .inventory-card__actions {
   margin-left: auto;
+}
+
+.combo-card__footer .button {
+  margin-left: 0;
 }
 
 @media (max-width: 1180px) {
@@ -242,8 +246,12 @@
     grid-template-columns: minmax(0, 1fr) 6rem auto;
   }
 
-  .combo-card__footer .button {
+  .combo-card__footer .inventory-card__actions {
     width: 100%;
     margin-left: 0;
+  }
+
+  .combo-card__footer .button {
+    width: 100%;
   }
 }

@@ -1,3 +1,4 @@
+import { failDatabaseOperation } from './database-error';
 import type { DatabaseServicePoint, DatabaseServicePointType } from './service-point-types';
 import type { DatabaseContext } from './types';
 import type { DatabaseVoucher } from './voucher-types';
@@ -74,7 +75,10 @@ export function resolveLinkedServicePoint(
     | undefined;
 
   if (servicePoint === undefined) {
-    throw new Error('A mesa vinculada ao voucher não existe no evento ativo.');
+    failDatabaseOperation('NOT_FOUND', 'A mesa vinculada ao voucher não existe no evento ativo.', {
+      eventId,
+      servicePointId: linkedServicePointId,
+    });
   }
 
   return {

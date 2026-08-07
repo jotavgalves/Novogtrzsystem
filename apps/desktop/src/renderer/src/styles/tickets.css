@@ -24,7 +24,19 @@
 
 .ticket-form textarea {
   width: 100%;
+  min-height: 5.5rem;
   resize: vertical;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  outline: 0;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.ticket-form textarea:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 .ticket-form small {
@@ -130,7 +142,29 @@
 .ticket-lot-edit {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.6fr) minmax(7rem, 0.5fr) auto;
+  align-items: center;
   gap: var(--space-2);
+}
+
+.ticket-lot-edit input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  outline: 0;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.ticket-lot-edit input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
+.ticket-lot-edit .button {
+  min-height: 2.75rem;
 }
 
 .ticket-code-list {
@@ -150,11 +184,29 @@
   opacity: 0.64;
 }
 
+.ticket-code-control > input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+}
+
+.ticket-code-control > input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
 .ticket-code {
   display: inline-flex;
+  min-height: 2.25rem;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: 0 var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface-active);
@@ -174,6 +226,10 @@
   gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
+}
+
+.ticket-sale-cancel > .button {
+  min-height: 2.75rem;
 }
 
 @media (max-width: 1180px) {

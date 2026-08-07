@@ -42,6 +42,7 @@ export function InventoryPage(): React.JSX.Element {
   const products = useMemo(() => state?.products ?? [], [state?.products]);
   const activeEventId = state?.activeEventId ?? null;
   const hasActiveEvent = activeEventId !== null;
+  const initialLoading = loading && state === null;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR');
@@ -110,7 +111,7 @@ export function InventoryPage(): React.JSX.Element {
         </article>
       </div>
 
-      {!hasActiveEvent ? (
+      {!initialLoading && !hasActiveEvent ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto para registrar entradas, perdas ou correções.</span>
@@ -196,7 +197,9 @@ export function InventoryPage(): React.JSX.Element {
       </div>
 
       <div className="inventory-list" aria-live="polite">
-        {loading ? <div className="route-state">Carregando produtos…</div> : null}
+        {loading && products.length === 0 ? (
+          <div className="route-state">Carregando produtos…</div>
+        ) : null}
         {!loading && filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Boxes size={32} aria-hidden="true" />

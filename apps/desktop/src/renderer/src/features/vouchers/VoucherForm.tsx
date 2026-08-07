@@ -112,7 +112,7 @@ export function VoucherForm({
         />
       </label>
       <button
-        className="button"
+        className="button button--primary"
         disabled={busy || label.trim().length < 2 || parseCurrencyInput(balance) <= 0}
         type="submit"
       >

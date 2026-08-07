@@ -255,7 +255,7 @@ describe('vouchers database', () => {
     database.close();
   });
 
-  it('pré-visualiza e exclui voucher estornando vendas pagas afetadas', async () => {
+  it('pré-visualiza e exclui voucher preservando estado real na auditoria', async () => {
     const database = await createTemporaryDatabase();
     const event = createEvent(database, { name: 'Evento exclusão voucher', startsAt: Date.now() });
     const productId = seedProduct(database);
@@ -269,16 +269,27 @@ describe('vouchers database', () => {
     closeOrder(database, {
       orderId,
       discountCents: 0,
-      payments: [{ method: 'pix', amountCents: 500 }],
-      voucherUses: [{ code: voucher.code, amountCents: 500 }],
+      payments: [],
+      voucherUses: [{ code: voucher.code, amountCents: 1000 }],
     });
 
+    expect(getVoucherState(database).vouchers[0]).toMatchObject({
+      status: 'exhausted',
+      remainingBalanceCents: 0,
+    });
     expect(previewDeleteVoucher(database, { voucherId: voucher.id })).toMatchObject({
       voucherId: voucher.id,
+      remainingBalanceCents: 0,
       paidOrders: 1,
-      refundVoucherCents: 500,
+      refundVoucherCents: 1000,
       affectedOrderTotalCents: 1000,
     });
+    expect(() =>
+      deleteVoucher(database, {
+        voucherId: voucher.id,
+        reason: '  ',
+      }),
+    ).toThrow('Informe uma justificativa com pelo menos 3 caracteres.');
 
     const deleted = deleteVoucher(database, {
       voucherId: voucher.id,
@@ -292,7 +303,22 @@ describe('vouchers database', () => {
       status: 'cancelled',
       remainingBalanceCents: 1000,
     });
-    expect(previewDeleteVoucher(database, { voucherId: voucher.id }).paidOrders).toBe(0);
+    expect(() => previewDeleteVoucher(database, { voucherId: voucher.id })).toThrow(
+      'Este voucher já está cancelado.',
+    );
+    const auditRow = database.sqlite
+      .prepare(
+        `SELECT before_json, after_json
+         FROM audit_log
+         WHERE action = 'voucher.deleted' AND entity_id = ?
+         ORDER BY id DESC
+         LIMIT 1`,
+      )
+      .get(voucher.id) as
+      | { readonly before_json: string | null; readonly after_json: string | null }
+      | undefined;
+    expect(auditRow?.before_json).toContain('"status":"exhausted"');
+    expect(auditRow?.after_json).toContain('"status":"cancelled"');
     database.close();
   });
 

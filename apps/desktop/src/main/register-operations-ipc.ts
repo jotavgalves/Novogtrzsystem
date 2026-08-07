@@ -6,12 +6,16 @@ import {
   cancelOrderInputSchema,
   closeOrderInputSchema,
   createServicePointInputSchema,
+  deleteServicePointInputSchema,
   getOrderInputSchema,
   IPC_CHANNELS,
   openOrderInputSchema,
+  OPERATIONS_IPC_CHANNELS,
   operationStateSchema,
   orderSchema,
+  previewDeleteServicePointInputSchema,
   removeOrderItemInputSchema,
+  servicePointDeletePreviewSchema,
   servicePointSchema,
   unbindOrderVoucherInputSchema,
 } from '@gtrz/contracts';
@@ -21,14 +25,18 @@ import {
   cancelOrder,
   closeOrder,
   createServicePoint,
+  deleteServicePoint,
   getOperationState,
   getOrder,
   openOrder,
+  previewDeleteServicePoint,
   removeOrderItem,
   type DatabaseCloseOrderPaymentInput,
   type DatabaseContext,
   unbindOrderVoucher,
 } from '@gtrz/database';
+
+import { handleIpc } from './ipc-handler';
 
 interface RegisterOperationsIpcOptions {
   readonly getDatabase: () => DatabaseContext;
@@ -37,6 +45,8 @@ interface RegisterOperationsIpcOptions {
 const OPERATION_CHANNELS = [
   IPC_CHANNELS.operationsGetState,
   IPC_CHANNELS.operationsCreateServicePoint,
+  OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint,
+  OPERATIONS_IPC_CHANNELS.deleteServicePoint,
   IPC_CHANNELS.operationsOpenOrder,
   IPC_CHANNELS.operationsGetOrder,
   IPC_CHANNELS.operationsAddItem,
@@ -68,48 +78,60 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
     ipcMain.removeHandler(channel);
   }
 
-  ipcMain.handle(IPC_CHANNELS.operationsGetState, () => {
+  handleIpc(IPC_CHANNELS.operationsGetState, () => {
     return operationStateSchema.parse(getOperationState(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsCreateServicePoint, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsCreateServicePoint, (_event, payload: unknown) => {
     const input = createServicePointInputSchema.parse(payload);
     return servicePointSchema.parse(createServicePoint(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsOpenOrder, (_event, payload: unknown) => {
+  handleIpc(OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint, (_event, payload: unknown) => {
+    const input = previewDeleteServicePointInputSchema.parse(payload);
+    return servicePointDeletePreviewSchema.parse(
+      previewDeleteServicePoint(options.getDatabase(), input),
+    );
+  });
+
+  handleIpc(OPERATIONS_IPC_CHANNELS.deleteServicePoint, (_event, payload: unknown) => {
+    const input = deleteServicePointInputSchema.parse(payload);
+    return servicePointDeletePreviewSchema.parse(deleteServicePoint(options.getDatabase(), input));
+  });
+
+  handleIpc(IPC_CHANNELS.operationsOpenOrder, (_event, payload: unknown) => {
     const input = openOrderInputSchema.parse(payload);
     return orderSchema.parse(openOrder(options.getDatabase(), input.servicePointId));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsGetOrder, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsGetOrder, (_event, payload: unknown) => {
     const input = getOrderInputSchema.parse(payload);
     return orderSchema.parse(getOrder(options.getDatabase(), input.orderId));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsAddItem, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsAddItem, (_event, payload: unknown) => {
     const input = addOrderItemInputSchema.parse(payload);
     return orderSchema.parse(addOrderItem(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsRemoveItem, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsRemoveItem, (_event, payload: unknown) => {
     const input = removeOrderItemInputSchema.parse(payload);
     return orderSchema.parse(removeOrderItem(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsBindVoucher, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsBindVoucher, (_event, payload: unknown) => {
     const input = bindOrderVoucherInputSchema.parse(payload);
     bindOrderVoucher(options.getDatabase(), input);
     return orderSchema.parse(getOrder(options.getDatabase(), input.orderId));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsUnbindVoucher, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsUnbindVoucher, (_event, payload: unknown) => {
     const input = unbindOrderVoucherInputSchema.parse(payload);
     unbindOrderVoucher(options.getDatabase(), input.orderId);
     return orderSchema.parse(getOrder(options.getDatabase(), input.orderId));
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsCloseOrder, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsCloseOrder, (_event, payload: unknown) => {
     const input = closeOrderInputSchema.parse(payload);
     return orderSchema.parse(
       closeOrder(options.getDatabase(), {
@@ -121,7 +143,7 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
     );
   });
 
-  ipcMain.handle(IPC_CHANNELS.operationsCancelOrder, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.operationsCancelOrder, (_event, payload: unknown) => {
     const input = cancelOrderInputSchema.parse(payload);
     return orderSchema.parse(cancelOrder(options.getDatabase(), input));
   });

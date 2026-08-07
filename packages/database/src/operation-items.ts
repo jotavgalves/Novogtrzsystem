@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
+import { failDatabaseOperation } from './database-error';
 import { getOrder, recomputeOpenOrder, requireOpenOrderRow } from './operation-core';
 import { requireAvailableCatalogItem } from './operation-stock';
 import type { DatabaseOrder, DatabaseOrderItemKind } from './operation-types';
@@ -94,7 +95,10 @@ export function removeOrderItem(
     | undefined;
 
   if (item === undefined) {
-    throw new Error('O item informado não pertence à comanda.');
+    failDatabaseOperation('NOT_FOUND', 'O item informado não pertence à comanda.', {
+      orderId: input.orderId,
+      orderItemId: input.orderItemId,
+    });
   }
 
   const now = Date.now();

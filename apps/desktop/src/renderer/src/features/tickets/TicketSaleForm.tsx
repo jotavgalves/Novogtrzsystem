@@ -179,7 +179,7 @@ export function TicketSaleForm({ lots, busy, onSubmit }: TicketSaleFormProps): R
       </label>
 
       <button
-        className="button"
+        className="button button--primary"
         disabled={
           busy ||
           lotId.length === 0 ||

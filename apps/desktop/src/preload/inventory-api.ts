@@ -1,5 +1,3 @@
-import { ipcRenderer } from 'electron';
-
 import {
   createCategoryInputSchema,
   createProductInputSchema,
@@ -29,6 +27,8 @@ import {
   type TransferStockInput,
   type UpdateProductInput,
 } from '@gtrz/contracts';
+
+import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 
 export const inventoryApi: InventoryApi = {
   async getState(): Promise<InventoryState> {

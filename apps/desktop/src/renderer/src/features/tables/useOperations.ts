@@ -6,6 +6,8 @@ import type {
   OperationState,
   Order,
   ServicePoint,
+  ServicePointDeleteMode,
+  ServicePointDeletePreview,
 } from '@gtrz/contracts';
 
 interface OperationsViewState {
@@ -17,6 +19,12 @@ interface OperationsViewState {
   readonly message: string | null;
   readonly reload: () => Promise<void>;
   readonly createTable: (label: string) => Promise<void>;
+  readonly previewDeleteTable: (servicePointId: string) => Promise<ServicePointDeletePreview>;
+  readonly deleteTable: (
+    servicePointId: string,
+    mode: ServicePointDeleteMode,
+    reason: string,
+  ) => Promise<void>;
   readonly openServicePoint: (servicePoint: ServicePoint) => Promise<void>;
   readonly addItem: (item: OperationCatalogItem) => Promise<void>;
   readonly removeItem: (orderItemId: string) => Promise<void>;
@@ -87,6 +95,39 @@ export function useOperations(): OperationsViewState {
       await run(
         () => window.gtrz.operations.createServicePoint({ label, type: 'table' }),
         'Mesa criada.',
+      );
+    },
+    [run],
+  );
+
+  const previewDeleteTable = useCallback(
+    async (servicePointId: string): Promise<ServicePointDeletePreview> => {
+      setBusy(true);
+      setError(null);
+      setMessage(null);
+
+      try {
+        return await window.gtrz.operations.previewDeleteServicePoint({ servicePointId });
+      } catch (previewError: unknown) {
+        const failureMessage = getErrorMessage(previewError);
+        setError(failureMessage);
+        throw new Error(failureMessage);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [],
+  );
+
+  const deleteTable = useCallback(
+    async (servicePointId: string, mode: ServicePointDeleteMode, reason: string): Promise<void> => {
+      const successMessage =
+        mode === 'refund-sales'
+          ? 'Mesa excluída e vendas estornadas. Estoque e vouchers foram recompostos.'
+          : 'Mesa excluída. As vendas concluídas foram mantidas.';
+      await run(
+        () => window.gtrz.operations.deleteServicePoint({ servicePointId, mode, reason }),
+        successMessage,
       );
     },
     [run],
@@ -207,6 +248,8 @@ export function useOperations(): OperationsViewState {
     message,
     reload,
     createTable,
+    previewDeleteTable,
+    deleteTable,
     openServicePoint,
     addItem,
     removeItem,

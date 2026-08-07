@@ -179,7 +179,9 @@ export function EventsPage(): React.JSX.Element {
         </form>
 
         <div className="event-list" aria-live="polite">
-          {loading ? <div className="route-state">Carregando eventos…</div> : null}
+          {loading && events.length === 0 ? (
+            <div className="route-state">Carregando eventos…</div>
+          ) : null}
           {!loading && error !== null ? (
             <div className="route-state route-state--error">{error}</div>
           ) : null}

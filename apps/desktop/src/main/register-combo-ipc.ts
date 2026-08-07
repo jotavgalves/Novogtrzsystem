@@ -19,6 +19,8 @@ import {
   type DatabaseContext,
 } from '@gtrz/database';
 
+import { handleIpc } from './ipc-handler';
+
 interface RegisterComboIpcOptions {
   readonly getDatabase: () => DatabaseContext;
 }
@@ -36,26 +38,26 @@ export function registerComboIpcHandlers(options: RegisterComboIpcOptions): void
     ipcMain.removeHandler(channel);
   }
 
-  ipcMain.handle(IPC_CHANNELS.combosList, () => {
+  handleIpc(IPC_CHANNELS.combosList, () => {
     return comboListSchema.parse(listCombos(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.combosCreate, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.combosCreate, (_event, payload: unknown) => {
     const input = createComboInputSchema.parse(payload);
     return comboSchema.parse(createCombo(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.combosUpdate, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.combosUpdate, (_event, payload: unknown) => {
     const input = updateComboInputSchema.parse(payload);
     return comboSchema.parse(updateCombo(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.combosPreviewDelete, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.combosPreviewDelete, (_event, payload: unknown) => {
     const input = previewDeleteComboInputSchema.parse(payload);
     return comboDeletePreviewSchema.parse(previewDeleteCombo(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.combosDelete, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.combosDelete, (_event, payload: unknown) => {
     const input = deleteComboInputSchema.parse(payload);
     return comboSchema.parse(deleteCombo(options.getDatabase(), input));
   });

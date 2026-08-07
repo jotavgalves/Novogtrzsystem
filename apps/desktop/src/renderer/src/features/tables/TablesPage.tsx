@@ -26,6 +26,8 @@ export function TablesPage(): React.JSX.Element {
     message,
     reload,
     createTable,
+    previewDeleteTable,
+    deleteTable,
     openServicePoint,
     addItem,
     removeItem,
@@ -42,6 +44,7 @@ export function TablesPage(): React.JSX.Element {
   const openPoints = servicePoints.filter((item) => item.status === 'open');
   const openTotalCents = openPoints.reduce((total, item) => total + item.activeOrderTotalCents, 0);
   const availableItems = catalog.filter((item) => item.active && item.availableQuantity > 0).length;
+  const initialLoading = loading && state === null;
 
   return (
     <section className="feature-page">
@@ -86,8 +89,9 @@ export function TablesPage(): React.JSX.Element {
 
       {error === null ? null : <p className="form-error">{error}</p>}
       {message === null ? null : <p className="form-success">{message}</p>}
+      {initialLoading ? <div className="route-state">Carregando operação…</div> : null}
 
-      {state?.activeEventId === null || state === null ? (
+      {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de operar mesas e vendas.</span>
@@ -109,12 +113,16 @@ export function TablesPage(): React.JSX.Element {
             </article>
           ) : null}
 
-          {loading ? <div className="route-state">Carregando operação…</div> : null}
-          {!loading ? (
-            <ServicePointGrid busy={busy} onOpen={openServicePoint} servicePoints={servicePoints} />
-          ) : null}
+          <ServicePointGrid
+            busy={busy}
+            onDelete={deleteTable}
+            onOpen={openServicePoint}
+            onPreviewDelete={previewDeleteTable}
+            production={production}
+            servicePoints={servicePoints}
+          />
 
-          {production && !loading ? (
+          {production ? (
             <RecentOrdersPanel busy={busy} onCancel={cancelOrder} orders={recentOrders} />
           ) : null}
         </>

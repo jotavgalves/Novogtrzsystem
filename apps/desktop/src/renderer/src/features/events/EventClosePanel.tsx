@@ -105,7 +105,9 @@ export function EventClosePanel({
         </button>
       </header>
 
-      {loading ? <div className="route-state">Consolidando a operação…</div> : null}
+      {loading && summary === null ? (
+        <div className="route-state">Consolidando a operação…</div>
+      ) : null}
       {error === null ? null : <p className="form-error">{error}</p>}
 
       {summary === null ? null : (

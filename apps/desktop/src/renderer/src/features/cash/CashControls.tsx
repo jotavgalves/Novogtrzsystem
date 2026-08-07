@@ -58,7 +58,11 @@ export function CashControls({
               value={opening}
             />
           </label>
-          <button className="button" disabled={busy || parseMoney(opening) < 0} type="submit">
+          <button
+            className="button button--primary"
+            disabled={busy || parseMoney(opening) < 0}
+            type="submit"
+          >
             Abrir caixa
           </button>
         </form>
@@ -145,7 +149,7 @@ export function CashControls({
             />
           </label>
           <button
-            className="button"
+            className="button button--primary"
             disabled={busy || parseMoney(movementAmount) <= 0}
             type="submit"
           >
@@ -181,7 +185,11 @@ export function CashControls({
               value={counted}
             />
           </label>
-          <button className="button" disabled={busy || parseMoney(counted) < 0} type="submit">
+          <button
+            className="button button--primary"
+            disabled={busy || parseMoney(counted) < 0}
+            type="submit"
+          >
             Fechar caixa
           </button>
         </form>

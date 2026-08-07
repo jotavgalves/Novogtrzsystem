@@ -5,11 +5,13 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  createCombo,
   createEvent,
   createInventoryProduct,
   createProductCategory,
   deleteProduct,
   getInventoryState,
+  listCombos,
   openDatabase,
   previewDeleteProduct,
   recordStockMovement,
@@ -146,6 +148,9 @@ describe('inventory database', () => {
       historicalSales: 0,
       stockMovements: 1,
     });
+    expect(() => deleteProduct(database, { productId, reason: '  ' })).toThrow(
+      'Informe uma justificativa com pelo menos 3 caracteres.',
+    );
     const deleted = deleteProduct(database, {
       productId,
       reason: 'Produto fora de catálogo',
@@ -158,6 +163,52 @@ describe('inventory database', () => {
       active: false,
       quantity: 4,
     });
+    expect(() => deleteProduct(database, { productId, reason: 'Excluir novamente' })).toThrow(
+      'Este produto já está inativo.',
+    );
+    database.close();
+  });
+
+  it('desativa combos dependentes na mesma transação e correlação da exclusão do produto', async () => {
+    const database = await createTemporaryDatabase();
+    createEvent(database, { name: 'Evento dependência combo', startsAt: Date.now() });
+    const { productId } = createCatalog(database);
+    const combo = createCombo(database, {
+      name: 'Combo dependente',
+      salePriceCents: 1800,
+      components: [{ productId, quantity: 2 }],
+    });
+
+    expect(previewDeleteProduct(database, { productId }).dependentCombos).toEqual([
+      'Combo dependente',
+    ]);
+    deleteProduct(database, {
+      productId,
+      reason: 'Produto descontinuado',
+    });
+
+    expect(listCombos(database).find((item) => item.id === combo.id)).toMatchObject({
+      active: false,
+      availableUnits: 0,
+    });
+    const auditRows = database.sqlite
+      .prepare(
+        `SELECT action, entity_id, correlation_id
+         FROM audit_log
+         WHERE action IN ('combo.deactivated-by-product-deletion', 'inventory.product-deleted')
+         ORDER BY id`,
+      )
+      .all() as {
+      readonly action: string;
+      readonly entity_id: string;
+      readonly correlation_id: string | null;
+    }[];
+    expect(auditRows.map(({ action, entity_id }) => ({ action, entity_id }))).toEqual([
+      { action: 'combo.deactivated-by-product-deletion', entity_id: combo.id },
+      { action: 'inventory.product-deleted', entity_id: productId },
+    ]);
+    expect(auditRows[0]?.correlation_id).not.toBeNull();
+    expect(new Set(auditRows.map((row) => row.correlation_id)).size).toBe(1);
     database.close();
   });
 

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import { listOperationCatalog } from './operation-stock';
 import type {
   DatabaseOperationState,
@@ -69,7 +70,11 @@ export function requireActiveOperationEvent(database: DatabaseContext): string {
   const event = getSessionState(database).activeEvent;
 
   if (event === null) {
-    throw new Error('Selecione um evento aberto antes de operar mesas e vendas.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de operar mesas e vendas.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return event.id;
@@ -77,7 +82,9 @@ export function requireActiveOperationEvent(database: DatabaseContext): string {
 
 function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('O cadastro de mesas exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'O cadastro de mesas exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -160,7 +167,7 @@ export function requireOrderRow(database: DatabaseContext, orderId: string): Ope
     .get(orderId) as OperationOrderRow | undefined;
 
   if (row === undefined) {
-    throw new Error('A comanda informada não existe.');
+    failDatabaseOperation('NOT_FOUND', 'A comanda informada não existe.', { orderId });
   }
 
   return row;
@@ -170,11 +177,20 @@ export function requireOpenOrderRow(database: DatabaseContext, orderId: string):
   const order = requireOrderRow(database, orderId);
 
   if (order.status !== 'open') {
-    throw new Error('Somente comandas abertas podem ser alteradas.');
+    failDatabaseOperation('INVALID_STATE', 'Somente comandas abertas podem ser alteradas.', {
+      orderId: order.id,
+      status: order.status,
+    });
   }
 
-  if (order.event_id !== requireActiveOperationEvent(database)) {
-    throw new Error('A comanda não pertence ao evento ativo.');
+  const activeEventId = requireActiveOperationEvent(database);
+
+  if (order.event_id !== activeEventId) {
+    failDatabaseOperation('INVALID_STATE', 'A comanda não pertence ao evento ativo.', {
+      orderId: order.id,
+      orderEventId: order.event_id,
+      activeEventId,
+    });
   }
 
   return order;
@@ -327,7 +343,10 @@ export function createServicePoint(
     .get(eventId, label);
 
   if (duplicate !== undefined) {
-    throw new Error('Já existe uma mesa ou balcão com esse nome.');
+    failDatabaseOperation('CONFLICT', 'Já existe uma mesa ou balcão com esse nome.', {
+      eventId,
+      label,
+    });
   }
 
   if (
@@ -339,7 +358,10 @@ export function createServicePoint(
       )
       .get(eventId) !== undefined
   ) {
-    throw new Error('O evento já possui um balcão ativo.');
+    failDatabaseOperation('CONFLICT', 'O evento já possui um balcão ativo.', {
+      eventId,
+      type: input.type,
+    });
   }
 
   const id = randomUUID();
@@ -364,7 +386,10 @@ export function createServicePoint(
   const servicePoint = listServicePoints(database, eventId).find((item) => item.id === id);
 
   if (servicePoint === undefined) {
-    throw new Error('A mesa foi criada, mas não pôde ser carregada.');
+    failDatabaseOperation('INTEGRITY_ERROR', 'A mesa foi criada, mas não pôde ser carregada.', {
+      eventId,
+      servicePointId: id,
+    });
   }
 
   return servicePoint;
@@ -377,7 +402,10 @@ export function openOrder(database: DatabaseContext, servicePointId: string): Da
   );
 
   if (servicePoint === undefined) {
-    throw new Error('A mesa ou balcão informado não existe no evento ativo.');
+    failDatabaseOperation('NOT_FOUND', 'A mesa ou balcão informado não existe no evento ativo.', {
+      eventId,
+      servicePointId,
+    });
   }
 
   if (servicePoint.activeOrderId !== null) {

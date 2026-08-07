@@ -10,6 +10,7 @@ import type { TicketApi } from './tickets';
 import type { VoucherApi } from './vouchers';
 
 export * from './combos';
+export * from './errors';
 export * from './event-close';
 export * from './finance';
 export * from './insights';
@@ -63,6 +64,7 @@ export const IPC_CHANNELS = {
   operationsCloseOrder: 'operations:close-order',
   operationsCancelOrder: 'operations:cancel-order',
   vouchersGetState: 'vouchers:get-state',
+  vouchersListForServicePoint: 'vouchers:list-for-service-point',
   vouchersCreate: 'vouchers:create',
   vouchersUpdate: 'vouchers:update',
   vouchersPreviewDelete: 'vouchers:preview-delete',
@@ -74,8 +76,10 @@ export const IPC_CHANNELS = {
   cashClose: 'cash:close',
   expensesGetState: 'expenses:get-state',
   expensesCreate: 'expenses:create',
+  expensesUpdate: 'expenses:update',
   expensesPay: 'expenses:pay',
   expensesRefundPayment: 'expenses:refund-payment',
+  expensesPreviewCancel: 'expenses:preview-cancel',
   expensesCancel: 'expenses:cancel',
   ticketsGetState: 'tickets:get-state',
   ticketsCreateLot: 'tickets:create-lot',

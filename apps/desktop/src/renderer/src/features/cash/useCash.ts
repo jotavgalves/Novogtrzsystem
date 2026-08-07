@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import type { CashState, RecordCashMovementInput } from '@gtrz/contracts';
 
+import { getAppErrorMessage } from '../../shared/app-error';
+
 interface CashViewState {
   readonly state: CashState | null;
   readonly loading: boolean;
@@ -15,7 +17,7 @@ interface CashViewState {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Não foi possível atualizar o caixa.';
+  return getAppErrorMessage(error, 'Não foi possível atualizar o caixa.');
 }
 
 export function useCash(): CashViewState {

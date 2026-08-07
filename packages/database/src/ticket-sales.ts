@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
+import { requireOperationReason } from './operation-validation';
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseTicketSale, DatabaseTicketSaleSource } from './ticket-model';
 import {
@@ -132,7 +133,7 @@ export function cancelTicketSale(
     throw new Error('Esta venda de ingresso já foi cancelada.');
   }
 
-  const reason = input.reason.trim();
+  const reason = requireOperationReason(input.reason);
   const now = Date.now();
   const correlationId = randomUUID();
   database.sqlite.transaction(() => {
@@ -159,7 +160,7 @@ export function cancelTicketSale(
         totalCents: sale.total_cents,
       },
       before: { quantity: sale.quantity, status: sale.status, totalCents: sale.total_cents },
-      after: { status: 'cancelled' },
+      after: { quantity: 0, status: 'cancelled', totalCents: 0 },
       impact: { refundedCents: sale.total_cents, restoredUnits: sale.quantity },
     });
   })();
@@ -207,7 +208,7 @@ export function cancelTicketCode(
     throw new Error('A venda deste ingresso já foi cancelada.');
   }
 
-  const reason = input.reason.trim();
+  const reason = requireOperationReason(input.reason);
   const now = Date.now();
   const correlationId = randomUUID();
   database.sqlite.transaction(() => {
@@ -224,6 +225,7 @@ export function cancelTicketCode(
     const nextStatus = activeCodes.value === 0 ? 'cancelled' : 'active';
     const nextTotalCents =
       sale.source === 'courtesy' ? 0 : sale.unit_price_cents * activeCodes.value;
+    const persistedQuantity = nextStatus === 'cancelled' ? sale.quantity : activeCodes.value;
 
     database.sqlite
       .prepare(
@@ -236,7 +238,7 @@ export function cancelTicketCode(
          WHERE id = ?`,
       )
       .run(
-        Math.max(activeCodes.value, 1),
+        persistedQuantity,
         nextTotalCents,
         nextStatus,
         nextStatus === 'cancelled' ? now : null,
@@ -264,7 +266,7 @@ export function cancelTicketCode(
       },
       after: {
         codeStatus: 'cancelled',
-        saleQuantity: Math.max(activeCodes.value, 1),
+        saleQuantity: activeCodes.value,
         saleStatus: nextStatus,
         saleTotalCents: nextTotalCents,
       },
