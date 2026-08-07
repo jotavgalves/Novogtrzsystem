@@ -31,22 +31,29 @@ export function VoucherCheckout({
 }: VoucherCheckoutProps): React.JSX.Element {
   const [availableVouchers, setAvailableVouchers] = useState<readonly Voucher[]>([]);
   const [manualCode, setManualCode] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    setLoadError(null);
 
-    void window.gtrz.vouchers.getState().then((voucherState) => {
-      if (active) {
-        setAvailableVouchers(
-          voucherState.vouchers.filter(
-            (voucher) =>
-              voucher.status === 'active' &&
-              voucher.remainingBalanceCents > 0 &&
-              voucher.linkedServicePointId === servicePointId,
-          ),
-        );
-      }
-    });
+    void window.gtrz.vouchers
+      .listForServicePoint({ servicePointId })
+      .then((vouchers) => {
+        if (active) {
+          setAvailableVouchers(vouchers);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setAvailableVouchers([]);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível consultar os vouchers vinculados à mesa.',
+          );
+        }
+      });
 
     return () => {
       active = false;
@@ -101,6 +108,8 @@ export function VoucherCheckout({
           </button>
         ) : null}
       </div>
+
+      {loadError === null ? null : <p className="form-error">{loadError}</p>}
 
       <div className="voucher-checkout__selector">
         <input
