@@ -68,7 +68,6 @@ export function useExpenses(): ExpenseViewState {
         setMessage(successMessage);
       } catch (operationError: unknown) {
         setError(getErrorMessage(operationError));
-        throw operationError;
       } finally {
         setBusy(false);
       }
