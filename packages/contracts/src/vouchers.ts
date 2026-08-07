@@ -123,7 +123,9 @@ export type Voucher = z.infer<typeof voucherSchema>;
 export type VoucherTransaction = z.infer<typeof voucherTransactionSchema>;
 export type VoucherState = z.infer<typeof voucherStateSchema>;
 export type CreateVoucherInput = z.infer<typeof createVoucherInputSchema>;
-export type ListVouchersForServicePointInput = z.infer<typeof listVouchersForServicePointInputSchema>;
+export type ListVouchersForServicePointInput = z.infer<
+  typeof listVouchersForServicePointInputSchema
+>;
 export type ChangeVoucherStatusInput = z.infer<typeof changeVoucherStatusInputSchema>;
 export type UpdateVoucherInput = z.infer<typeof updateVoucherInputSchema>;
 export type VoucherDeletePreview = z.infer<typeof voucherDeletePreviewSchema>;
