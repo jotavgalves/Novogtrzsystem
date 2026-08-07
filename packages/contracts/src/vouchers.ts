@@ -25,6 +25,8 @@ export const voucherSchema = z.object({
   updatedAt: z.number().int().nonnegative(),
 });
 
+export const voucherListSchema = z.array(voucherSchema);
+
 export const voucherTransactionSchema = z.object({
   id: z.uuid(),
   eventId: z.uuid(),
@@ -42,7 +44,7 @@ export const voucherTransactionSchema = z.object({
 export const voucherStateSchema = z.object({
   activeEventId: z.uuid().nullable(),
   servicePoints: z.array(servicePointSchema),
-  vouchers: z.array(voucherSchema),
+  vouchers: voucherListSchema,
   transactions: z.array(voucherTransactionSchema),
 });
 
