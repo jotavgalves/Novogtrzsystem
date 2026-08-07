@@ -178,6 +178,9 @@ export function updateVoucher(
       impact: {
         addedBalanceCents: input.addedBalanceCents,
       },
+      details: {
+        addedBalanceCents: input.addedBalanceCents,
+      },
     });
   })();
 
