@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import { getTicketSalesByMethod } from './ticket-finance';
 import type { DatabaseContext } from './types';
 
@@ -81,7 +82,9 @@ interface PaymentSummaryRow {
 
 function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('A administração do caixa exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'A administração do caixa exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -89,7 +92,11 @@ function requireActiveEvent(database: DatabaseContext): string {
   const eventId = getSessionState(database).activeEvent?.id;
 
   if (eventId === undefined) {
-    throw new Error('Selecione um evento aberto antes de administrar o caixa.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de administrar o caixa.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return eventId;
@@ -127,11 +134,19 @@ function requireOpenRegister(database: DatabaseContext, eventId: string): CashRe
   const register = getRegisterRow(database, eventId);
 
   if (register === null) {
-    throw new Error('Abra o caixa antes de registrar suprimentos ou retiradas.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Abra o caixa antes de registrar suprimentos ou retiradas.',
+      { eventId, requiredState: 'open-cash-register' },
+    );
   }
 
   if (register.status !== 'open') {
-    throw new Error('O caixa deste evento já foi fechado.');
+    failDatabaseOperation('INVALID_STATE', 'O caixa deste evento já foi fechado.', {
+      eventId,
+      registerId: register.id,
+      status: register.status,
+    });
   }
 
   return register;
@@ -331,11 +346,15 @@ export function openCashRegister(
   const eventId = requireActiveEvent(database);
 
   if (getRegisterRow(database, eventId) !== null) {
-    throw new Error('O evento já possui um caixa registrado.');
+    failDatabaseOperation('CONFLICT', 'O evento já possui um caixa registrado.', { eventId });
   }
 
   if (!Number.isInteger(openingCashCents) || openingCashCents < 0) {
-    throw new Error('O valor de abertura deve ser um inteiro não negativo.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O valor de abertura deve ser um inteiro não negativo.',
+      { field: 'openingCashCents', value: openingCashCents },
+    );
   }
 
   const registerId = randomUUID();
@@ -385,7 +404,10 @@ export function recordCashMovement(
   const register = requireOpenRegister(database, eventId);
 
   if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-    throw new Error('O valor da movimentação deve ser positivo.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O valor da movimentação deve ser positivo.', {
+      field: 'amountCents',
+      value: input.amountCents,
+    });
   }
 
   const movementId = randomUUID();
@@ -423,7 +445,11 @@ export function closeCashRegister(
   const register = requireOpenRegister(database, eventId);
 
   if (!Number.isInteger(countedCashCents) || countedCashCents < 0) {
-    throw new Error('O valor contado deve ser um inteiro não negativo.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O valor contado deve ser um inteiro não negativo.',
+      { field: 'countedCashCents', value: countedCashCents },
+    );
   }
 
   const openOrders = database.sqlite
@@ -431,7 +457,11 @@ export function closeCashRegister(
     .get(eventId) as { readonly value: number };
 
   if (openOrders.value > 0) {
-    throw new Error(`Existem ${String(openOrders.value)} comandas abertas no evento.`);
+    failDatabaseOperation(
+      'INVALID_STATE',
+      `Existem ${String(openOrders.value)} comandas abertas no evento.`,
+      { eventId, openOrders: openOrders.value },
+    );
   }
 
   const current = calculateState(database, eventId);
