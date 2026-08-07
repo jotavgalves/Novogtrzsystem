@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { appErrorPayloadSchema, ipcResponseSchema } from '@gtrz/contracts';
-import { failDatabaseOperation, isDatabaseError } from '@gtrz/database/errors';
+import { appErrorPayloadSchema, ipcResponseSchema } from '../../packages/contracts/src/index';
+import { failDatabaseOperation, isDatabaseError } from '../../packages/database/src/database-error';
 
 describe('typed errors public surface', () => {
   it('mantém código e detalhes estruturados entre database e contrato IPC', () => {
