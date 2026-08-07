@@ -109,6 +109,14 @@ export const createExpenseInputSchema = z.object({
   note: z.string().trim().max(240).optional(),
 });
 
+export const updateExpenseInputSchema = z.object({
+  expenseId: z.uuid(),
+  category: z.string().trim().min(2).max(80),
+  description: z.string().trim().min(2).max(160),
+  amountCents: z.number().int().positive(),
+  note: z.string().trim().max(240).optional(),
+});
+
 export const payExpenseInputSchema = z.object({
   expenseId: z.uuid(),
   amountCents: z.number().int().positive(),
@@ -119,6 +127,32 @@ export const payExpenseInputSchema = z.object({
 export const refundExpensePaymentInputSchema = z.object({
   paymentId: z.uuid(),
   reason: z.string().trim().min(3).max(240),
+});
+
+export const previewCancelExpenseInputSchema = z.object({
+  expenseId: z.uuid(),
+});
+
+export const expenseCancelPreviewSchema = z.object({
+  expenseId: z.uuid(),
+  category: z.string().trim().min(2).max(80),
+  description: z.string().trim().min(2).max(160),
+  status: z.enum(['open', 'partial', 'paid']),
+  totalCents: z.number().int().positive(),
+  paidCents: z.number().int().nonnegative(),
+  pendingCents: z.number().int().nonnegative(),
+  activePaymentCount: z.number().int().nonnegative(),
+  refundTotalCents: z.number().int().nonnegative(),
+  refundCashCents: z.number().int().nonnegative(),
+  refundDigitalCents: z.number().int().nonnegative(),
+  activePayments: z.array(
+    z.object({
+      id: z.uuid(),
+      paymentMethod: paymentMethodSchema,
+      amountCents: z.number().int().positive(),
+      note: z.string().nullable(),
+    }),
+  ),
 });
 
 export const cancelExpenseInputSchema = z.object({
@@ -141,8 +175,11 @@ export type ExpensePayment = z.infer<typeof expensePaymentSchema>;
 export type Expense = z.infer<typeof expenseSchema>;
 export type ExpenseState = z.infer<typeof expenseStateSchema>;
 export type CreateExpenseInput = z.infer<typeof createExpenseInputSchema>;
+export type UpdateExpenseInput = z.infer<typeof updateExpenseInputSchema>;
 export type PayExpenseInput = z.infer<typeof payExpenseInputSchema>;
 export type RefundExpensePaymentInput = z.infer<typeof refundExpensePaymentInputSchema>;
+export type PreviewCancelExpenseInput = z.infer<typeof previewCancelExpenseInputSchema>;
+export type ExpenseCancelPreview = z.infer<typeof expenseCancelPreviewSchema>;
 export type CancelExpenseInput = z.infer<typeof cancelExpenseInputSchema>;
 
 export interface CashApi {
@@ -155,7 +192,9 @@ export interface CashApi {
 export interface ExpenseApi {
   getState(): Promise<ExpenseState>;
   create(input: CreateExpenseInput): Promise<Expense>;
+  update(input: UpdateExpenseInput): Promise<Expense>;
   pay(input: PayExpenseInput): Promise<Expense>;
   refundPayment(input: RefundExpensePaymentInput): Promise<Expense>;
+  previewCancel(input: PreviewCancelExpenseInput): Promise<ExpenseCancelPreview>;
   cancel(input: CancelExpenseInput): Promise<Expense>;
 }
