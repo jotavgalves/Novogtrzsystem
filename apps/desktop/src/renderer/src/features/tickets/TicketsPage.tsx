@@ -39,6 +39,7 @@ export function TicketsPage(): React.JSX.Element {
   const availableQuantity = lots
     .filter((lot) => lot.active)
     .reduce((total, lot) => total + lot.availableQuantity, 0);
+  const initialLoading = loading && state === null;
 
   return (
     <section className="feature-page">
@@ -80,7 +81,9 @@ export function TicketsPage(): React.JSX.Element {
         </article>
       </div>
 
-      {state?.activeEventId === null || state === null ? (
+      {initialLoading ? <div className="route-state">Carregando ingressos…</div> : null}
+
+      {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de administrar ingressos.</span>
@@ -115,7 +118,9 @@ export function TicketsPage(): React.JSX.Element {
                 <p>Cancelar invalida os códigos e devolve a capacidade do lote.</p>
               </div>
             </div>
-            {loading ? <div className="route-state">Carregando ingressos…</div> : null}
+            {loading && sales.length === 0 ? (
+              <div className="route-state">Carregando ingressos…</div>
+            ) : null}
             {!loading && sales.length === 0 ? (
               <div className="empty-state">
                 <Ticket size={32} aria-hidden="true" />
