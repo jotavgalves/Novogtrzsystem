@@ -18,7 +18,7 @@ function isValidationError(error: Error): error is StructuredError {
   return error.name === 'ZodError' && Array.isArray((error as StructuredError).issues);
 }
 
-export function toAppErrorPayload(error: unknown): AppErrorPayload {
+function toAppErrorPayload(error: unknown): AppErrorPayload {
   if (isDatabaseError(error)) {
     return {
       code: error.code,
