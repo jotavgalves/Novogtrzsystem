@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2, Copy, Pencil, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { Ban, CheckCircle2, Copy, Pencil, RefreshCw, Save, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type {
@@ -8,6 +8,8 @@ import type {
   VoucherDeletePreview,
 } from '@gtrz/contracts';
 import { formatCurrency, parseCurrencyInput } from '@gtrz/domain';
+
+import { VoucherDeleteSection } from './VoucherDeleteSection';
 
 interface VoucherCardProps {
   readonly voucher: Voucher;
@@ -35,8 +37,6 @@ export function VoucherCard({
   onChangeStatus,
 }: VoucherCardProps): React.JSX.Element {
   const [editing, setEditing] = useState(false);
-  const [deletePreview, setDeletePreview] = useState<VoucherDeletePreview | null>(null);
-  const [deleteReason, setDeleteReason] = useState('');
   const [label, setLabel] = useState(voucher.label);
   const [code, setCode] = useState(voucher.code);
   const [linkedServicePointId, setLinkedServicePointId] = useState(
@@ -116,19 +116,12 @@ export function VoucherCard({
             Cancelar
           </button>
         ) : null}
-        {voucher.status !== 'cancelled' ? (
-          <button
-            className="button button--ghost button--compact"
-            disabled={busy}
-            onClick={() => {
-              void onPreviewDelete(voucher.id).then(setDeletePreview);
-            }}
-            type="button"
-          >
-            <Trash2 size={15} aria-hidden="true" />
-            Excluir
-          </button>
-        ) : null}
+        <VoucherDeleteSection
+          busy={busy}
+          onDelete={onDelete}
+          onPreviewDelete={onPreviewDelete}
+          voucher={voucher}
+        />
         {voucher.status === 'cancelled' && voucher.remainingBalanceCents > 0 ? (
           <button
             className="button button--secondary button--compact"
@@ -159,7 +152,8 @@ export function VoucherCard({
               voucherId: voucher.id,
               code: code.trim(),
               label: label.trim(),
-              linkedServicePointId: linkedServicePointId.length === 0 ? null : linkedServicePointId,
+              linkedServicePointId:
+                linkedServicePointId.length === 0 ? null : linkedServicePointId,
               addedBalanceCents,
             };
             void onUpdate(input).then(() => {
@@ -245,75 +239,6 @@ export function VoucherCard({
           </div>
         </form>
       ) : null}
-
-      {deletePreview === null ? null : (
-        <form
-          className="voucher-card__delete"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const reason = deleteReason.trim();
-
-            if (reason.length < 3) {
-              return;
-            }
-
-            void onDelete(voucher.id, reason).then(() => {
-              setDeletePreview(null);
-              setDeleteReason('');
-            });
-          }}
-        >
-          <div className="voucher-card__impact">
-            <span>
-              Saldo restante <strong>{formatCurrency(deletePreview.remainingBalanceCents)}</strong>
-            </span>
-            <span>
-              Comandas pagas afetadas <strong>{deletePreview.paidOrders}</strong>
-            </span>
-            <span>
-              Valor em vendas afetadas{' '}
-              <strong>{formatCurrency(deletePreview.affectedOrderTotalCents)}</strong>
-            </span>
-            <span>
-              Alocações abertas <strong>{deletePreview.openAllocations}</strong>
-            </span>
-          </div>
-          <label className="form-field">
-            <span>Motivo da exclusão</span>
-            <input
-              disabled={busy}
-              maxLength={240}
-              onChange={(event) => {
-                setDeleteReason(event.target.value);
-              }}
-              placeholder="Ex.: voucher emitido incorretamente"
-              value={deleteReason}
-            />
-          </label>
-          <div className="voucher-card__actions">
-            <button
-              className="button button--ghost button--compact"
-              disabled={busy || deleteReason.trim().length < 3}
-              type="submit"
-            >
-              <Trash2 size={15} aria-hidden="true" />
-              Confirmar exclusão
-            </button>
-            <button
-              className="button button--secondary button--compact"
-              disabled={busy}
-              onClick={() => {
-                setDeletePreview(null);
-                setDeleteReason('');
-              }}
-              type="button"
-            >
-              <X size={15} aria-hidden="true" />
-              Manter voucher
-            </button>
-          </div>
-        </form>
-      )}
     </article>
   );
 }
