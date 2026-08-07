@@ -147,7 +147,7 @@ export function ExpenseForm({ busy, onSubmit }: ExpenseFormProps): React.JSX.Ele
         />
       </label>
       <button
-        className="button"
+        className="button button--primary"
         disabled={
           busy ||
           category.trim().length < 2 ||
