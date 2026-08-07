@@ -385,11 +385,15 @@ export function redeemVouchers(
   const normalizedCodes = uses.map((use) => normalizeCode(use.code));
 
   if (new Set(normalizedCodes).size !== normalizedCodes.length) {
-    failDatabaseOperation('CONFLICT', 'O mesmo voucher não pode ser informado duas vezes na comanda.', {
-      eventId,
-      orderId,
-      codes: normalizedCodes,
-    });
+    failDatabaseOperation(
+      'CONFLICT',
+      'O mesmo voucher não pode ser informado duas vezes na comanda.',
+      {
+        eventId,
+        orderId,
+        codes: normalizedCodes,
+      },
+    );
   }
 
   return uses.map((use) => {
@@ -496,12 +500,16 @@ export function refundOrderVouchers(
     const voucher = requireVoucherById(database, redemption.voucherId);
 
     if (voucher.event_id !== eventId) {
-      failDatabaseOperation('INVALID_STATE', 'Um voucher utilizado não pertence ao evento da comanda.', {
-        voucherId: voucher.id,
-        voucherEventId: voucher.event_id,
-        orderEventId: eventId,
-        orderId,
-      });
+      failDatabaseOperation(
+        'INVALID_STATE',
+        'Um voucher utilizado não pertence ao evento da comanda.',
+        {
+          voucherId: voucher.id,
+          voucherEventId: voucher.event_id,
+          orderEventId: eventId,
+          orderId,
+        },
+      );
     }
 
     const nextBalance = voucher.remaining_balance_cents + redemption.amountCents;

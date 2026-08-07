@@ -154,10 +154,14 @@ function buildStockRequirements(
       const product = findProduct.get(item.itemId) as { readonly name: string } | undefined;
 
       if (product === undefined) {
-        failDatabaseOperation('NOT_FOUND', `O produto ${item.itemName} não existe mais no catálogo.`, {
-          productId: item.itemId,
-          productName: item.itemName,
-        });
+        failDatabaseOperation(
+          'NOT_FOUND',
+          `O produto ${item.itemName} não existe mais no catálogo.`,
+          {
+            productId: item.itemId,
+            productName: item.itemName,
+          },
+        );
       }
 
       addRequirement(requirements, item.itemId, product.name, item.quantity);
