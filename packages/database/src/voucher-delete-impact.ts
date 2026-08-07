@@ -1,7 +1,7 @@
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseContext } from './types';
 
-export interface VoucherImpactOrderRow {
+interface VoucherImpactOrderRow {
   readonly order_id: string;
   readonly order_total_cents: number;
   readonly voucher_cents: number;
@@ -30,7 +30,7 @@ export interface DatabaseVoucherDeleteFinancialImpact {
   readonly voucherRedemptionRecordCount: number;
 }
 
-export interface VoucherDeleteImpact {
+interface VoucherDeleteImpact {
   readonly openAllocations: number;
   readonly paidOrders: readonly VoucherImpactOrderRow[];
   readonly affectedPayments: readonly DatabaseVoucherDeletePaymentImpact[];
