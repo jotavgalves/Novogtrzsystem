@@ -137,9 +137,9 @@ describe('stable domain error codes', () => {
     const database = await createTemporaryDatabase();
     const event = createEvent(database, { name: 'Evento arquivado', startsAt: Date.now() });
 
-    expect(expectDatabaseError(() => setActiveEvent(database, 'missing-event'), 'NOT_FOUND')).toEqual(
-      { eventId: 'missing-event' },
-    );
+    expect(
+      expectDatabaseError(() => setActiveEvent(database, 'missing-event'), 'NOT_FOUND'),
+    ).toEqual({ eventId: 'missing-event' });
 
     changeEventStatus(database, { eventId: event.id, status: 'archived' });
     expect(expectDatabaseError(() => setActiveEvent(database, event.id), 'INVALID_STATE')).toEqual({

@@ -205,7 +205,9 @@ export function deleteEvent(
   const current = getAnyEventById(database, input.eventId);
 
   if (current?.deleted_at !== null) {
-    failDatabaseOperation('NOT_FOUND', 'O evento informado não existe.', { eventId: input.eventId });
+    failDatabaseOperation('NOT_FOUND', 'O evento informado não existe.', {
+      eventId: input.eventId,
+    });
   }
 
   const deleted = mapEvent(current);
