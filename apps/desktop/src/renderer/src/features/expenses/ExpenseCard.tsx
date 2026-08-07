@@ -1,13 +1,4 @@
-import {
-  Ban,
-  CreditCard,
-  Eye,
-  Pencil,
-  RotateCcw,
-  Save,
-  WalletCards,
-  X,
-} from 'lucide-react';
+import { Ban, CreditCard, Eye, Pencil, RotateCcw, Save, WalletCards, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type {
@@ -137,7 +128,11 @@ export function ExpenseCard({
             }}
             type="button"
           >
-            {editing ? <X size={15} aria-hidden="true" /> : <Pencil size={15} aria-hidden="true" />}
+            {editing ? (
+              <X size={15} aria-hidden="true" />
+            ) : (
+              <Pencil size={15} aria-hidden="true" />
+            )}
             {editing ? 'Fechar edição' : 'Editar despesa'}
           </button>
         </div>
@@ -202,7 +197,9 @@ export function ExpenseCard({
               value={editTotal}
             />
             {editTotalCents > 0 && editTotalCents < expense.paidCents ? (
-              <small>O total não pode ficar abaixo de {formatCurrency(expense.paidCents)} já pagos.</small>
+              <small>
+                O total não pode ficar abaixo de {formatCurrency(expense.paidCents)} já pagos.
+              </small>
             ) : null}
           </label>
           <label className="form-field">
@@ -387,7 +384,8 @@ export function ExpenseCard({
               <div>
                 <strong>Impacto antes de cancelar</strong>
                 <small>
-                  {cancelPreview.activePaymentCount} pagamento(s) ativo(s) serão estornados e o histórico será preservado.
+                  {cancelPreview.activePaymentCount} pagamento(s) ativo(s) serão estornados e o
+                  histórico será preservado.
                 </small>
               </div>
               <dl>
