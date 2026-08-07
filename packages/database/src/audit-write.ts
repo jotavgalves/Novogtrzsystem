@@ -2,7 +2,7 @@ import type { DatabaseContext } from './types';
 
 const CURRENT_AUDIT_SCHEMA_VERSION = 1;
 
-export interface AuditRecordInput {
+interface AuditRecordInput {
   readonly profile: 'production' | 'cashier';
   readonly action: string;
   readonly entityType: string;
