@@ -42,6 +42,7 @@ export function InventoryPage(): React.JSX.Element {
   const products = useMemo(() => state?.products ?? [], [state?.products]);
   const activeEventId = state?.activeEventId ?? null;
   const hasActiveEvent = activeEventId !== null;
+  const initialLoading = loading && state === null;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR');
@@ -110,7 +111,9 @@ export function InventoryPage(): React.JSX.Element {
         </article>
       </div>
 
-      {!hasActiveEvent ? (
+      {initialLoading ? <div className="route-state">Carregando produtos…</div> : null}
+
+      {!initialLoading && !hasActiveEvent ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto para registrar entradas, perdas ou correções.</span>
@@ -120,115 +123,121 @@ export function InventoryPage(): React.JSX.Element {
       {error === null ? null : <p className="form-error">{error}</p>}
       {message === null ? null : <p className="form-success">{message}</p>}
 
-      {production ? (
-        <div className="inventory-admin-grid">
-          <article className="panel form-panel">
-            <div className="panel__heading">
-              <PackagePlus size={20} aria-hidden="true" />
-              <div>
-                <h2>Novo produto</h2>
-                <p>Custos e margens ficam disponíveis somente para Produção.</p>
-              </div>
-            </div>
-            {categories.length === 0 ? (
-              <p className="inventory-helper">Crie uma categoria antes de cadastrar produtos.</p>
-            ) : (
-              <ProductForm busy={busy} categories={categories} onSubmit={createProduct} />
-            )}
-          </article>
+      {!initialLoading ? (
+        <>
+          {production ? (
+            <div className="inventory-admin-grid">
+              <article className="panel form-panel">
+                <div className="panel__heading">
+                  <PackagePlus size={20} aria-hidden="true" />
+                  <div>
+                    <h2>Novo produto</h2>
+                    <p>Custos e margens ficam disponíveis somente para Produção.</p>
+                  </div>
+                </div>
+                {categories.length === 0 ? (
+                  <p className="inventory-helper">Crie uma categoria antes de cadastrar produtos.</p>
+                ) : (
+                  <ProductForm busy={busy} categories={categories} onSubmit={createProduct} />
+                )}
+              </article>
 
-          <article className="panel form-panel">
-            <div className="panel__heading">
-              <Boxes size={20} aria-hidden="true" />
-              <div>
-                <h2>Categorias</h2>
-                <p>Organize alimentos e bebidas para o uso nas mesas.</p>
-              </div>
+              <article className="panel form-panel">
+                <div className="panel__heading">
+                  <Boxes size={20} aria-hidden="true" />
+                  <div>
+                    <h2>Categorias</h2>
+                    <p>Organize alimentos e bebidas para o uso nas mesas.</p>
+                  </div>
+                </div>
+                <CategoryForm busy={busy} onSubmit={createCategory} />
+                <div className="category-chips">
+                  {categories.map((category) => (
+                    <span key={category.id}>{category.name}</span>
+                  ))}
+                </div>
+              </article>
             </div>
-            <CategoryForm busy={busy} onSubmit={createCategory} />
-            <div className="category-chips">
+          ) : null}
+
+          <div className="inventory-toolbar">
+            <label className="inventory-search">
+              <Search size={17} aria-hidden="true" />
+              <input
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                }}
+                placeholder="Buscar produto ou categoria"
+                value={search}
+              />
+            </label>
+
+            <select
+              aria-label="Filtrar por tipo"
+              onChange={(event) => {
+                setKind(event.target.value as ProductKind | 'all');
+              }}
+              value={kind}
+            >
+              <option value="all">Todos os tipos</option>
+              <option value="drink">Bebidas</option>
+              <option value="food">Comidas</option>
+            </select>
+
+            <select
+              aria-label="Filtrar por categoria"
+              onChange={(event) => {
+                setCategoryId(event.target.value);
+              }}
+              value={categoryId}
+            >
+              <option value="all">Todas as categorias</option>
               {categories.map((category) => (
-                <span key={category.id}>{category.name}</span>
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
               ))}
-            </div>
-          </article>
-        </div>
-      ) : null}
-
-      <div className="inventory-toolbar">
-        <label className="inventory-search">
-          <Search size={17} aria-hidden="true" />
-          <input
-            onChange={(event) => {
-              setSearch(event.target.value);
-            }}
-            placeholder="Buscar produto ou categoria"
-            value={search}
-          />
-        </label>
-
-        <select
-          aria-label="Filtrar por tipo"
-          onChange={(event) => {
-            setKind(event.target.value as ProductKind | 'all');
-          }}
-          value={kind}
-        >
-          <option value="all">Todos os tipos</option>
-          <option value="drink">Bebidas</option>
-          <option value="food">Comidas</option>
-        </select>
-
-        <select
-          aria-label="Filtrar por categoria"
-          onChange={(event) => {
-            setCategoryId(event.target.value);
-          }}
-          value={categoryId}
-        >
-          <option value="all">Todas as categorias</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="inventory-list" aria-live="polite">
-        {loading ? <div className="route-state">Carregando produtos…</div> : null}
-        {!loading && filteredProducts.length === 0 ? (
-          <div className="empty-state">
-            <Boxes size={32} aria-hidden="true" />
-            <h2>Nenhum produto encontrado</h2>
-            <p>Cadastre o primeiro item ou ajuste os filtros.</p>
+            </select>
           </div>
-        ) : null}
-        {filteredProducts.map((product) => (
-          <ProductCard
-            busy={busy}
-            categories={categories}
-            hasActiveEvent={hasActiveEvent}
-            key={product.id}
-            onMovement={recordMovement}
-            onPreviewDelete={previewDeleteProduct}
-            onDelete={deleteProduct}
-            onUpdate={updateProduct}
-            product={product}
-            production={production}
-          />
-        ))}
-      </div>
 
-      {production ? (
-        <StockTransferSection
-          activeEventId={activeEventId}
-          onTransferred={reload}
-          products={products}
-        />
+          <div className="inventory-list" aria-live="polite">
+            {loading && products.length === 0 ? (
+              <div className="route-state">Carregando produtos…</div>
+            ) : null}
+            {!loading && filteredProducts.length === 0 ? (
+              <div className="empty-state">
+                <Boxes size={32} aria-hidden="true" />
+                <h2>Nenhum produto encontrado</h2>
+                <p>Cadastre o primeiro item ou ajuste os filtros.</p>
+              </div>
+            ) : null}
+            {filteredProducts.map((product) => (
+              <ProductCard
+                busy={busy}
+                categories={categories}
+                hasActiveEvent={hasActiveEvent}
+                key={product.id}
+                onMovement={recordMovement}
+                onPreviewDelete={previewDeleteProduct}
+                onDelete={deleteProduct}
+                onUpdate={updateProduct}
+                product={product}
+                production={production}
+              />
+            ))}
+          </div>
+
+          {production ? (
+            <StockTransferSection
+              activeEventId={activeEventId}
+              onTransferred={reload}
+              products={products}
+            />
+          ) : null}
+
+          <ComboSection products={products} production={production} />
+        </>
       ) : null}
-
-      <ComboSection products={products} production={production} />
     </section>
   );
 }
