@@ -1,0 +1,40 @@
+name: Formatar administração de vouchers temporariamente
+
+on:
+  push:
+    branches:
+      - fix/revisao-consistencia-codex
+    paths:
+      - .github/workflows/format-voucher-admin-temporary.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/revisao-consistencia-codex
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Aplicar Prettier canônico
+        run: >-
+          npx prettier --write
+          packages/database/src/voucher-admin.ts
+          packages/database/src/voucher-service-points.ts
+          packages/database/src/voucher-admin-error-codes.spec.ts
+      - name: Remover workflow temporário e publicar
+        shell: bash
+        run: |
+          rm -f .github/workflows/format-voucher-admin-temporary.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/database/src/voucher-admin.ts packages/database/src/voucher-service-points.ts packages/database/src/voucher-admin-error-codes.spec.ts .github/workflows/format-voucher-admin-temporary.yml
+          git commit -m "style: aplica prettier canônico à administração de vouchers"
+          git push origin HEAD:fix/revisao-consistencia-codex
