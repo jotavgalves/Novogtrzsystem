@@ -5,6 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  changeEventStatus,
   createEvent,
   createInventoryProduct,
   createProductCategory,
@@ -12,6 +13,7 @@ import {
   openDatabase,
   recordStockMovement,
   redeemVouchers,
+  setActiveEvent,
   switchProfile,
   type DatabaseContext,
 } from './index';
@@ -35,7 +37,12 @@ afterEach(async () => {
 
 function expectDatabaseError(
   operation: () => unknown,
-  expectedCode: 'FORBIDDEN' | 'NOT_FOUND' | 'INSUFFICIENT_STOCK' | 'INSUFFICIENT_BALANCE',
+  expectedCode:
+    | 'FORBIDDEN'
+    | 'NOT_FOUND'
+    | 'INVALID_STATE'
+    | 'INSUFFICIENT_STOCK'
+    | 'INSUFFICIENT_BALANCE',
 ): Readonly<Record<string, unknown>> | null {
   try {
     operation();
@@ -122,6 +129,37 @@ describe('stable domain error codes', () => {
       code: voucher.code,
       requestedCents: 300,
       availableCents: 200,
+    });
+    database.close();
+  });
+
+  it('tipa evento ausente e estado não operacional sem depender de texto', async () => {
+    const database = await createTemporaryDatabase();
+    const event = createEvent(database, { name: 'Evento arquivado', startsAt: Date.now() });
+
+    expect(expectDatabaseError(() => setActiveEvent(database, 'missing-event'), 'NOT_FOUND')).toEqual(
+      { eventId: 'missing-event' },
+    );
+
+    changeEventStatus(database, { eventId: event.id, status: 'archived' });
+    expect(expectDatabaseError(() => setActiveEvent(database, event.id), 'INVALID_STATE')).toEqual({
+      eventId: event.id,
+      status: 'archived',
+      requiredStatus: 'open',
+    });
+    database.close();
+  });
+
+  it('tipa senha inválida ao retornar ao perfil Produção', async () => {
+    const database = await createTemporaryDatabase();
+    createEvent(database, { name: 'Evento perfil', startsAt: Date.now() });
+    switchProfile(database, 'cashier');
+
+    expect(
+      expectDatabaseError(() => switchProfile(database, 'production', 'senha-errada'), 'FORBIDDEN'),
+    ).toEqual({
+      targetProfile: 'production',
+      reason: 'invalid-production-password',
     });
     database.close();
   });
