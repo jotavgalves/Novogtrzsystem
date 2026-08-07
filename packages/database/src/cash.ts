@@ -189,16 +189,22 @@ function getExpenseTotals(
   const row = database.sqlite
     .prepare(
       `SELECT
-         COALESCE(SUM(ep.amount_cents), 0) AS active_expenses_cents,
-         COALESCE(SUM(CASE WHEN ep.payment_method = 'cash' THEN ep.amount_cents ELSE 0 END), 0)
-           AS cash_expenses_cents
-       FROM expense_payments ep
-       INNER JOIN expenses e ON e.id = ep.expense_id
-       WHERE ep.event_id = ?
-         AND ep.status = 'active'
-         AND e.status = 'active'`,
+         (
+           SELECT COALESCE(SUM(e.amount_cents), 0)
+           FROM expenses e
+           WHERE e.event_id = ? AND e.status = 'active'
+         ) AS active_expenses_cents,
+         (
+           SELECT COALESCE(SUM(ep.amount_cents), 0)
+           FROM expense_payments ep
+           INNER JOIN expenses e ON e.id = ep.expense_id
+           WHERE ep.event_id = ?
+             AND ep.status = 'active'
+             AND e.status = 'active'
+             AND ep.payment_method = 'cash'
+         ) AS cash_expenses_cents`,
     )
-    .get(eventId) as {
+    .get(eventId, eventId) as {
     readonly active_expenses_cents: number;
     readonly cash_expenses_cents: number;
   };
