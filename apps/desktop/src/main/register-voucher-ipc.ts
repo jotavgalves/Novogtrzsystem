@@ -1,5 +1,4 @@
 import { ipcMain } from 'electron';
-import { z } from 'zod';
 
 import {
   changeVoucherStatusInputSchema,
@@ -10,6 +9,7 @@ import {
   previewDeleteVoucherInputSchema,
   updateVoucherInputSchema,
   voucherDeletePreviewSchema,
+  voucherListSchema,
   voucherSchema,
   voucherStateSchema,
 } from '@gtrz/contracts';
@@ -49,9 +49,7 @@ export function registerVoucherIpcHandlers(options: RegisterVoucherIpcOptions): 
 
   ipcMain.handle(IPC_CHANNELS.vouchersListForServicePoint, (_event, payload: unknown) => {
     const input = listVouchersForServicePointInputSchema.parse(payload);
-    return z
-      .array(voucherSchema)
-      .parse(listAvailableVouchersForServicePoint(options.getDatabase(), input));
+    return voucherListSchema.parse(listAvailableVouchersForServicePoint(options.getDatabase(), input));
   });
 
   ipcMain.handle(IPC_CHANNELS.vouchersCreate, (_event, payload: unknown) => {
