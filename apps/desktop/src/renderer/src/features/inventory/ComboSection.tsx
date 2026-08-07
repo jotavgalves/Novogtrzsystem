@@ -72,7 +72,9 @@ export function ComboSection({ products, production }: ComboSectionProps): React
       ) : null}
 
       <div className="combo-list" aria-live="polite">
-        {loading ? <div className="route-state">Carregando combos…</div> : null}
+        {loading && combos.length === 0 ? (
+          <div className="route-state">Carregando combos…</div>
+        ) : null}
         {!loading && combos.length === 0 ? (
           <div className="empty-state">
             <PackageOpen size={32} aria-hidden="true" />
