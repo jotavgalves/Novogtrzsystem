@@ -143,10 +143,7 @@ export function calculateVoucherDeleteImpact(
     (total, order) => total + order.order_total_cents,
     0,
   );
-  const voucherRefundCents = paidOrders.reduce(
-    (total, order) => total + order.voucher_cents,
-    0,
-  );
+  const voucherRefundCents = paidOrders.reduce((total, order) => total + order.voucher_cents, 0);
   const nonVoucherPaymentCents = affectedPayments.reduce(
     (total, payment) => total + payment.amountCents,
     0,
