@@ -26,7 +26,12 @@ import type {
 } from './voucher-types';
 import { listVoucherServicePoints, resolveLinkedServicePoint } from './voucher-service-points';
 
-export { insertTransaction, mapVoucher, normalizeCode, requireVoucherById } from './voucher-records';
+export {
+  insertTransaction,
+  mapVoucher,
+  normalizeCode,
+  requireVoucherById,
+} from './voucher-records';
 export type { VoucherRow } from './voucher-records';
 export type {
   DatabaseVoucher,
