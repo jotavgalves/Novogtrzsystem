@@ -63,6 +63,7 @@ export const IPC_CHANNELS = {
   operationsCloseOrder: 'operations:close-order',
   operationsCancelOrder: 'operations:cancel-order',
   vouchersGetState: 'vouchers:get-state',
+  vouchersListForServicePoint: 'vouchers:list-for-service-point',
   vouchersCreate: 'vouchers:create',
   vouchersUpdate: 'vouchers:update',
   vouchersPreviewDelete: 'vouchers:preview-delete',
