@@ -1,10 +1,12 @@
 import { ipcMain } from 'electron';
+import { z } from 'zod';
 
 import {
   changeVoucherStatusInputSchema,
   createVoucherInputSchema,
   deleteVoucherInputSchema,
   IPC_CHANNELS,
+  listVouchersForServicePointInputSchema,
   previewDeleteVoucherInputSchema,
   updateVoucherInputSchema,
   voucherDeletePreviewSchema,
@@ -16,6 +18,7 @@ import {
   createVoucher,
   deleteVoucher,
   getVoucherState,
+  listAvailableVouchersForServicePoint,
   previewDeleteVoucher,
   updateVoucher,
   type DatabaseContext,
@@ -27,6 +30,7 @@ interface RegisterVoucherIpcOptions {
 
 const VOUCHER_CHANNELS = [
   IPC_CHANNELS.vouchersGetState,
+  IPC_CHANNELS.vouchersListForServicePoint,
   IPC_CHANNELS.vouchersCreate,
   IPC_CHANNELS.vouchersUpdate,
   IPC_CHANNELS.vouchersPreviewDelete,
@@ -41,6 +45,13 @@ export function registerVoucherIpcHandlers(options: RegisterVoucherIpcOptions): 
 
   ipcMain.handle(IPC_CHANNELS.vouchersGetState, () => {
     return voucherStateSchema.parse(getVoucherState(options.getDatabase()));
+  });
+
+  ipcMain.handle(IPC_CHANNELS.vouchersListForServicePoint, (_event, payload: unknown) => {
+    const input = listVouchersForServicePointInputSchema.parse(payload);
+    return z
+      .array(voucherSchema)
+      .parse(listAvailableVouchersForServicePoint(options.getDatabase(), input));
   });
 
   ipcMain.handle(IPC_CHANNELS.vouchersCreate, (_event, payload: unknown) => {
