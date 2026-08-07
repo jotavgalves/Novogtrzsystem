@@ -25,6 +25,7 @@ export function ExpensesPage(): React.JSX.Element {
   const totalCents = activeExpenses.reduce((total, expense) => total + expense.totalCents, 0);
   const paidCents = activeExpenses.reduce((total, expense) => total + expense.paidCents, 0);
   const pendingCents = activeExpenses.reduce((total, expense) => total + expense.pendingCents, 0);
+  const initialLoading = loading && state === null;
 
   return (
     <section className="feature-page">
@@ -66,7 +67,9 @@ export function ExpensesPage(): React.JSX.Element {
         </article>
       </div>
 
-      {state?.activeEventId === null || state === null ? (
+      {initialLoading ? <div className="route-state">Carregando despesas…</div> : null}
+
+      {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de registrar despesas.</span>
@@ -82,7 +85,9 @@ export function ExpensesPage(): React.JSX.Element {
             <ExpenseForm busy={busy} onSubmit={createExpense} />
           </article>
           <div className="expense-list" aria-live="polite">
-            {loading ? <div className="route-state">Carregando despesas…</div> : null}
+            {loading && expenses.length === 0 ? (
+              <div className="route-state">Carregando despesas…</div>
+            ) : null}
             {!loading && expenses.length === 0 ? (
               <div className="empty-state">
                 <ReceiptText size={32} aria-hidden="true" />
