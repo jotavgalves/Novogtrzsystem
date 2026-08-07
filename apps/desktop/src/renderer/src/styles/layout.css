@@ -9,8 +9,10 @@
 
 .sidebar {
   display: flex;
+  min-width: 0;
   min-height: 0;
   flex-direction: column;
+  overflow: hidden;
   padding: var(--space-5);
   border-right: 1px solid var(--color-border);
   background: rgb(13 13 16 / 96%);
@@ -51,6 +53,7 @@
 
 .event-context {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-1);
   margin: var(--space-6) 0;
@@ -71,11 +74,15 @@
 }
 
 .event-context strong {
+  overflow: hidden;
   margin-top: var(--space-1);
   font-size: 0.92rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .event-context small {
+  overflow-wrap: anywhere;
   color: var(--color-text-muted);
   font-size: 0.75rem;
   line-height: 1.45;
@@ -83,18 +90,23 @@
 
 .sidebar-nav {
   display: flex;
+  min-width: 0;
   min-height: 0;
   flex: 1;
   flex-direction: column;
   gap: var(--space-1);
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .sidebar-link {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
   align-items: center;
   gap: var(--space-3);
-  min-height: 2.75rem;
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
@@ -102,14 +114,23 @@
   font-weight: 650;
   transition:
     background-color var(--transition-fast),
-    color var(--transition-fast),
-    transform var(--transition-fast);
+    color var(--transition-fast);
+}
+
+.sidebar-link > svg {
+  flex: 0 0 auto;
+}
+
+.sidebar-link > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar-link:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
-  transform: translateX(2px);
 }
 
 .sidebar-link--active {
@@ -123,6 +144,7 @@
 
 .sidebar-footer {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-3);
   padding-top: var(--space-5);
@@ -137,6 +159,7 @@
 
 .profile-card {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
@@ -148,6 +171,7 @@
   display: grid;
   width: 2.25rem;
   height: 2.25rem;
+  flex: 0 0 auto;
   place-items: center;
   border-radius: var(--radius-sm);
   background: var(--color-brand-soft);
@@ -156,12 +180,16 @@
 
 .profile-card div {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 0.15rem;
 }
 
 .profile-card strong {
+  overflow: hidden;
   font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace {
