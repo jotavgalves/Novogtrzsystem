@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { cancelOrder } from './operation-cancellation';
+import { requireOperationReason } from './operation-validation';
 import type { DatabaseContext } from './types';
 import type { DatabaseVoucher, DatabaseVoucherStatus } from './voucher-types';
 import { resolveLinkedServicePoint } from './voucher-service-points';
@@ -74,6 +75,10 @@ export function previewDeleteVoucher(
 
   if (voucher.event_id !== eventId) {
     throw new Error('O voucher não pertence ao evento ativo.');
+  }
+
+  if (voucher.status === 'cancelled') {
+    throw new Error('Este voucher já está cancelado.');
   }
 
   const impact = getVoucherDeleteImpact(database, voucher.id);
@@ -213,14 +218,11 @@ export function deleteVoucher(
   input: { readonly voucherId: string; readonly reason: string },
 ): DatabaseVoucher {
   const preview = previewDeleteVoucher(database, input);
-  const reason = input.reason.trim();
+  const voucher = requireVoucherById(database, preview.voucherId);
+  const reason = requireOperationReason(input.reason);
   const correlationId = randomUUID();
-  const before = {
-    code: preview.code,
-    label: preview.label,
-    remainingBalanceCents: preview.remainingBalanceCents,
-    status: 'active',
-  };
+  const eventId = requireActiveEvent(database);
+  const before = mapVoucher(voucher);
 
   database.sqlite.transaction(() => {
     for (const orderId of preview.paidOrderIds) {
@@ -242,14 +244,17 @@ export function deleteVoucher(
       action: 'voucher.deleted',
       entityType: 'voucher',
       entityId: preview.voucherId,
-      eventId: requireActiveEvent(database),
+      eventId,
       correlationId,
       details: {
         impact: preview,
         reason,
       },
       before,
-      after: { status: 'cancelled' },
+      after: {
+        ...before,
+        status: 'cancelled',
+      },
       impact: preview,
     });
   })();
