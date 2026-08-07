@@ -233,7 +233,9 @@ export function StockTransferSection({
       </article>
 
       <div className="transfer-history" aria-live="polite">
-        {loading ? <div className="route-state">Carregando transferências…</div> : null}
+        {loading && transfers.length === 0 ? (
+          <div className="route-state">Carregando transferências…</div>
+        ) : null}
         {!loading && transfers.length === 0 ? (
           <div className="empty-state">
             <Shuffle size={32} aria-hidden="true" />
