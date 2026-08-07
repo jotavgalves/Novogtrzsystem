@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import type {
   DatabaseTicketCode,
   DatabaseTicketLot,
@@ -14,7 +15,9 @@ import type { DatabaseContext } from './types';
 
 export function requireTicketProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('A administração de ingressos exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'A administração de ingressos exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -22,7 +25,11 @@ export function requireTicketEvent(database: DatabaseContext): string {
   const eventId = getSessionState(database).activeEvent?.id;
 
   if (eventId === undefined) {
-    throw new Error('Selecione um evento aberto antes de administrar ingressos.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de administrar ingressos.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return eventId;
@@ -144,7 +151,10 @@ export function requireTicketLot(
   const lot = listTicketLots(database, eventId).find((candidate) => candidate.id === lotId);
 
   if (lot === undefined) {
-    throw new Error('O lote informado não existe no evento ativo.');
+    failDatabaseOperation('NOT_FOUND', 'O lote informado não existe no evento ativo.', {
+      eventId,
+      lotId,
+    });
   }
 
   return lot;
@@ -161,7 +171,7 @@ export function requireTicketSale(database: DatabaseContext, saleId: string): Ti
     .get(saleId) as TicketSaleRow | undefined;
 
   if (row === undefined) {
-    throw new Error('A venda de ingresso informada não existe.');
+    failDatabaseOperation('NOT_FOUND', 'A venda de ingresso informada não existe.', { saleId });
   }
 
   return row;
@@ -182,7 +192,10 @@ export function requireUniqueTicketLotName(
     .get(eventId, name, excludedId ?? null, excludedId ?? null);
 
   if (duplicate !== undefined) {
-    throw new Error('Já existe um lote com esse nome no evento.');
+    failDatabaseOperation('CONFLICT', 'Já existe um lote com esse nome no evento.', {
+      eventId,
+      name,
+    });
   }
 }
 
@@ -200,7 +213,10 @@ export function ensureUniqueTicketCodes(
   codes: readonly string[],
 ): void {
   if (new Set(codes).size !== codes.length) {
-    throw new Error('Os códigos da venda precisam ser únicos.');
+    failDatabaseOperation('CONFLICT', 'Os códigos da venda precisam ser únicos.', {
+      eventId,
+      codes,
+    });
   }
 
   const findCode = database.sqlite.prepare(
@@ -209,7 +225,10 @@ export function ensureUniqueTicketCodes(
 
   for (const code of codes) {
     if (findCode.get(eventId, code) !== undefined) {
-      throw new Error(`O código ${code} já foi utilizado neste evento.`);
+      failDatabaseOperation('CONFLICT', `O código ${code} já foi utilizado neste evento.`, {
+        eventId,
+        code,
+      });
     }
   }
 }

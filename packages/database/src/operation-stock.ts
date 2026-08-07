@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { listCombos } from './combos';
+import { failDatabaseOperation } from './database-error';
 import type {
   DatabaseOperationCatalogItem,
   DatabaseOrderItem,
@@ -86,16 +87,33 @@ export function requireAvailableCatalogItem(
   );
 
   if (item === undefined) {
-    throw new Error('O item informado não existe no catálogo.');
+    failDatabaseOperation('NOT_FOUND', 'O item informado não existe no catálogo.', {
+      eventId,
+      itemKind,
+      itemId,
+    });
   }
 
   if (!item.active) {
-    throw new Error(`${item.name} está inativo e não pode ser vendido.`);
+    failDatabaseOperation('INVALID_STATE', `${item.name} está inativo e não pode ser vendido.`, {
+      eventId,
+      itemKind,
+      itemId,
+      active: false,
+    });
   }
 
   if (item.availableQuantity < quantity) {
-    throw new Error(
+    failDatabaseOperation(
+      'INSUFFICIENT_STOCK',
       `Estoque insuficiente para ${item.name}. Disponível: ${String(item.availableQuantity)}.`,
+      {
+        eventId,
+        itemKind,
+        itemId,
+        requestedQuantity: quantity,
+        availableQuantity: item.availableQuantity,
+      },
     );
   }
 
@@ -136,7 +154,10 @@ function buildStockRequirements(
       const product = findProduct.get(item.itemId) as { readonly name: string } | undefined;
 
       if (product === undefined) {
-        throw new Error(`O produto ${item.itemName} não existe mais no catálogo.`);
+        failDatabaseOperation('NOT_FOUND', `O produto ${item.itemName} não existe mais no catálogo.`, {
+          productId: item.itemId,
+          productName: item.itemName,
+        });
       }
 
       addRequirement(requirements, item.itemId, product.name, item.quantity);
@@ -146,7 +167,11 @@ function buildStockRequirements(
     const components = listComponents.all(item.itemId) as ComboComponentRow[];
 
     if (components.length === 0) {
-      throw new Error(`O combo ${item.itemName} não possui composição válida.`);
+      failDatabaseOperation(
+        'INVALID_STATE',
+        `O combo ${item.itemName} não possui composição válida.`,
+        { comboId: item.itemId, comboName: item.itemName },
+      );
     }
 
     for (const component of components) {
@@ -181,8 +206,16 @@ export function deductOrderStock(
     const available = stock?.quantity ?? 0;
 
     if (available < requirement.quantity) {
-      throw new Error(
+      failDatabaseOperation(
+        'INSUFFICIENT_STOCK',
         `Estoque insuficiente para ${requirement.productName}. Disponível: ${String(available)}.`,
+        {
+          eventId,
+          orderId,
+          productId: requirement.productId,
+          requestedQuantity: requirement.quantity,
+          availableQuantity: available,
+        },
       );
     }
   }
@@ -229,7 +262,11 @@ export function restoreOrderStock(
     .all(eventId, saleNote) as SaleMovementRow[];
 
   if (movements.length === 0) {
-    throw new Error('A venda não possui movimentos de estoque que possam ser devolvidos.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'A venda não possui movimentos de estoque que possam ser devolvidos.',
+      { eventId, orderId },
+    );
   }
 
   const updateStock = database.sqlite.prepare(
