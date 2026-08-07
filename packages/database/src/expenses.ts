@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import {
   getExpenseWithPayments,
   insertExpensePayment,
@@ -49,7 +50,10 @@ export function createExpense(
   const eventId = requireExpenseEvent(database);
 
   if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-    throw new Error('O valor da despesa deve ser positivo.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O valor da despesa deve ser positivo.', {
+      field: 'amountCents',
+      value: input.amountCents,
+    });
   }
 
   const initialPaymentCents = input.initialPaymentCents ?? input.amountCents;
@@ -59,14 +63,26 @@ export function createExpense(
     initialPaymentCents < 0 ||
     initialPaymentCents > input.amountCents
   ) {
-    throw new Error('O pagamento inicial deve ficar entre zero e o total da despesa.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'O pagamento inicial deve ficar entre zero e o total da despesa.',
+      {
+        field: 'initialPaymentCents',
+        value: initialPaymentCents,
+        totalCents: input.amountCents,
+      },
+    );
   }
 
   const category = input.category.trim();
   const description = input.description.trim();
 
   if (category.length < 2 || description.length < 2) {
-    throw new Error('Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.',
+      { categoryLength: category.length, descriptionLength: description.length },
+    );
   }
 
   const expenseId = randomUUID();
@@ -139,26 +155,44 @@ export function updateExpense(
   const expense = getExpenseWithPayments(database, input.expenseId);
 
   if (expense.eventId !== eventId) {
-    throw new Error('A despesa não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'A despesa não pertence ao evento ativo.', {
+      expenseId: expense.id,
+      expenseEventId: expense.eventId,
+      activeEventId: eventId,
+    });
   }
 
   if (expense.status === 'cancelled') {
-    throw new Error('Despesa cancelada não pode ser editada.');
+    failDatabaseOperation('INVALID_STATE', 'Despesa cancelada não pode ser editada.', {
+      expenseId: expense.id,
+      status: expense.status,
+    });
   }
 
   if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-    throw new Error('O valor total da despesa deve ser positivo.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O valor total da despesa deve ser positivo.', {
+      field: 'amountCents',
+      value: input.amountCents,
+    });
   }
 
   if (input.amountCents < expense.paidCents) {
-    throw new Error('O valor total não pode ficar abaixo do valor já pago.');
+    failDatabaseOperation('INVALID_STATE', 'O valor total não pode ficar abaixo do valor já pago.', {
+      expenseId: expense.id,
+      requestedTotalCents: input.amountCents,
+      paidCents: expense.paidCents,
+    });
   }
 
   const category = input.category.trim();
   const description = input.description.trim();
 
   if (category.length < 2 || description.length < 2) {
-    throw new Error('Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'Categoria e descrição da despesa precisam ter pelo menos 2 caracteres.',
+      { categoryLength: category.length, descriptionLength: description.length },
+    );
   }
 
   const note = normalizeExpenseText(input.note);
@@ -219,19 +253,37 @@ export function payExpense(
   const expense = getExpenseWithPayments(database, input.expenseId);
 
   if (expense.eventId !== eventId) {
-    throw new Error('A despesa não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'A despesa não pertence ao evento ativo.', {
+      expenseId: expense.id,
+      expenseEventId: expense.eventId,
+      activeEventId: eventId,
+    });
   }
 
   if (expense.status === 'cancelled') {
-    throw new Error('Despesa cancelada não pode receber pagamento.');
+    failDatabaseOperation('INVALID_STATE', 'Despesa cancelada não pode receber pagamento.', {
+      expenseId: expense.id,
+      status: expense.status,
+    });
   }
 
   if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
-    throw new Error('O pagamento da despesa deve ser positivo.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O pagamento da despesa deve ser positivo.', {
+      field: 'amountCents',
+      value: input.amountCents,
+    });
   }
 
   if (input.amountCents > expense.pendingCents) {
-    throw new Error('O pagamento não pode superar o saldo pendente da despesa.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'O pagamento não pode superar o saldo pendente da despesa.',
+      {
+        expenseId: expense.id,
+        requestedCents: input.amountCents,
+        pendingCents: expense.pendingCents,
+      },
+    );
   }
 
   const note = normalizeExpenseText(input.note);

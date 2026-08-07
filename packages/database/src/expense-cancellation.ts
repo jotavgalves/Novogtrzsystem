@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
+import { failDatabaseOperation } from './database-error';
 import {
   getExpenseWithPayments,
   requireExpenseEvent,
@@ -57,21 +58,34 @@ export function refundExpensePayment(
     | undefined;
 
   if (payment === undefined) {
-    throw new Error('O pagamento da despesa informado não existe.');
+    failDatabaseOperation('NOT_FOUND', 'O pagamento da despesa informado não existe.', {
+      paymentId: input.paymentId,
+    });
   }
 
   if (payment.event_id !== eventId) {
-    throw new Error('O pagamento da despesa não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'O pagamento da despesa não pertence ao evento ativo.', {
+      paymentId: payment.id,
+      paymentEventId: payment.event_id,
+      activeEventId: eventId,
+    });
   }
 
   if (payment.status === 'refunded') {
-    throw new Error('Este pagamento de despesa já foi estornado.');
+    failDatabaseOperation('CONFLICT', 'Este pagamento de despesa já foi estornado.', {
+      paymentId: payment.id,
+      status: payment.status,
+    });
   }
 
   const expense = getExpenseWithPayments(database, payment.expense_id);
 
   if (expense.status === 'cancelled') {
-    throw new Error('Despesa cancelada não pode ter parcela estornada isoladamente.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Despesa cancelada não pode ter parcela estornada isoladamente.',
+      { expenseId: expense.id, status: expense.status },
+    );
   }
 
   const reason = requireOperationReason(input.reason);
@@ -129,11 +143,18 @@ export function previewCancelExpense(
   const expense = getExpenseWithPayments(database, input.expenseId);
 
   if (expense.eventId !== eventId) {
-    throw new Error('A despesa não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'A despesa não pertence ao evento ativo.', {
+      expenseId: expense.id,
+      expenseEventId: expense.eventId,
+      activeEventId: eventId,
+    });
   }
 
   if (expense.status === 'cancelled') {
-    throw new Error('Esta despesa já foi cancelada.');
+    failDatabaseOperation('CONFLICT', 'Esta despesa já foi cancelada.', {
+      expenseId: expense.id,
+      status: expense.status,
+    });
   }
 
   const activePayments = expense.payments

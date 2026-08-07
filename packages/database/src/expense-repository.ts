@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseContext } from './types';
 
@@ -70,7 +71,9 @@ interface ExpensePaymentRow {
 
 export function requireExpenseProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('A administração de despesas exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'A administração de despesas exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -78,7 +81,11 @@ export function requireExpenseEvent(database: DatabaseContext): string {
   const eventId = getSessionState(database).activeEvent?.id;
 
   if (eventId === undefined) {
-    throw new Error('Selecione um evento aberto antes de registrar despesas.');
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'Selecione um evento aberto antes de registrar despesas.',
+      { requiredState: 'active-open-event' },
+    );
   }
 
   return eventId;
@@ -154,7 +161,7 @@ function requireExpenseRow(database: DatabaseContext, expenseId: string): Expens
     .get(expenseId) as ExpenseRow | undefined;
 
   if (row === undefined) {
-    throw new Error('A despesa informada não existe.');
+    failDatabaseOperation('NOT_FOUND', 'A despesa informada não existe.', { expenseId });
   }
 
   return row;
