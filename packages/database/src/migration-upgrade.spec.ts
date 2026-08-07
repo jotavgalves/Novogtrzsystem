@@ -139,12 +139,12 @@ describe('upgrade from previous database schema', () => {
       name: 'Produto legado',
       quantity: 7,
     });
-    expect(
-      getVoucherState(upgraded).vouchers.find((item) => item.id === voucher.id),
-    ).toMatchObject({
-      code: 'LEGADO-01',
-      remainingBalanceCents: 1500,
-    });
+    expect(getVoucherState(upgraded).vouchers.find((item) => item.id === voucher.id)).toMatchObject(
+      {
+        code: 'LEGADO-01',
+        remainingBalanceCents: 1500,
+      },
+    );
     expect(getTicketState(upgraded).sales.find((item) => item.id === ticketSale.id)).toMatchObject({
       attendeeName: 'Cliente legado',
       quantity: 1,
