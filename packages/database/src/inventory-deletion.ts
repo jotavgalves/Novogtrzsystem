@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
 import { getProduct, type DatabaseInventoryProduct } from './inventory';
@@ -95,6 +97,7 @@ export function deleteProduct(
   const reason = requireOperationReason(input.reason);
   const dependentCombos = listActiveDependentCombos(database, preview.productId);
   const activeEventId = getSessionState(database).activeEvent?.id ?? null;
+  const correlationId = randomUUID();
   const now = Date.now();
 
   database.sqlite.transaction(() => {
@@ -107,6 +110,7 @@ export function deleteProduct(
         entityType: 'combo',
         entityId: combo.id,
         eventId: activeEventId,
+        correlationId,
         details: {
           productId: preview.productId,
           productName: preview.name,
@@ -126,6 +130,7 @@ export function deleteProduct(
       entityType: 'product',
       entityId: preview.productId,
       eventId: activeEventId,
+      correlationId,
       details: { impact: preview, reason },
       before: { active: preview.active, stockQuantity: preview.activeEventStockQuantity },
       after: { active: false, stockQuantity: preview.activeEventStockQuantity },
