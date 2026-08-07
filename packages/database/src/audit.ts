@@ -1,6 +1,8 @@
 import { getSessionState } from './control';
 import type { DatabaseContext } from './types';
 
+const CURRENT_AUDIT_SCHEMA_VERSION = 1;
+
 interface AuditInput {
   readonly action: string;
   readonly entityType: string;
@@ -30,12 +32,19 @@ function nullableJson(value: unknown): string | null {
   return record === null ? null : JSON.stringify(record);
 }
 
+function buildVersionedMetadata(value: unknown): Readonly<Record<string, unknown>> {
+  return {
+    ...(getRecord(value) ?? {}),
+    schemaVersion: CURRENT_AUDIT_SCHEMA_VERSION,
+  };
+}
+
 export function appendAudit(database: DatabaseContext, input: AuditInput): void {
   const details = input.details ?? {};
   const before = input.before ?? details.before;
   const after = input.after ?? details.after;
   const impact = input.impact ?? details.impact;
-  const metadata = input.metadata ?? details.metadata;
+  const metadata = buildVersionedMetadata(input.metadata ?? details.metadata);
   const correlationId = input.correlationId ?? getString(details.correlationId);
 
   database.sqlite
@@ -70,7 +79,7 @@ export function appendAudit(database: DatabaseContext, input: AuditInput): void 
       nullableJson(before),
       nullableJson(after),
       nullableJson(impact),
-      nullableJson(metadata),
+      JSON.stringify(metadata),
       Date.now(),
     );
 }
