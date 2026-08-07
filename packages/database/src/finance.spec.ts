@@ -16,7 +16,6 @@ import {
   createProductCategory,
   createVoucher,
   getCashState,
-  getExpenseState,
   getOperationState,
   openCashRegister,
   openDatabase,
