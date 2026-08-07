@@ -5,14 +5,17 @@ import {
   createVoucherInputSchema,
   deleteVoucherInputSchema,
   IPC_CHANNELS,
+  listVouchersForServicePointInputSchema,
   previewDeleteVoucherInputSchema,
   updateVoucherInputSchema,
   voucherDeletePreviewSchema,
+  voucherListSchema,
   voucherSchema,
   voucherStateSchema,
   type ChangeVoucherStatusInput,
   type CreateVoucherInput,
   type DeleteVoucherInput,
+  type ListVouchersForServicePointInput,
   type PreviewDeleteVoucherInput,
   type UpdateVoucherInput,
   type Voucher,
@@ -25,6 +28,15 @@ export const voucherApi: VoucherApi = {
   async getState(): Promise<VoucherState> {
     const payload: unknown = await ipcRenderer.invoke(IPC_CHANNELS.vouchersGetState);
     return voucherStateSchema.parse(payload);
+  },
+
+  async listForServicePoint(input: ListVouchersForServicePointInput): Promise<readonly Voucher[]> {
+    const parsedInput = listVouchersForServicePointInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      IPC_CHANNELS.vouchersListForServicePoint,
+      parsedInput,
+    );
+    return voucherListSchema.parse(payload);
   },
 
   async create(input: CreateVoucherInput): Promise<Voucher> {
