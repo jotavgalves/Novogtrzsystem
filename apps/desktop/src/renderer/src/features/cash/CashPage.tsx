@@ -31,6 +31,7 @@ export function CashPage(): React.JSX.Element {
   const registerStatus =
     state?.register === null || state === null ? 'not-opened' : state.register.status;
   const sales = state?.salesByMethod;
+  const initialLoading = loading && state === null;
 
   return (
     <section className="feature-page">
@@ -72,7 +73,9 @@ export function CashPage(): React.JSX.Element {
         </article>
       </div>
 
-      {state?.activeEventId === null || state === null ? (
+      {initialLoading ? <div className="route-state">Carregando caixa…</div> : null}
+
+      {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de administrar o caixa.</span>
