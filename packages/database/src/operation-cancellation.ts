@@ -1,15 +1,19 @@
 import { appendAudit } from './audit';
 import { getSessionState } from './control';
+import { failDatabaseOperation } from './database-error';
 import { getOrder, requireActiveOperationEvent, requireOrderRow } from './operation-core';
 import { restoreOrderStock } from './operation-stock';
 import type { DatabaseOrder } from './operation-types';
+import { requireOperationReason } from './operation-validation';
 import { releaseOrderVoucher } from './operation-vouchers';
 import type { DatabaseContext } from './types';
 import { refundOrderVouchers } from './vouchers';
 
 function requireProduction(database: DatabaseContext): void {
   if (getSessionState(database).profile !== 'production') {
-    throw new Error('O cancelamento de comandas exige o perfil Produção.');
+    failDatabaseOperation('FORBIDDEN', 'O cancelamento de comandas exige o perfil Produção.', {
+      requiredProfile: 'production',
+    });
   }
 }
 
@@ -22,14 +26,21 @@ export function cancelOrder(
   const order = requireOrderRow(database, input.orderId);
 
   if (order.event_id !== eventId) {
-    throw new Error('A comanda não pertence ao evento ativo.');
+    failDatabaseOperation('INVALID_STATE', 'A comanda não pertence ao evento ativo.', {
+      orderId: order.id,
+      orderEventId: order.event_id,
+      activeEventId: eventId,
+    });
   }
 
   if (order.status === 'cancelled') {
-    throw new Error('Esta comanda já foi cancelada.');
+    failDatabaseOperation('CONFLICT', 'Esta comanda já foi cancelada.', {
+      orderId: order.id,
+      status: order.status,
+    });
   }
 
-  const reason = input.reason.trim();
+  const reason = requireOperationReason(input.reason);
   const now = Date.now();
   let restoredUnits = 0;
   let refundedVoucherCents = 0;
