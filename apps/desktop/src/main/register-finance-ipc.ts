@@ -31,6 +31,8 @@ import {
   type DatabaseContext,
 } from '@gtrz/database';
 
+import { handleIpc } from './ipc-handler';
+
 interface RegisterFinanceIpcOptions {
   readonly getDatabase: () => DatabaseContext;
 }
@@ -54,16 +56,16 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     ipcMain.removeHandler(channel);
   }
 
-  ipcMain.handle(IPC_CHANNELS.cashGetState, () => {
+  handleIpc(IPC_CHANNELS.cashGetState, () => {
     return cashStateSchema.parse(getCashState(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.cashOpen, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.cashOpen, (_event, payload: unknown) => {
     const input = openCashRegisterInputSchema.parse(payload);
     return cashStateSchema.parse(openCashRegister(options.getDatabase(), input.openingCashCents));
   });
 
-  ipcMain.handle(IPC_CHANNELS.cashRecordMovement, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.cashRecordMovement, (_event, payload: unknown) => {
     const input = recordCashMovementInputSchema.parse(payload);
     const databaseInput =
       input.note === undefined
@@ -72,16 +74,16 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     return cashStateSchema.parse(recordCashMovement(options.getDatabase(), databaseInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.cashClose, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.cashClose, (_event, payload: unknown) => {
     const input = closeCashRegisterInputSchema.parse(payload);
     return cashStateSchema.parse(closeCashRegister(options.getDatabase(), input.countedCashCents));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesGetState, () => {
+  handleIpc(IPC_CHANNELS.expensesGetState, () => {
     return expenseStateSchema.parse(getExpenseState(options.getDatabase()));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesCreate, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesCreate, (_event, payload: unknown) => {
     const input = createExpenseInputSchema.parse(payload);
     const databaseInput = {
       category: input.category,
@@ -96,7 +98,7 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     return expenseSchema.parse(createExpense(options.getDatabase(), databaseInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesUpdate, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesUpdate, (_event, payload: unknown) => {
     const input = updateExpenseInputSchema.parse(payload);
     const databaseInput =
       input.note === undefined
@@ -116,7 +118,7 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     return expenseSchema.parse(updateExpense(options.getDatabase(), databaseInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesPay, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesPay, (_event, payload: unknown) => {
     const input = payExpenseInputSchema.parse(payload);
     const databaseInput =
       input.note === undefined
@@ -134,17 +136,17 @@ export function registerFinanceIpcHandlers(options: RegisterFinanceIpcOptions): 
     return expenseSchema.parse(payExpense(options.getDatabase(), databaseInput));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesRefundPayment, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesRefundPayment, (_event, payload: unknown) => {
     const input = refundExpensePaymentInputSchema.parse(payload);
     return expenseSchema.parse(refundExpensePayment(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesPreviewCancel, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesPreviewCancel, (_event, payload: unknown) => {
     const input = previewCancelExpenseInputSchema.parse(payload);
     return expenseCancelPreviewSchema.parse(previewCancelExpense(options.getDatabase(), input));
   });
 
-  ipcMain.handle(IPC_CHANNELS.expensesCancel, (_event, payload: unknown) => {
+  handleIpc(IPC_CHANNELS.expensesCancel, (_event, payload: unknown) => {
     const input = cancelExpenseInputSchema.parse(payload);
     return expenseSchema.parse(cancelExpense(options.getDatabase(), input));
   });
