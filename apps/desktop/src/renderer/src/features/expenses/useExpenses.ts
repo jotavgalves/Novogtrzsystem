@@ -8,6 +8,8 @@ import type {
   UpdateExpenseInput,
 } from '@gtrz/contracts';
 
+import { getAppErrorMessage } from '../../shared/app-error';
+
 interface ExpenseViewState {
   readonly state: ExpenseState | null;
   readonly loading: boolean;
@@ -29,7 +31,7 @@ interface ExpenseViewState {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Não foi possível atualizar as despesas.';
+  return getAppErrorMessage(error, 'Não foi possível atualizar as despesas.');
 }
 
 export function useExpenses(): ExpenseViewState {
