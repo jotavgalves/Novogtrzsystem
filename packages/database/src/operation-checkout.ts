@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { appendAudit } from './audit';
+import { failDatabaseOperation } from './database-error';
 import { getOrder, listOrderItems, requireOpenOrderRow } from './operation-core';
 import { deductOrderStock } from './operation-stock';
 import type {
@@ -17,18 +18,29 @@ function normalizePayments(
 ): readonly DatabasePayment[] {
   return payments.map((payment) => {
     if (!Number.isInteger(payment.amountCents) || payment.amountCents <= 0) {
-      throw new Error('Os valores de pagamento devem ser positivos.');
+      failDatabaseOperation('VALIDATION_ERROR', 'Os valores de pagamento devem ser positivos.', {
+        method: payment.method,
+        amountCents: payment.amountCents,
+      });
     }
 
     if (payment.method !== 'cash' && payment.receivedCents !== undefined) {
-      throw new Error('Valor recebido e troco só podem ser informados para pagamento em dinheiro.');
+      failDatabaseOperation(
+        'VALIDATION_ERROR',
+        'Valor recebido e troco só podem ser informados para pagamento em dinheiro.',
+        { method: payment.method, receivedCents: payment.receivedCents },
+      );
     }
 
     const receivedCents =
       payment.method === 'cash' ? (payment.receivedCents ?? payment.amountCents) : null;
 
     if (receivedCents !== null && receivedCents < payment.amountCents) {
-      throw new Error('O valor recebido em dinheiro é menor que o valor aplicado.');
+      failDatabaseOperation(
+        'VALIDATION_ERROR',
+        'O valor recebido em dinheiro é menor que o valor aplicado.',
+        { amountCents: payment.amountCents, receivedCents },
+      );
     }
 
     return {
@@ -56,17 +68,29 @@ export function closeOrder(
   const items = listOrderItems(database, input.orderId);
 
   if (items.length === 0) {
-    throw new Error('Inclua pelo menos um item antes de fechar a comanda.');
+    failDatabaseOperation('INVALID_STATE', 'Inclua pelo menos um item antes de fechar a comanda.', {
+      orderId: order.id,
+      itemCount: 0,
+    });
   }
 
   if (input.discountCents > order.subtotal_cents) {
-    throw new Error('O desconto não pode ser maior que o subtotal.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O desconto não pode ser maior que o subtotal.', {
+      orderId: order.id,
+      discountCents: input.discountCents,
+      subtotalCents: order.subtotal_cents,
+    });
   }
 
   const totalCents = order.subtotal_cents - input.discountCents;
 
   if (totalCents <= 0) {
-    throw new Error('O total da comanda precisa ser maior que zero.');
+    failDatabaseOperation('VALIDATION_ERROR', 'O total da comanda precisa ser maior que zero.', {
+      orderId: order.id,
+      subtotalCents: order.subtotal_cents,
+      discountCents: input.discountCents,
+      totalCents,
+    });
   }
 
   const voucherUses = validateOrderVoucherUses(database, order.id, input.voucherUses ?? []);
@@ -75,7 +99,11 @@ export function closeOrder(
   const voucherCents = voucherUses.reduce((total, use) => total + use.amountCents, 0);
 
   if (paymentCents + voucherCents !== totalCents) {
-    throw new Error('A soma dos pagamentos e do voucher deve ser igual ao total da comanda.');
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'A soma dos pagamentos e do voucher deve ser igual ao total da comanda.',
+      { orderId: order.id, totalCents, paymentCents, voucherCents },
+    );
   }
 
   const now = Date.now();
