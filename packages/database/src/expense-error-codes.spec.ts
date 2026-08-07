@@ -51,12 +51,12 @@ describe('expense stable error codes', () => {
     const database = await createTemporaryDatabase();
     createEvent(database, { name: 'Evento despesas tipadas', startsAt: Date.now() });
 
-    expect(captureDatabaseError(() => previewCancelExpense(database, { expenseId: 'missing' }))).toEqual(
-      {
-        code: 'NOT_FOUND',
-        details: { expenseId: 'missing' },
-      },
-    );
+    expect(
+      captureDatabaseError(() => previewCancelExpense(database, { expenseId: 'missing' })),
+    ).toEqual({
+      code: 'NOT_FOUND',
+      details: { expenseId: 'missing' },
+    });
 
     const expense = createExpense(database, {
       category: 'Estrutura',

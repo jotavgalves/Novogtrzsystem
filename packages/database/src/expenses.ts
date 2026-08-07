@@ -177,11 +177,15 @@ export function updateExpense(
   }
 
   if (input.amountCents < expense.paidCents) {
-    failDatabaseOperation('INVALID_STATE', 'O valor total não pode ficar abaixo do valor já pago.', {
-      expenseId: expense.id,
-      requestedTotalCents: input.amountCents,
-      paidCents: expense.paidCents,
-    });
+    failDatabaseOperation(
+      'INVALID_STATE',
+      'O valor total não pode ficar abaixo do valor já pago.',
+      {
+        expenseId: expense.id,
+        requestedTotalCents: input.amountCents,
+        paidCents: expense.paidCents,
+      },
+    );
   }
 
   const category = input.category.trim();

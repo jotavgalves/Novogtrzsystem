@@ -130,12 +130,16 @@ export function bindOrderVoucher(
   const voucher = requireVoucher(database, order.event_id, input.code);
 
   if (voucher.status !== 'active' || voucher.remaining_balance_cents <= 0) {
-    failDatabaseOperation('INVALID_STATE', `O voucher ${voucher.code} não possui saldo ativo para uso.`, {
-      voucherId: voucher.id,
-      code: voucher.code,
-      status: voucher.status,
-      remainingBalanceCents: voucher.remaining_balance_cents,
-    });
+    failDatabaseOperation(
+      'INVALID_STATE',
+      `O voucher ${voucher.code} não possui saldo ativo para uso.`,
+      {
+        voucherId: voucher.id,
+        code: voucher.code,
+        status: voucher.status,
+        remainingBalanceCents: voucher.remaining_balance_cents,
+      },
+    );
   }
 
   const conflictingOrder = database.sqlite
@@ -194,10 +198,14 @@ export function bindOrderVoucher(
   const allocation = getOrderVoucherAllocation(database, order.id);
 
   if (allocation === null) {
-    failDatabaseOperation('INTEGRITY_ERROR', 'O voucher foi vinculado, mas não pôde ser carregado.', {
-      orderId: order.id,
-      voucherId: voucher.id,
-    });
+    failDatabaseOperation(
+      'INTEGRITY_ERROR',
+      'O voucher foi vinculado, mas não pôde ser carregado.',
+      {
+        orderId: order.id,
+        voucherId: voucher.id,
+      },
+    );
   }
 
   return allocation;

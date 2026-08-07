@@ -445,11 +445,10 @@ export function closeCashRegister(
   const register = requireOpenRegister(database, eventId);
 
   if (!Number.isInteger(countedCashCents) || countedCashCents < 0) {
-    failDatabaseOperation(
-      'VALIDATION_ERROR',
-      'O valor contado deve ser um inteiro não negativo.',
-      { field: 'countedCashCents', value: countedCashCents },
-    );
+    failDatabaseOperation('VALIDATION_ERROR', 'O valor contado deve ser um inteiro não negativo.', {
+      field: 'countedCashCents',
+      value: countedCashCents,
+    });
   }
 
   const openOrders = database.sqlite
