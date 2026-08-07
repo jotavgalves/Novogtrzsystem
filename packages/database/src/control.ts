@@ -220,7 +220,7 @@ export function deleteEvent(
   requireProduction(database);
   const current = getAnyEventById(database, input.eventId);
 
-  if (current === null || current.deleted_at !== null) {
+  if (current?.deleted_at !== null) {
     throw new Error('O evento informado não existe.');
   }
 
