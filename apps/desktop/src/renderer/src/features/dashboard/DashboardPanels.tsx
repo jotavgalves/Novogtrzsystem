@@ -1,13 +1,7 @@
 import { Activity, Ticket, WalletCards } from 'lucide-react';
 
 import type { DashboardState } from '@gtrz/contracts';
-
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
-}
+import { formatCurrency } from '@gtrz/domain';
 
 function formatPercent(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -47,7 +41,7 @@ export function SalesMethods({ state }: { readonly state: DashboardState }): Rea
             <div className="payment-share" key={label}>
               <div className="payment-share__heading">
                 <span>{label}</span>
-                <strong>{formatMoney(value)}</strong>
+                <strong>{formatCurrency(value)}</strong>
               </div>
               <div
                 aria-label={`${label}: ${formatPercent(share)}`}
@@ -137,7 +131,7 @@ export function OperationalHealth({
           value={state.inventory.lowStockProducts}
         />
         <HealthItem
-          detail={`${formatMoney(state.vouchers.outstandingBalanceCents)} ainda disponíveis`}
+          detail={`${formatCurrency(state.vouchers.outstandingBalanceCents)} ainda disponíveis`}
           label="Vouchers ativos"
           value={state.vouchers.active}
         />
