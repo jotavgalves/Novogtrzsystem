@@ -240,6 +240,7 @@ export function deleteVoucher(
     database.sqlite
       .prepare("UPDATE vouchers SET status = 'cancelled', updated_at = ? WHERE id = ?")
       .run(now, preview.voucherId);
+    const after = mapVoucher(requireVoucherById(database, preview.voucherId));
     appendAudit(database, {
       action: 'voucher.deleted',
       entityType: 'voucher',
@@ -251,10 +252,7 @@ export function deleteVoucher(
         reason,
       },
       before,
-      after: {
-        ...before,
-        status: 'cancelled',
-      },
+      after,
       impact: preview,
     });
   })();
