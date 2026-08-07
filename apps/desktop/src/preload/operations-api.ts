@@ -4,12 +4,16 @@ import {
   cancelOrderInputSchema,
   closeOrderInputSchema,
   createServicePointInputSchema,
+  deleteServicePointInputSchema,
   getOrderInputSchema,
   IPC_CHANNELS,
   openOrderInputSchema,
+  OPERATIONS_IPC_CHANNELS,
   operationStateSchema,
   orderSchema,
+  previewDeleteServicePointInputSchema,
   removeOrderItemInputSchema,
+  servicePointDeletePreviewSchema,
   servicePointSchema,
   unbindOrderVoucherInputSchema,
   type AddOrderItemInput,
@@ -17,12 +21,15 @@ import {
   type CancelOrderInput,
   type CloseOrderInput,
   type CreateServicePointInput,
+  type DeleteServicePointInput,
   type OpenOrderInput,
   type OperationState,
   type OperationsApi,
   type Order,
+  type PreviewDeleteServicePointInput,
   type RemoveOrderItemInput,
   type ServicePoint,
+  type ServicePointDeletePreview,
   type UnbindOrderVoucherInput,
 } from '@gtrz/contracts';
 
@@ -41,6 +48,26 @@ export const operationsApi: OperationsApi = {
       parsedInput,
     );
     return servicePointSchema.parse(payload);
+  },
+
+  async previewDeleteServicePoint(
+    input: PreviewDeleteServicePointInput,
+  ): Promise<ServicePointDeletePreview> {
+    const parsedInput = previewDeleteServicePointInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint,
+      parsedInput,
+    );
+    return servicePointDeletePreviewSchema.parse(payload);
+  },
+
+  async deleteServicePoint(input: DeleteServicePointInput): Promise<ServicePointDeletePreview> {
+    const parsedInput = deleteServicePointInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      OPERATIONS_IPC_CHANNELS.deleteServicePoint,
+      parsedInput,
+    );
+    return servicePointDeletePreviewSchema.parse(payload);
   },
 
   async openOrder(input: OpenOrderInput): Promise<Order> {

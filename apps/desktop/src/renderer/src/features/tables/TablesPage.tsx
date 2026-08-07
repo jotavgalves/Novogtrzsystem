@@ -26,6 +26,8 @@ export function TablesPage(): React.JSX.Element {
     message,
     reload,
     createTable,
+    previewDeleteTable,
+    deleteTable,
     openServicePoint,
     addItem,
     removeItem,
@@ -111,7 +113,14 @@ export function TablesPage(): React.JSX.Element {
             </article>
           ) : null}
 
-          <ServicePointGrid busy={busy} onOpen={openServicePoint} servicePoints={servicePoints} />
+          <ServicePointGrid
+            busy={busy}
+            onDelete={deleteTable}
+            onOpen={openServicePoint}
+            onPreviewDelete={previewDeleteTable}
+            production={production}
+            servicePoints={servicePoints}
+          />
 
           {production ? (
             <RecentOrdersPanel busy={busy} onCancel={cancelOrder} orders={recentOrders} />

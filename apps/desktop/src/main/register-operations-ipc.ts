@@ -6,12 +6,16 @@ import {
   cancelOrderInputSchema,
   closeOrderInputSchema,
   createServicePointInputSchema,
+  deleteServicePointInputSchema,
   getOrderInputSchema,
   IPC_CHANNELS,
   openOrderInputSchema,
+  OPERATIONS_IPC_CHANNELS,
   operationStateSchema,
   orderSchema,
+  previewDeleteServicePointInputSchema,
   removeOrderItemInputSchema,
+  servicePointDeletePreviewSchema,
   servicePointSchema,
   unbindOrderVoucherInputSchema,
 } from '@gtrz/contracts';
@@ -21,9 +25,11 @@ import {
   cancelOrder,
   closeOrder,
   createServicePoint,
+  deleteServicePoint,
   getOperationState,
   getOrder,
   openOrder,
+  previewDeleteServicePoint,
   removeOrderItem,
   type DatabaseCloseOrderPaymentInput,
   type DatabaseContext,
@@ -39,6 +45,8 @@ interface RegisterOperationsIpcOptions {
 const OPERATION_CHANNELS = [
   IPC_CHANNELS.operationsGetState,
   IPC_CHANNELS.operationsCreateServicePoint,
+  OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint,
+  OPERATIONS_IPC_CHANNELS.deleteServicePoint,
   IPC_CHANNELS.operationsOpenOrder,
   IPC_CHANNELS.operationsGetOrder,
   IPC_CHANNELS.operationsAddItem,
@@ -77,6 +85,18 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
   handleIpc(IPC_CHANNELS.operationsCreateServicePoint, (_event, payload: unknown) => {
     const input = createServicePointInputSchema.parse(payload);
     return servicePointSchema.parse(createServicePoint(options.getDatabase(), input));
+  });
+
+  handleIpc(OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint, (_event, payload: unknown) => {
+    const input = previewDeleteServicePointInputSchema.parse(payload);
+    return servicePointDeletePreviewSchema.parse(
+      previewDeleteServicePoint(options.getDatabase(), input),
+    );
+  });
+
+  handleIpc(OPERATIONS_IPC_CHANNELS.deleteServicePoint, (_event, payload: unknown) => {
+    const input = deleteServicePointInputSchema.parse(payload);
+    return servicePointDeletePreviewSchema.parse(deleteServicePoint(options.getDatabase(), input));
   });
 
   handleIpc(IPC_CHANNELS.operationsOpenOrder, (_event, payload: unknown) => {
