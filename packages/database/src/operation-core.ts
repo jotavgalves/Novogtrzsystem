@@ -234,7 +234,7 @@ function listRecentOrders(database: DatabaseContext, eventId: string): readonly 
        FROM orders
        WHERE event_id = ? AND status IN ('paid', 'cancelled')
        ORDER BY updated_at DESC
-       LIMIT 25`,
+       LIMIT 200`,
     )
     .all(eventId) as OperationOrderRow[];
   return rows.map((row) => mapOrder(database, row));
