@@ -1,6 +1,7 @@
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 
 import type { CloseOrderInput, Order, ServicePoint } from '@gtrz/contracts';
+import { formatCurrency } from '@gtrz/domain';
 
 import { CancellationForm } from './CancellationForm';
 import { CheckoutForm } from './CheckoutForm';
@@ -21,13 +22,7 @@ interface OrderPanelProps {
   readonly onCloseOrder: (input: Omit<CloseOrderInput, 'orderId'>) => Promise<void>;
   readonly onCancelOrder: (reason: string) => Promise<void>;
   readonly onCancelHistoricalOrder: (orderId: string, reason: string) => Promise<void>;
-}
-
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
+  readonly onReprintOrder?: ((orderId: string) => Promise<void>) | undefined;
 }
 
 export function OrderPanel({
@@ -44,6 +39,7 @@ export function OrderPanel({
   onCloseOrder,
   onCancelOrder,
   onCancelHistoricalOrder,
+  onReprintOrder,
 }: OrderPanelProps): React.JSX.Element {
   const hasItems = order !== null && order.items.length > 0;
 
@@ -74,7 +70,7 @@ export function OrderPanel({
           </div>
         </div>
 
-        <div className="order-items">
+        <div className="order-items order-items--cart">
           {!hasItems ? (
             <p className="operation-empty">Adicione produtos ou combos pelo catálogo.</p>
           ) : null}
@@ -82,7 +78,7 @@ export function OrderPanel({
             <div className="order-item" key={item.id}>
               <span>
                 <strong>{item.itemName}</strong>
-                <small>{formatMoney(item.unitPriceCents)} por unidade</small>
+                <small>{formatCurrency(item.unitPriceCents)} por unidade</small>
               </span>
               <OrderItemQuantity
                 busy={busy}
@@ -90,14 +86,14 @@ export function OrderPanel({
                 onChange={onSetItemQuantity}
                 onRemove={onRemoveItem}
               />
-              <strong>{formatMoney(item.totalCents)}</strong>
+              <strong>{formatCurrency(item.totalCents)}</strong>
             </div>
           ))}
         </div>
 
         <div className="order-summary">
           <span>Subtotal</span>
-          <strong>{formatMoney(order?.subtotalCents ?? 0)}</strong>
+          <strong>{formatCurrency(order?.subtotalCents ?? 0)}</strong>
         </div>
 
         {order !== null && order.items.length > 0 ? (
@@ -120,9 +116,11 @@ export function OrderPanel({
       <RecentOrdersPanel
         allowCancel={production}
         busy={busy}
+        compact
         description="As vendas permanecem ligadas a esta mesa mesmo depois do pagamento."
         emptyMessage="Esta mesa ainda não possui vendas concluídas."
         onCancel={onCancelHistoricalOrder}
+        onReprint={onReprintOrder}
         orders={history}
         title="Histórico da mesa"
       />
