@@ -13,7 +13,6 @@ function normalizePrinter(printer: PrinterInfo): ReceiptPrinter {
   return {
     name: printer.name,
     displayName: printer.displayName || printer.name,
-    isDefault: printer.isDefault,
   };
 }
 
@@ -32,12 +31,9 @@ export class ReceiptPrinterService {
     }
 
     const printers = await sourceWindow.webContents.getPrintersAsync();
-    return printers.map(normalizePrinter).sort((left, right) => {
-      if (left.isDefault !== right.isDefault) {
-        return left.isDefault ? -1 : 1;
-      }
-      return left.displayName.localeCompare(right.displayName, 'pt-BR');
-    });
+    return printers
+      .map(normalizePrinter)
+      .sort((left, right) => left.displayName.localeCompare(right.displayName, 'pt-BR'));
   }
 
   async printOrder(orderId: string, automatic = false): Promise<ReceiptPrintResult> {
@@ -50,19 +46,16 @@ export class ReceiptPrinterService {
 
     try {
       const printers = await this.listPrinters();
-      const printer =
+      const configuredPrinter =
         settings.printerName === null
-          ? (printers.find((item) => item.isDefault) ?? printers[0])
+          ? null
           : printers.find((item) => item.name === settings.printerName);
 
-      if (printer === undefined) {
+      if (settings.printerName !== null && configuredPrinter === undefined) {
         return {
           status: 'unavailable',
           printerName: settings.printerName,
-          message:
-            settings.printerName === null
-              ? 'Nenhuma impressora disponível no Windows.'
-              : 'A impressora térmica configurada não está disponível.',
+          message: 'A impressora térmica configurada não está disponível.',
         };
       }
 
@@ -84,16 +77,20 @@ export class ReceiptPrinterService {
             {
               silent: true,
               printBackground: true,
-              deviceName: printer.name,
+              ...(configuredPrinter === null ? {} : { deviceName: configuredPrinter.name }),
               margins: { marginType: 'none' },
             },
             (success, failureReason) => {
               resolve(
                 success
-                  ? { status: 'printed', printerName: printer.name, message: null }
+                  ? {
+                      status: 'printed',
+                      printerName: configuredPrinter?.name ?? null,
+                      message: null,
+                    }
                   : {
                       status: 'failed',
-                      printerName: printer.name,
+                      printerName: configuredPrinter?.name ?? null,
                       message: failureReason || 'O Windows não confirmou a impressão.',
                     },
               );
