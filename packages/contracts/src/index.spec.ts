@@ -4,10 +4,12 @@ import {
   backupRecordSchema,
   backupStateSchema,
   createEventInputSchema,
+  createVoucherInputSchema,
   deleteEventInputSchema,
   eventSchema,
   restoreBackupResultSchema,
   sessionStateSchema,
+  setOrderItemQuantityInputSchema,
   switchProfileInputSchema,
   systemInfoSchema,
 } from './index';
@@ -68,6 +70,39 @@ describe('control contracts', () => {
     });
     expect(() =>
       switchProfileInputSchema.parse({ targetProfile: 'production', password: 'x'.repeat(129) }),
+    ).toThrow();
+  });
+});
+
+describe('operational contracts', () => {
+  const orderId = 'd93e52dd-74ae-4b1d-a600-d95193336a9c';
+  const orderItemId = '78006af6-7f90-4df7-8fc2-60f6e2288e31';
+  const servicePointId = 'a59108b2-fcad-4a53-989b-e9c2c31b599c';
+
+  it('aceita quantidade positiva digitada diretamente no carrinho', () => {
+    expect(
+      setOrderItemQuantityInputSchema.parse({ orderId, orderItemId, quantity: 12 }),
+    ).toEqual({ orderId, orderItemId, quantity: 12 });
+    expect(() =>
+      setOrderItemQuantityInputSchema.parse({ orderId, orderItemId, quantity: 0 }),
+    ).toThrow();
+  });
+
+  it('exige uma mesa ao emitir voucher pela API do aplicativo', () => {
+    expect(
+      createVoucherInputSchema.parse({
+        code: 'MESA-001',
+        label: 'Crédito da mesa',
+        linkedServicePointId: servicePointId,
+        initialBalanceCents: 1000,
+      }),
+    ).toMatchObject({ linkedServicePointId: servicePointId });
+    expect(() =>
+      createVoucherInputSchema.parse({
+        code: 'SEM-MESA',
+        label: 'Voucher inválido',
+        initialBalanceCents: 1000,
+      }),
     ).toThrow();
   });
 });
