@@ -11,7 +11,6 @@ export const updateReceiptSettingsInputSchema = receiptSettingsSchema;
 export const receiptPrinterSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
-  isDefault: z.boolean(),
 });
 
 export const receiptPrinterListSchema = z.array(receiptPrinterSchema);
