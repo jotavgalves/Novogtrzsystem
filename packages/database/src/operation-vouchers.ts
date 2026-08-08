@@ -17,6 +17,7 @@ export interface DatabaseOrderVoucherAllocation {
 interface OrderRow {
   readonly id: string;
   readonly event_id: string;
+  readonly service_point_id: string;
   readonly service_point_label: string;
   readonly status: 'open' | 'paid' | 'cancelled';
 }
@@ -36,6 +37,8 @@ interface VoucherRow {
   readonly event_id: string;
   readonly code: string;
   readonly label: string;
+  readonly linked_service_point_id: string | null;
+  readonly linked_service_point_label: string | null;
   readonly remaining_balance_cents: number;
   readonly status: 'active' | 'exhausted' | 'cancelled';
 }
@@ -47,7 +50,7 @@ function normalizeCode(code: string): string {
 function requireOpenOrder(database: DatabaseContext, orderId: string): OrderRow {
   const order = database.sqlite
     .prepare(
-      `SELECT id, event_id, service_point_label, status
+      `SELECT id, event_id, service_point_id, service_point_label, status
        FROM orders
        WHERE id = ?`,
     )
@@ -71,7 +74,8 @@ function requireVoucher(database: DatabaseContext, eventId: string, code: string
   const normalizedCode = normalizeCode(code);
   const voucher = database.sqlite
     .prepare(
-      `SELECT id, event_id, code, label, remaining_balance_cents, status
+      `SELECT id, event_id, code, label, linked_service_point_id, linked_service_point_label,
+              remaining_balance_cents, status
        FROM vouchers
        WHERE event_id = ? AND code = ? COLLATE NOCASE`,
     )
@@ -142,6 +146,29 @@ export function bindOrderVoucher(
     );
   }
 
+  if (voucher.linked_service_point_id === null) {
+    failDatabaseOperation(
+      'INVALID_STATE',
+      `O voucher ${voucher.code} precisa ser vinculado a uma mesa antes do uso.`,
+      { voucherId: voucher.id, code: voucher.code, requiredState: 'linked-to-table' },
+    );
+  }
+
+  if (voucher.linked_service_point_id !== order.service_point_id) {
+    failDatabaseOperation(
+      'CONFLICT',
+      `O voucher ${voucher.code} pertence a ${voucher.linked_service_point_label ?? 'outra mesa'}.`,
+      {
+        voucherId: voucher.id,
+        code: voucher.code,
+        linkedServicePointId: voucher.linked_service_point_id,
+        linkedServicePointLabel: voucher.linked_service_point_label,
+        requestedServicePointId: order.service_point_id,
+        requestedServicePointLabel: order.service_point_label,
+      },
+    );
+  }
+
   const conflictingOrder = database.sqlite
     .prepare(
       `SELECT o.service_point_label
@@ -190,6 +217,7 @@ export function bindOrderVoucher(
         code: voucher.code,
         orderId: order.id,
         previousVoucherCode: current?.code ?? null,
+        servicePointId: order.service_point_id,
         servicePointLabel: order.service_point_label,
       },
     });
