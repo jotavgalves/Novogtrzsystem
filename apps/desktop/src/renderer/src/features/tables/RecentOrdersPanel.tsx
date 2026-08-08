@@ -117,7 +117,7 @@ export function RecentOrdersPanel({
                   <div className="recent-order-card__cancel">
                     <CancellationForm
                       busy={busy}
-                      label="Confirmar estorno"
+                      label="Estornar venda"
                       onSubmit={(reason) => onCancel(order.id, reason)}
                     />
                   </div>
