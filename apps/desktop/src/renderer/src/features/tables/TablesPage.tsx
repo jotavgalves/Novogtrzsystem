@@ -1,5 +1,7 @@
 import { RefreshCw, TableProperties, TriangleAlert } from 'lucide-react';
 
+import { formatCurrency } from '@gtrz/domain';
+
 import { useSession } from '../../shared/session/session-context';
 import { CatalogPanel } from './CatalogPanel';
 import { CreateTableForm } from './CreateTableForm';
@@ -7,13 +9,7 @@ import { OrderPanel } from './OrderPanel';
 import { RecentOrdersPanel } from './RecentOrdersPanel';
 import { ServicePointGrid } from './ServicePointGrid';
 import { useOperations } from './useOperations';
-
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
-}
+import { projectCatalogForOrder } from './virtual-stock';
 
 export function TablesPage(): React.JSX.Element {
   const { state: sessionState } = useSession();
@@ -27,6 +23,7 @@ export function TablesPage(): React.JSX.Element {
     message,
     reload,
     createTable,
+    setTablePinned,
     previewDeleteTable,
     deleteTable,
     openServicePoint,
@@ -37,6 +34,7 @@ export function TablesPage(): React.JSX.Element {
     unbindVoucher,
     closeCurrentOrder,
     cancelOrder,
+    reprintOrder,
     clearOrder,
   } = useOperations();
   const production = sessionState?.profile === 'production';
@@ -47,6 +45,7 @@ export function TablesPage(): React.JSX.Element {
     selectedServicePoint === null
       ? []
       : recentOrders.filter((item) => item.servicePointId === selectedServicePoint.id);
+  const projectedCatalog = projectCatalogForOrder(catalog, order);
   const openPoints = servicePoints.filter((item) => item.status === 'open');
   const openTotalCents = openPoints.reduce((total, item) => total + item.activeOrderTotalCents, 0);
   const availableItems = catalog.filter((item) => item.active && item.availableQuantity > 0).length;
@@ -86,7 +85,7 @@ export function TablesPage(): React.JSX.Element {
         </article>
         <article className="summary-card">
           <span>Valor em aberto</span>
-          <strong>{formatMoney(openTotalCents)}</strong>
+          <strong>{formatCurrency(openTotalCents)}</strong>
         </article>
         <article className="summary-card summary-card--accent">
           <span>Opções à venda</span>
@@ -125,20 +124,26 @@ export function TablesPage(): React.JSX.Element {
             busy={busy}
             onDelete={deleteTable}
             onOpen={openServicePoint}
+            onPinChange={setTablePinned}
             onPreviewDelete={previewDeleteTable}
             production={production}
             servicePoints={servicePoints}
           />
 
           {production ? (
-            <RecentOrdersPanel busy={busy} onCancel={cancelOrder} orders={recentOrders} />
+            <RecentOrdersPanel
+              busy={busy}
+              onCancel={cancelOrder}
+              onReprint={reprintOrder}
+              orders={recentOrders}
+            />
           ) : null}
         </>
       ) : null}
 
       {selectedServicePoint === null ? null : (
         <div className="operation-workspace">
-          <CatalogPanel busy={busy} items={catalog} onAdd={addItem} />
+          <CatalogPanel items={projectedCatalog} onAdd={addItem} />
           <OrderPanel
             busy={busy}
             history={selectedHistory}
@@ -152,6 +157,7 @@ export function TablesPage(): React.JSX.Element {
             }}
             onCloseOrder={closeCurrentOrder}
             onRemoveItem={removeItem}
+            onReprintOrder={reprintOrder}
             onSetItemQuantity={setItemQuantity}
             onUnbindVoucher={unbindVoucher}
             order={order}

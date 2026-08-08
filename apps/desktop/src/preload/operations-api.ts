@@ -16,6 +16,7 @@ import {
   servicePointDeletePreviewSchema,
   servicePointSchema,
   setOrderItemQuantityInputSchema,
+  setServicePointPinnedInputSchema,
   unbindOrderVoucherInputSchema,
   type AddOrderItemInput,
   type BindOrderVoucherInput,
@@ -32,6 +33,7 @@ import {
   type ServicePoint,
   type ServicePointDeletePreview,
   type SetOrderItemQuantityInput,
+  type SetServicePointPinnedInput,
   type UnbindOrderVoucherInput,
 } from '@gtrz/contracts';
 
@@ -47,6 +49,15 @@ export const operationsApi: OperationsApi = {
     const parsedInput = createServicePointInputSchema.parse(input);
     const payload: unknown = await ipcRenderer.invoke(
       IPC_CHANNELS.operationsCreateServicePoint,
+      parsedInput,
+    );
+    return servicePointSchema.parse(payload);
+  },
+
+  async setServicePointPinned(input: SetServicePointPinnedInput): Promise<ServicePoint> {
+    const parsedInput = setServicePointPinnedInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      OPERATIONS_IPC_CHANNELS.setServicePointPinned,
       parsedInput,
     );
     return servicePointSchema.parse(payload);

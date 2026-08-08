@@ -43,6 +43,7 @@ import { auditApi, dashboardApi } from './insights-api';
 import { inventoryApi } from './inventory-api';
 import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
 import { operationsApi } from './operations-api';
+import { receiptApi } from './receipt-api';
 import { ticketApi } from './ticket-api';
 import { voucherApi } from './voucher-api';
 
@@ -114,6 +115,7 @@ const api: GtrzDesktopApi = {
       return operationResultSchema.parse(payload);
     },
   },
+  receipts: receiptApi,
   backups: {
     async getState(): Promise<BackupState> {
       const payload: unknown = await ipcRenderer.invoke(IPC_CHANNELS.backupsGetState);

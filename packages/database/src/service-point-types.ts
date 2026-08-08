@@ -9,6 +9,7 @@ export interface DatabaseServicePoint {
   readonly status: DatabaseServicePointStatus;
   readonly activeOrderId: string | null;
   readonly activeOrderTotalCents: number;
+  readonly pinned: boolean;
   readonly createdAt: number;
   readonly updatedAt: number;
 }

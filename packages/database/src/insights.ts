@@ -1,6 +1,6 @@
 import { getCashState } from './cash';
 import { getSessionState, listEvents } from './control';
-import { getDashboardAggregates } from './dashboard-queries';
+import { getDashboardAggregates, type DatabaseInventoryBreakEvenItem } from './dashboard-queries';
 import { getExpenseState } from './expenses';
 import type { DatabaseContext } from './types';
 
@@ -71,7 +71,10 @@ export interface DatabaseDashboardState {
     readonly activeProducts: number;
     readonly lowStockProducts: number;
     readonly stockCostCents: number;
+    readonly potentialRevenueCents: number;
+    readonly potentialGrossProfitCents: number;
   };
+  readonly inventoryBreakEven: readonly DatabaseInventoryBreakEvenItem[];
   readonly recentActivity: readonly DatabaseInsightAuditRecord[];
 }
 
@@ -348,6 +351,17 @@ function getOrderCounts(
   return result;
 }
 
+function emptyInventory(): DatabaseDashboardState['inventory'] {
+  return {
+    units: 0,
+    activeProducts: 0,
+    lowStockProducts: 0,
+    stockCostCents: 0,
+    potentialRevenueCents: 0,
+    potentialGrossProfitCents: 0,
+  };
+}
+
 export function getDashboardState(database: DatabaseContext): DatabaseDashboardState {
   requireProduction(database);
   const session = getSessionState(database);
@@ -374,7 +388,8 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
       orders: { open: 0, paid: 0, cancelled: 0 },
       tickets: { sold: 0, courtesy: 0, available: 0, revenueCents: 0 },
       vouchers: { active: 0, outstandingBalanceCents: 0 },
-      inventory: { units: 0, activeProducts: 0, lowStockProducts: 0, stockCostCents: 0 },
+      inventory: emptyInventory(),
+      inventoryBreakEven: [],
       recentActivity: [],
     };
   }
@@ -405,6 +420,7 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
     tickets: aggregates.tickets,
     vouchers: aggregates.vouchers,
     inventory: aggregates.inventory,
+    inventoryBreakEven: aggregates.inventoryBreakEven,
     recentActivity: listAuditRecords(database, { eventId: activeEvent.id, limit: 8 }).records,
   };
 }

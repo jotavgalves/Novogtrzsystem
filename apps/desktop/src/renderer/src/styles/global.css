@@ -7,6 +7,7 @@
 @import './transfers.css';
 @import './combos.css';
 @import './operations.css';
+@import './operations-priority.css';
 @import './service-point-deletion.css';
 @import './checkout.css';
 @import './cancellations.css';
@@ -16,3 +17,5 @@
 @import './event-close.css';
 @import './insights.css';
 @import './insights-enhancements.css';
+@import './inventory-forecast.css';
+@import './receipt-settings.css';

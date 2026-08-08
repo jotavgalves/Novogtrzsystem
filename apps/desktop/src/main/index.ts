@@ -4,6 +4,7 @@ import path from 'node:path';
 import { BackupService } from './backup-service';
 import { createMainWindow } from './create-main-window';
 import { DatabaseRuntime } from './database-runtime';
+import { ReceiptPrinterService } from './receipt-printer-service';
 import { registerIpcHandlers } from './register-ipc';
 
 let mainWindow: BrowserWindow | null = null;
@@ -45,11 +46,15 @@ if (!hasSingleInstanceLock) {
         settingsPath: path.join(userDataPath, 'backup-settings.json'),
         databaseRuntime,
       });
+      const receiptPrinter = new ReceiptPrinterService({
+        getDatabase: () => requireDatabaseRuntime().get(),
+      });
 
       registerIpcHandlers({
         getDatabase: () => requireDatabaseRuntime().get(),
         databaseReady: () => requireDatabaseRuntime().isReady(),
         backupService,
+        receiptPrinter,
       });
 
       await backupService.createBackup('automatic').catch(() => undefined);

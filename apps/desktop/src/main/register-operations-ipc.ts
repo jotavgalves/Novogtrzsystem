@@ -18,6 +18,7 @@ import {
   servicePointDeletePreviewSchema,
   servicePointSchema,
   setOrderItemQuantityInputSchema,
+  setServicePointPinnedInputSchema,
   unbindOrderVoucherInputSchema,
 } from '@gtrz/contracts';
 import {
@@ -29,24 +30,30 @@ import {
   deleteServicePoint,
   getOperationState,
   getOrder,
+  listServicePoints,
   openOrder,
   previewDeleteServicePoint,
   removeOrderItem,
+  requireActiveOperationEvent,
   setOrderItemQuantity,
+  setServicePointPinned,
   type DatabaseCloseOrderPaymentInput,
   type DatabaseContext,
   unbindOrderVoucher,
 } from '@gtrz/database';
 
-import { handleIpc } from './ipc-handler';
+import { failIpcOperation, handleIpc } from './ipc-handler';
+import type { ReceiptPrinterService } from './receipt-printer-service';
 
 interface RegisterOperationsIpcOptions {
   readonly getDatabase: () => DatabaseContext;
+  readonly receiptPrinter: ReceiptPrinterService;
 }
 
 const OPERATION_CHANNELS = [
   IPC_CHANNELS.operationsGetState,
   IPC_CHANNELS.operationsCreateServicePoint,
+  OPERATIONS_IPC_CHANNELS.setServicePointPinned,
   OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint,
   OPERATIONS_IPC_CHANNELS.deleteServicePoint,
   IPC_CHANNELS.operationsOpenOrder,
@@ -88,6 +95,25 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
   handleIpc(IPC_CHANNELS.operationsCreateServicePoint, (_event, payload: unknown) => {
     const input = createServicePointInputSchema.parse(payload);
     return servicePointSchema.parse(createServicePoint(options.getDatabase(), input));
+  });
+
+  handleIpc(OPERATIONS_IPC_CHANNELS.setServicePointPinned, (_event, payload: unknown) => {
+    const input = setServicePointPinnedInputSchema.parse(payload);
+    const database = options.getDatabase();
+    setServicePointPinned(database, input);
+    const eventId = requireActiveOperationEvent(database);
+    const servicePoint = listServicePoints(database, eventId).find(
+      (item) => item.id === input.servicePointId,
+    );
+
+    if (servicePoint === undefined) {
+      failIpcOperation('INTEGRITY_ERROR', 'A mesa fixada não pôde ser recarregada.', {
+        servicePointId: input.servicePointId,
+        eventId,
+      });
+    }
+
+    return servicePointSchema.parse(servicePoint);
   });
 
   handleIpc(OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint, (_event, payload: unknown) => {
@@ -141,14 +167,15 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
 
   handleIpc(IPC_CHANNELS.operationsCloseOrder, (_event, payload: unknown) => {
     const input = closeOrderInputSchema.parse(payload);
-    return orderSchema.parse(
-      closeOrder(options.getDatabase(), {
-        orderId: input.orderId,
-        discountCents: input.discountCents,
-        payments: input.payments.map(normalizePayment),
-        voucherUses: input.voucherUses,
-      }),
-    );
+    const order = closeOrder(options.getDatabase(), {
+      orderId: input.orderId,
+      discountCents: input.discountCents,
+      payments: input.payments.map(normalizePayment),
+      voucherUses: input.voucherUses,
+    });
+
+    void options.receiptPrinter.printOrder(order.id, true).catch(() => undefined);
+    return orderSchema.parse(order);
   });
 
   handleIpc(IPC_CHANNELS.operationsCancelOrder, (_event, payload: unknown) => {

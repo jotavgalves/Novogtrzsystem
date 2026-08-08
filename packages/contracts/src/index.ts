@@ -6,6 +6,7 @@ import type { CashApi, ExpenseApi } from './finance';
 import type { AuditApi, DashboardApi } from './insights';
 import type { InventoryApi } from './inventory';
 import type { OperationsApi } from './operations';
+import type { ReceiptApi } from './receipts';
 import type { TicketApi } from './tickets';
 import type { VoucherApi } from './vouchers';
 
@@ -16,6 +17,7 @@ export * from './finance';
 export * from './insights';
 export * from './inventory';
 export * from './operations';
+export * from './receipts';
 export * from './tickets';
 export * from './vouchers';
 
@@ -34,6 +36,10 @@ export const IPC_CHANNELS = {
   sessionGetState: 'session:get-state',
   sessionSwitchProfile: 'session:switch-profile',
   settingsChangeProductionPassword: 'settings:change-production-password',
+  receiptsGetSettings: 'receipts:get-settings',
+  receiptsUpdateSettings: 'receipts:update-settings',
+  receiptsListPrinters: 'receipts:list-printers',
+  receiptsPrintOrder: 'receipts:print-order',
   backupsGetState: 'backups:get-state',
   backupsChooseDestination: 'backups:choose-destination',
   backupsCreateManual: 'backups:create-manual',
@@ -225,6 +231,7 @@ export interface GtrzDesktopApi {
   readonly settings: {
     changeProductionPassword(input: ChangeProductionPasswordInput): Promise<OperationResult>;
   };
+  readonly receipts: ReceiptApi;
   readonly backups: {
     getState(): Promise<BackupState>;
     chooseDestination(): Promise<BackupState>;

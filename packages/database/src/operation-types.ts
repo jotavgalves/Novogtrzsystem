@@ -53,6 +53,11 @@ export interface DatabaseOrder {
   readonly updatedAt: number;
 }
 
+export interface DatabaseOperationCatalogComponent {
+  readonly productId: string;
+  readonly quantity: number;
+}
+
 export interface DatabaseOperationCatalogItem {
   readonly id: string;
   readonly kind: DatabaseOrderItemKind;
@@ -60,6 +65,7 @@ export interface DatabaseOperationCatalogItem {
   readonly salePriceCents: number;
   readonly availableQuantity: number;
   readonly active: boolean;
+  readonly components: readonly DatabaseOperationCatalogComponent[];
 }
 
 export interface DatabaseOperationState {

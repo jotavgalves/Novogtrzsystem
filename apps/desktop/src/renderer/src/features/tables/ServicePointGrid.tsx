@@ -1,4 +1,13 @@
-import { Armchair, CheckCircle2, RotateCcw, ShoppingBasket, Trash2, X } from 'lucide-react';
+import {
+  Armchair,
+  CheckCircle2,
+  Pin,
+  PinOff,
+  RotateCcw,
+  ShoppingBasket,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import type {
@@ -13,6 +22,7 @@ interface ServicePointGridProps {
   readonly busy: boolean;
   readonly production: boolean;
   readonly onOpen: (servicePoint: ServicePoint) => Promise<void>;
+  readonly onPinChange: (servicePointId: string, pinned: boolean) => Promise<void>;
   readonly onPreviewDelete: (servicePointId: string) => Promise<ServicePointDeletePreview>;
   readonly onDelete: (
     servicePointId: string,
@@ -30,6 +40,7 @@ export function ServicePointGrid({
   busy,
   production,
   onOpen,
+  onPinChange,
   onPreviewDelete,
   onDelete,
 }: ServicePointGridProps): React.JSX.Element {
@@ -83,7 +94,14 @@ export function ServicePointGrid({
           const open = servicePoint.status === 'open';
 
           return (
-            <div className="service-point-entry" key={servicePoint.id}>
+            <div
+              className={
+                servicePoint.pinned
+                  ? 'service-point-entry service-point-entry--pinned'
+                  : 'service-point-entry'
+              }
+              key={servicePoint.id}
+            >
               <button
                 className={
                   open ? 'service-point-card service-point-card--open' : 'service-point-card'
@@ -107,6 +125,33 @@ export function ServicePointGrid({
                   {open ? formatCurrency(servicePoint.activeOrderTotalCents) : 'Livre'}
                 </span>
               </button>
+
+              {servicePoint.type === 'table' ? (
+                <button
+                  aria-label={
+                    servicePoint.pinned
+                      ? `Desafixar ${servicePoint.label}`
+                      : `Fixar ${servicePoint.label}`
+                  }
+                  className={
+                    servicePoint.pinned
+                      ? 'service-point-pin-trigger service-point-pin-trigger--active'
+                      : 'service-point-pin-trigger'
+                  }
+                  disabled={busy}
+                  onClick={() => {
+                    void onPinChange(servicePoint.id, !servicePoint.pinned);
+                  }}
+                  title={servicePoint.pinned ? 'Desafixar mesa' : 'Fixar mesa'}
+                  type="button"
+                >
+                  {servicePoint.pinned ? (
+                    <PinOff size={16} aria-hidden="true" />
+                  ) : (
+                    <Pin size={16} aria-hidden="true" />
+                  )}
+                </button>
+              ) : null}
 
               {production && servicePoint.type === 'table' ? (
                 <button

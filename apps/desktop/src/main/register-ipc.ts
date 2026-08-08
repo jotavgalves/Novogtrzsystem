@@ -35,12 +35,14 @@ import {
 
 import type { BackupService } from './backup-service';
 import { failIpcOperation, handleIpc } from './ipc-handler';
+import type { ReceiptPrinterService } from './receipt-printer-service';
 import { registerComboIpcHandlers } from './register-combo-ipc';
 import { registerEventCloseIpcHandlers } from './register-event-close-ipc';
 import { registerFinanceIpcHandlers } from './register-finance-ipc';
 import { registerInsightsIpcHandlers } from './register-insights-ipc';
 import { registerInventoryIpcHandlers } from './register-inventory-ipc';
 import { registerOperationsIpcHandlers } from './register-operations-ipc';
+import { registerReceiptIpcHandlers } from './register-receipt-ipc';
 import { registerTicketIpcHandlers } from './register-ticket-ipc';
 import { registerVoucherIpcHandlers } from './register-voucher-ipc';
 
@@ -48,6 +50,7 @@ interface RegisterIpcOptions {
   readonly getDatabase: () => DatabaseContext;
   readonly databaseReady: () => boolean;
   readonly backupService: BackupService;
+  readonly receiptPrinter: ReceiptPrinterService;
 }
 
 const CONTROL_CHANNELS = [
@@ -177,7 +180,14 @@ export function registerIpcHandlers(options: RegisterIpcOptions): void {
     backupService: options.backupService,
   });
   registerFinanceIpcHandlers({ getDatabase: options.getDatabase });
-  registerOperationsIpcHandlers({ getDatabase: options.getDatabase });
+  registerOperationsIpcHandlers({
+    getDatabase: options.getDatabase,
+    receiptPrinter: options.receiptPrinter,
+  });
+  registerReceiptIpcHandlers({
+    getDatabase: options.getDatabase,
+    receiptPrinter: options.receiptPrinter,
+  });
   registerTicketIpcHandlers({ getDatabase: options.getDatabase });
   registerVoucherIpcHandlers({ getDatabase: options.getDatabase });
 }

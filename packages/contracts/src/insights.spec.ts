@@ -52,12 +52,34 @@ describe('insights contracts', () => {
         activeProducts: 0,
         lowStockProducts: 0,
         stockCostCents: 0,
+        potentialRevenueCents: 0,
+        potentialGrossProfitCents: 0,
       },
+      inventoryBreakEven: [],
       recentActivity: [auditRecord],
     });
 
     expect(parsed.recentActivity).toHaveLength(1);
     expect(parsed.inventoryExpenseCents).toBe(0);
+    expect(parsed.inventory.potentialRevenueCents).toBe(0);
+  });
+
+  it('valida o ponto de equilíbrio por item', () => {
+    const item = dashboardStateSchema.shape.inventoryBreakEven.element.parse({
+      productId: '4967eaed-49d5-44e4-8907-9518765739a4',
+      productName: 'Coca-Cola',
+      categoryId: 'a5236c40-f3a0-407c-b4ce-c935fe947da7',
+      categoryName: 'Bebidas',
+      purchasedUnits: 30,
+      purchaseCostCents: 6000,
+      salePriceCents: 500,
+      soldUnits: 3,
+      currentStockUnits: 27,
+      breakEvenUnits: 12,
+      remainingUnitsToBreakEven: 9,
+    });
+
+    expect(item).toMatchObject({ breakEvenUnits: 12, remainingUnitsToBreakEven: 9 });
   });
 
   it('valida consultas e rejeita intervalo invertido', () => {

@@ -16,6 +16,7 @@ import { formatCurrency } from '@gtrz/domain';
 import gtrzSymbol from '../../assets/brand/gtrz-symbol.svg';
 import { describeAuditAction, describeEntityType } from '../../shared/insights/audit-labels';
 import { OperationalHealth, SalesMethods, TicketCapacity } from './DashboardPanels';
+import { InventoryForecastPanel } from './InventoryForecastPanel';
 import { useDashboard } from './useDashboard';
 
 function formatDate(timestamp: number): string {
@@ -211,6 +212,7 @@ export function DashboardPage(): React.JSX.Element {
             </article>
           </div>
 
+          <InventoryForecastPanel state={state} />
           <TicketCapacity state={state} />
 
           <article className="panel insight-panel">

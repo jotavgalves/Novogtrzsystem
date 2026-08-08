@@ -58,6 +58,8 @@ describe('dashboard and audit database', () => {
       activeProducts: 1,
       lowStockProducts: 1,
       stockCostCents: 600,
+      potentialRevenueCents: 1500,
+      potentialGrossProfitCents: 900,
     });
     expect(dashboard.grossSalesCents).toBe(0);
     expect(dashboard.recentActivity.length).toBeGreaterThan(0);
