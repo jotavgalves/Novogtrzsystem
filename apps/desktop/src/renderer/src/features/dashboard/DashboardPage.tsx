@@ -16,6 +16,7 @@ import { formatCurrency } from '@gtrz/domain';
 import gtrzSymbol from '../../assets/brand/gtrz-symbol.svg';
 import { describeAuditAction, describeEntityType } from '../../shared/insights/audit-labels';
 import { OperationalHealth, SalesMethods, TicketCapacity } from './DashboardPanels';
+import { InventoryForecastPanel } from './InventoryForecastPanel';
 import { useDashboard } from './useDashboard';
 
 function formatDate(timestamp: number): string {
@@ -193,9 +194,7 @@ export function DashboardPage(): React.JSX.Element {
               <Boxes size={19} aria-hidden="true" />
               <span>Estoque atual</span>
               <strong>{state.inventory.units} un.</strong>
-              <small>
-                {formatCurrency(state.inventory.stockCostCents)} em valor de custo atual
-              </small>
+              <small>{formatCurrency(state.inventory.stockCostCents)} em valor de custo atual</small>
             </article>
             <article className="insight-kpi">
               <Banknote size={19} aria-hidden="true" />
@@ -211,6 +210,7 @@ export function DashboardPage(): React.JSX.Element {
             </article>
           </div>
 
+          <InventoryForecastPanel state={state} />
           <TicketCapacity state={state} />
 
           <article className="panel insight-panel">
