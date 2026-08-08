@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { DashboardState } from '@gtrz/contracts';
 
@@ -17,9 +17,17 @@ export function useDashboard(): DashboardViewState {
   const [state, setState] = useState<DashboardState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestInFlight = useRef(false);
 
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
+  const load = useCallback(async (background = false): Promise<void> => {
+    if (requestInFlight.current) {
+      return;
+    }
+
+    requestInFlight.current = true;
+    if (!background) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -27,13 +35,29 @@ export function useDashboard(): DashboardViewState {
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError));
     } finally {
-      setLoading(false);
+      requestInFlight.current = false;
+      if (!background) {
+        setLoading(false);
+      }
     }
   }, []);
 
+  const reload = useCallback(async (): Promise<void> => {
+    await load(false);
+  }, [load]);
+
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    void load(false);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        void load(true);
+      }
+    }, 2000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [load]);
 
   return { state, loading, error, reload };
 }
