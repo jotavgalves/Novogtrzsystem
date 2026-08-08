@@ -21,6 +21,20 @@ export const insightAuditRecordSchema = z.object({
   createdAt: z.number().int().nonnegative(),
 });
 
+export const inventoryBreakEvenItemSchema = z.object({
+  productId: z.uuid(),
+  productName: z.string().min(1),
+  categoryId: z.uuid(),
+  categoryName: z.string().min(1),
+  purchasedUnits: z.number().int().nonnegative(),
+  purchaseCostCents: z.number().int().nonnegative(),
+  salePriceCents: z.number().int().nonnegative(),
+  soldUnits: z.number().int().nonnegative(),
+  currentStockUnits: z.number().int().nonnegative(),
+  breakEvenUnits: z.number().int().nonnegative().nullable(),
+  remainingUnitsToBreakEven: z.number().int().nonnegative().nullable(),
+});
+
 export const dashboardStateSchema = z.object({
   activeEvent: z
     .object({
@@ -69,7 +83,10 @@ export const dashboardStateSchema = z.object({
     activeProducts: z.number().int().nonnegative(),
     lowStockProducts: z.number().int().nonnegative(),
     stockCostCents: z.number().int().nonnegative(),
+    potentialRevenueCents: z.number().int().nonnegative(),
+    potentialGrossProfitCents: z.number().int(),
   }),
+  inventoryBreakEven: z.array(inventoryBreakEvenItemSchema),
   recentActivity: z.array(insightAuditRecordSchema),
 });
 
@@ -112,6 +129,7 @@ export const auditStateSchema = z.object({
 
 export type InsightProfile = z.infer<typeof insightProfileSchema>;
 export type InsightAuditRecord = z.infer<typeof insightAuditRecordSchema>;
+export type InventoryBreakEvenItem = z.infer<typeof inventoryBreakEvenItemSchema>;
 export type DashboardState = z.infer<typeof dashboardStateSchema>;
 export type AuditQueryInput = z.infer<typeof auditQueryInputSchema>;
 export type AuditState = z.infer<typeof auditStateSchema>;
