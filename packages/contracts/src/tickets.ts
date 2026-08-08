@@ -138,6 +138,23 @@ export const cancelTicketCodeInputSchema = z.object({
   reason: z.string().trim().min(3).max(240),
 });
 
+export const deleteTicketLotInputSchema = z.object({
+  lotId: z.uuid(),
+  reason: z.string().trim().min(3).max(240),
+});
+
+export const deleteTicketSaleInputSchema = z.object({
+  saleId: z.uuid(),
+  reason: z.string().trim().min(3).max(240),
+});
+
+export const deleteTicketCodeInputSchema = z.object({
+  codeId: z.uuid(),
+  reason: z.string().trim().min(3).max(240),
+});
+
+export const ticketDeleteResultSchema = z.object({ success: z.literal(true) });
+
 export type TicketSaleSource = z.infer<typeof ticketSaleSourceSchema>;
 export type TicketSaleStatus = z.infer<typeof ticketSaleStatusSchema>;
 export type TicketCodeStatus = z.infer<typeof ticketCodeStatusSchema>;
@@ -150,6 +167,10 @@ export type UpdateTicketLotInput = z.infer<typeof updateTicketLotInputSchema>;
 export type CreateTicketSaleInput = z.infer<typeof createTicketSaleInputSchema>;
 export type CancelTicketSaleInput = z.infer<typeof cancelTicketSaleInputSchema>;
 export type CancelTicketCodeInput = z.infer<typeof cancelTicketCodeInputSchema>;
+export type DeleteTicketLotInput = z.infer<typeof deleteTicketLotInputSchema>;
+export type DeleteTicketSaleInput = z.infer<typeof deleteTicketSaleInputSchema>;
+export type DeleteTicketCodeInput = z.infer<typeof deleteTicketCodeInputSchema>;
+export type TicketDeleteResult = z.infer<typeof ticketDeleteResultSchema>;
 
 export interface TicketApi {
   getState(): Promise<TicketState>;
@@ -158,4 +179,7 @@ export interface TicketApi {
   createSale(input: CreateTicketSaleInput): Promise<TicketSale>;
   cancelSale(input: CancelTicketSaleInput): Promise<TicketSale>;
   cancelCode(input: CancelTicketCodeInput): Promise<TicketSale>;
+  deleteLot(input: DeleteTicketLotInput): Promise<TicketDeleteResult>;
+  deleteSale(input: DeleteTicketSaleInput): Promise<TicketDeleteResult>;
+  deleteCode(input: DeleteTicketCodeInput): Promise<TicketDeleteResult>;
 }
