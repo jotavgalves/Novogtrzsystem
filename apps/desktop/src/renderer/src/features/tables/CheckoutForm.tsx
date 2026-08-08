@@ -1,10 +1,13 @@
-import { CreditCard, Plus, Split, Trash2, WalletCards } from 'lucide-react';
+import { WalletCards } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { CloseOrderInput, Order, PaymentMethod } from '@gtrz/contracts';
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@gtrz/domain';
 
+import { createPaymentDraft } from './checkout-payment-ui';
 import { type CheckoutMode, type PaymentDraft, validateCheckout } from './checkout-validation';
+import { MixedPaymentSection } from './MixedPaymentSection';
+import { SimplePaymentSection } from './SimplePaymentSection';
 import { VoucherCheckout } from './VoucherCheckout';
 
 interface CheckoutFormProps {
@@ -13,22 +16,6 @@ interface CheckoutFormProps {
   readonly onBindVoucher: (code: string) => Promise<void>;
   readonly onUnbindVoucher: () => Promise<void>;
   readonly onClose: (input: Omit<CloseOrderInput, 'orderId'>) => Promise<void>;
-}
-
-const PAYMENT_LABELS: Readonly<Record<PaymentMethod, string>> = {
-  cash: 'Dinheiro',
-  pix: 'PIX',
-  'credit-card': 'Crédito',
-  'debit-card': 'Débito',
-};
-
-function newPayment(method: PaymentMethod = 'pix'): PaymentDraft {
-  return {
-    id: `${String(Date.now())}-${Math.random().toString(16).slice(2)}`,
-    method,
-    amount: '',
-    received: '',
-  };
 }
 
 export function CheckoutForm({
@@ -43,8 +30,8 @@ export function CheckoutForm({
   const [singleMethod, setSingleMethod] = useState<PaymentMethod>('cash');
   const [singleReceived, setSingleReceived] = useState('');
   const [mixedPayments, setMixedPayments] = useState<readonly PaymentDraft[]>([
-    newPayment('cash'),
-    newPayment('pix'),
+    createPaymentDraft('cash'),
+    createPaymentDraft('pix'),
   ]);
   const [voucherAmount, setVoucherAmount] = useState('');
   const allocation = order.voucherAllocation;
@@ -66,6 +53,7 @@ export function CheckoutForm({
     () => validateCheckout({ order, discount, payments, voucherAmount, busy, mode }),
     [busy, discount, mode, order, payments, voucherAmount],
   );
+  const amountAfterVoucherCents = Math.max(checkout.totalCents - checkout.voucherCents, 0);
 
   useEffect(() => {
     if (allocation === null) {
@@ -84,12 +72,6 @@ export function CheckoutForm({
       return maximumCents > 0 ? formatCurrencyInput(maximumCents) : '';
     });
   }, [allocation, checkout.totalCents]);
-
-  const updateMixedPayment = (id: string, patch: Partial<PaymentDraft>): void => {
-    setMixedPayments((current) =>
-      current.map((payment) => (payment.id === id ? { ...payment, ...patch } : payment)),
-    );
-  };
 
   return (
     <form
@@ -167,199 +149,38 @@ export function CheckoutForm({
       />
 
       {mode === 'single' ? (
-        <div className="payment-simple">
-          <label className="form-field">
-            <span>Forma de pagamento</span>
-            <select
-              disabled={busy}
-              onChange={(event) => {
-                setSingleMethod(event.target.value as PaymentMethod);
-                setSingleReceived('');
-              }}
-              value={singleMethod}
-            >
-              {Object.entries(PAYMENT_LABELS).map(([method, label]) => (
-                <option key={method} value={method}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {singleMethod === 'cash' ? (
-            <label className="form-field cash-received-field">
-              <span>Valor recebido em dinheiro · opcional</span>
-              <input
-                aria-invalid={checkout.cashInvalid}
-                aria-label="Valor recebido em dinheiro"
-                disabled={busy}
-                inputMode="decimal"
-                onChange={(event) => {
-                  setSingleReceived(event.target.value);
-                }}
-                placeholder="Deixe vazio se recebeu o valor exato"
-                value={singleReceived}
-              />
-              <small className={checkout.cashInvalid ? 'checkout-warning' : undefined}>
-                {checkout.cashInvalid
-                  ? `O valor recebido é menor que ${formatCurrency(checkout.cashAppliedCents)}.`
-                  : checkout.totalChangeCents > 0
-                    ? `Troco: ${formatCurrency(checkout.totalChangeCents)}`
-                    : 'Se o cliente pagar o valor exato, não precisa preencher este campo.'}
-              </small>
-            </label>
-          ) : (
-            <div className="payment-simple__automatic">
-              <CreditCard size={17} aria-hidden="true" />
-              <span>
-                <small>Valor aplicado automaticamente</small>
-                <strong>
-                  {formatCurrency(Math.max(checkout.totalCents - checkout.voucherCents, 0))}
-                </strong>
-              </span>
-            </div>
-          )}
-
-          <button
-            className="button button--secondary"
-            disabled={busy}
-            onClick={() => {
-              setMode('mixed');
-              setMixedPayments([
-                newPayment(singleMethod),
-                newPayment(singleMethod === 'cash' ? 'pix' : 'cash'),
-              ]);
-            }}
-            type="button"
-          >
-            <Split size={16} aria-hidden="true" />
-            Pagamento misto
-          </button>
-        </div>
+        <SimplePaymentSection
+          appliedCents={amountAfterVoucherCents}
+          busy={busy}
+          cashInvalid={checkout.cashInvalid}
+          changeCents={checkout.totalChangeCents}
+          method={singleMethod}
+          onMethodChange={(method) => {
+            setSingleMethod(method);
+            setSingleReceived('');
+          }}
+          onReceivedChange={setSingleReceived}
+          onUseMixed={() => {
+            setMode('mixed');
+            setMixedPayments([
+              createPaymentDraft(singleMethod),
+              createPaymentDraft(singleMethod === 'cash' ? 'pix' : 'cash'),
+            ]);
+          }}
+          received={singleReceived}
+        />
       ) : (
-        <div className="payment-mixed">
-          <div className="payment-mixed__heading">
-            <div>
-              <strong>Pagamento misto</strong>
-              <small>Informe quanto deve ir para cada forma.</small>
-            </div>
-            <button
-              className="button button--ghost button--compact"
-              disabled={busy}
-              onClick={() => {
-                setMode('single');
-                setSingleReceived('');
-              }}
-              type="button"
-            >
-              Usar pagamento simples
-            </button>
-          </div>
-
-          <div className="payment-list">
-            {mixedPayments.map((payment, index) => {
-              const receivedCents = parseCurrencyInput(payment.received);
-              const appliedCents = parseCurrencyInput(payment.amount);
-              const receivedIsInsufficient =
-                payment.method === 'cash' && receivedCents > 0 && receivedCents < appliedCents;
-
-              return (
-                <div className="payment-row" key={payment.id}>
-                  <select
-                    aria-label={`Forma de pagamento ${String(index + 1)}`}
-                    disabled={busy}
-                    onChange={(event) => {
-                      updateMixedPayment(payment.id, {
-                        method: event.target.value as PaymentMethod,
-                        received: '',
-                      });
-                    }}
-                    value={payment.method}
-                  >
-                    {Object.entries(PAYMENT_LABELS).map(([method, label]) => (
-                      <option key={method} value={method}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-
-                  <input
-                    aria-label={`Valor do pagamento ${String(index + 1)}`}
-                    disabled={busy}
-                    inputMode="decimal"
-                    onChange={(event) => {
-                      updateMixedPayment(payment.id, { amount: event.target.value });
-                    }}
-                    placeholder="Valor aplicado"
-                    value={payment.amount}
-                  />
-
-                  {payment.method === 'cash' ? (
-                    <div className="cash-received-field">
-                      <input
-                        aria-invalid={receivedIsInsufficient}
-                        aria-label={`Valor recebido ${String(index + 1)}`}
-                        disabled={busy}
-                        inputMode="decimal"
-                        onChange={(event) => {
-                          updateMixedPayment(payment.id, { received: event.target.value });
-                        }}
-                        placeholder="Recebido · opcional"
-                        value={payment.received}
-                      />
-                      <small className={receivedIsInsufficient ? 'checkout-warning' : undefined}>
-                        {receivedIsInsufficient
-                          ? `Faltam ${formatCurrency(appliedCents - receivedCents)}`
-                          : receivedCents > appliedCents
-                            ? `Troco: ${formatCurrency(receivedCents - appliedCents)}`
-                            : 'Valor exato se ficar vazio'}
-                      </small>
-                    </div>
-                  ) : (
-                    <span className="payment-row__digital">
-                      <CreditCard size={16} aria-hidden="true" />
-                      Sem troco
-                    </span>
-                  )}
-                  <button
-                    aria-label={`Remover pagamento ${String(index + 1)}`}
-                    className="icon-button"
-                    disabled={busy || mixedPayments.length === 1}
-                    onClick={() => {
-                      setMixedPayments((current) =>
-                        current.filter((item) => item.id !== payment.id),
-                      );
-                    }}
-                    type="button"
-                  >
-                    <Trash2 size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {checkout.paymentConfigurationInvalid ? (
-            <p className="form-error">Use no máximo uma linha de pagamento em dinheiro.</p>
-          ) : null}
-          {checkout.cashInvalid ? (
-            <p className="form-error">
-              O dinheiro recebido não pode ser menor que o valor aplicado.
-            </p>
-          ) : null}
-
-          <button
-            className="button button--secondary"
-            disabled={busy}
-            onClick={() => {
-              setMixedPayments((current) => [...current, newPayment('pix')]);
-            }}
-            type="button"
-          >
-            <Plus size={16} aria-hidden="true" />
-            Adicionar forma
-          </button>
-        </div>
+        <MixedPaymentSection
+          busy={busy}
+          cashInvalid={checkout.cashInvalid}
+          onPaymentsChange={setMixedPayments}
+          onUseSingle={() => {
+            setMode('single');
+            setSingleReceived('');
+          }}
+          paymentConfigurationInvalid={checkout.paymentConfigurationInvalid}
+          payments={mixedPayments}
+        />
       )}
 
       {checkout.totalChangeCents > 0 ? (
