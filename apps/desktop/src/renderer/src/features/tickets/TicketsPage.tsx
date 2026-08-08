@@ -1,17 +1,12 @@
 import { RefreshCw, Ticket, TriangleAlert } from 'lucide-react';
 
+import { formatCurrency } from '@gtrz/domain';
+
 import { TicketLotCard } from './TicketLotCard';
 import { TicketLotForm } from './TicketLotForm';
 import { TicketSaleCard } from './TicketSaleCard';
 import { TicketSaleForm } from './TicketSaleForm';
 import { useTickets } from './useTickets';
-
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
-}
 
 export function TicketsPage(): React.JSX.Element {
   const {
@@ -26,6 +21,9 @@ export function TicketsPage(): React.JSX.Element {
     createSale,
     cancelSale,
     cancelCode,
+    deleteLot,
+    deleteSale,
+    deleteCode,
   } = useTickets();
   const lots = state?.lots ?? [];
   const sales = state?.sales ?? [];
@@ -77,7 +75,7 @@ export function TicketsPage(): React.JSX.Element {
         </article>
         <article className="summary-card summary-card--accent">
           <span>Receita ativa</span>
-          <strong>{formatMoney(state?.activeRevenueCents ?? 0)}</strong>
+          <strong>{formatCurrency(state?.activeRevenueCents ?? 0)}</strong>
         </article>
       </div>
 
@@ -106,7 +104,13 @@ export function TicketsPage(): React.JSX.Element {
 
           <div className="ticket-lot-list">
             {lots.map((lot) => (
-              <TicketLotCard busy={busy} key={lot.id} lot={lot} onUpdate={updateLot} />
+              <TicketLotCard
+                busy={busy}
+                key={lot.id}
+                lot={lot}
+                onDelete={deleteLot}
+                onUpdate={updateLot}
+              />
             ))}
           </div>
 
@@ -115,7 +119,10 @@ export function TicketsPage(): React.JSX.Element {
               <Ticket size={20} aria-hidden="true" />
               <div>
                 <h2>Vendas e cortesias</h2>
-                <p>Cancelar invalida os códigos e devolve a capacidade do lote.</p>
+                <p>
+                  Cancelar devolve capacidade e receita. Depois do cancelamento, o registro pode ser
+                  excluído definitivamente.
+                </p>
               </div>
             </div>
             {loading && sales.length === 0 ? (
@@ -135,6 +142,8 @@ export function TicketsPage(): React.JSX.Element {
                   key={sale.id}
                   onCancel={cancelSale}
                   onCancelCode={cancelCode}
+                  onDeleteCode={deleteCode}
+                  onDeleteSale={deleteSale}
                   sale={sale}
                 />
               ))}
