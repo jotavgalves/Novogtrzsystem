@@ -109,6 +109,21 @@ export function updateVoucher(
     });
   }
 
+  if (
+    voucher.linked_service_point_id !== null &&
+    input.linkedServicePointId !== voucher.linked_service_point_id
+  ) {
+    failDatabaseOperation(
+      'CONFLICT',
+      'O vínculo do voucher com a mesa é fixo enquanto a mesa existir.',
+      {
+        voucherId: voucher.id,
+        linkedServicePointId: voucher.linked_service_point_id,
+        requestedServicePointId: input.linkedServicePointId,
+      },
+    );
+  }
+
   if (!Number.isInteger(input.addedBalanceCents) || input.addedBalanceCents < 0) {
     failDatabaseOperation(
       'VALIDATION_ERROR',
