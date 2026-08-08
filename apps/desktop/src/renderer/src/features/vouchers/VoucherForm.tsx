@@ -27,14 +27,22 @@ export function VoucherForm({
         event.preventDefault();
         const normalizedCode = code.trim();
         const initialBalanceCents = parseCurrencyInput(balance);
-        const servicePointId = linkedServicePointId.length === 0 ? null : linkedServicePointId;
-        const input =
+
+        if (linkedServicePointId.length === 0) {
+          return;
+        }
+
+        const input: CreateVoucherInput =
           normalizedCode.length === 0
-            ? { label: label.trim(), linkedServicePointId: servicePointId, initialBalanceCents }
+            ? {
+                label: label.trim(),
+                linkedServicePointId,
+                initialBalanceCents,
+              }
             : {
                 code: normalizedCode,
                 label: label.trim(),
-                linkedServicePointId: servicePointId,
+                linkedServicePointId,
                 initialBalanceCents,
               };
 
@@ -50,7 +58,7 @@ export function VoucherForm({
         <TicketPlus size={20} aria-hidden="true" />
         <div>
           <h2>Emitir voucher</h2>
-          <p>Deixe o código vazio para gerar um identificador automático.</p>
+          <p>Cada voucher nasce vinculado a uma única mesa.</p>
         </div>
       </div>
       <label className="form-field">
@@ -85,9 +93,10 @@ export function VoucherForm({
           onChange={(event) => {
             setLinkedServicePointId(event.target.value);
           }}
+          required
           value={linkedServicePointId}
         >
-          <option value="">Sem vínculo automático</option>
+          <option value="">Selecione uma mesa</option>
           {servicePoints.map((servicePoint) => (
             <option key={servicePoint.id} value={servicePoint.id}>
               {servicePoint.label}
@@ -95,7 +104,7 @@ export function VoucherForm({
           ))}
         </select>
         <small>
-          A mesa verá este voucher automaticamente; o código ainda pode ser aplicado manualmente.
+          O voucher só poderá ser usado nesta mesa. O vínculo só é liberado se a mesa for excluída.
         </small>
       </label>
       <label className="form-field">
@@ -113,7 +122,12 @@ export function VoucherForm({
       </label>
       <button
         className="button button--primary"
-        disabled={busy || label.trim().length < 2 || parseCurrencyInput(balance) <= 0}
+        disabled={
+          busy ||
+          label.trim().length < 2 ||
+          linkedServicePointId.length === 0 ||
+          parseCurrencyInput(balance) <= 0
+        }
         type="submit"
       >
         Emitir voucher
