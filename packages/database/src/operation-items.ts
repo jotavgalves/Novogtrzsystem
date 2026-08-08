@@ -83,6 +83,83 @@ export function addOrderItem(
   return getOrder(database, input.orderId);
 }
 
+export function setOrderItemQuantity(
+  database: DatabaseContext,
+  input: { readonly orderId: string; readonly orderItemId: string; readonly quantity: number },
+): DatabaseOrder {
+  const order = requireOpenOrderRow(database, input.orderId);
+  const current = database.sqlite
+    .prepare(
+      `SELECT id, item_kind, item_id, item_name, quantity
+       FROM order_items
+       WHERE id = ? AND order_id = ?`,
+    )
+    .get(input.orderItemId, input.orderId) as
+    | {
+        readonly id: string;
+        readonly item_kind: DatabaseOrderItemKind;
+        readonly item_id: string;
+        readonly item_name: string;
+        readonly quantity: number;
+      }
+    | undefined;
+
+  if (current === undefined) {
+    failDatabaseOperation('NOT_FOUND', 'O item informado não pertence à comanda.', {
+      orderId: input.orderId,
+      orderItemId: input.orderItemId,
+    });
+  }
+
+  if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
+    failDatabaseOperation('VALIDATION_ERROR', 'A quantidade do item deve ser um inteiro positivo.', {
+      orderId: input.orderId,
+      orderItemId: input.orderItemId,
+      quantity: input.quantity,
+    });
+  }
+
+  requireAvailableCatalogItem(
+    database,
+    order.event_id,
+    current.item_kind,
+    current.item_id,
+    input.quantity,
+  );
+
+  if (input.quantity === current.quantity) {
+    return getOrder(database, input.orderId);
+  }
+
+  const now = Date.now();
+  database.sqlite.transaction(() => {
+    database.sqlite
+      .prepare(
+        `UPDATE order_items
+         SET quantity = ?, total_cents = unit_price_cents * ?
+         WHERE id = ? AND order_id = ?`,
+      )
+      .run(input.quantity, input.quantity, current.id, input.orderId);
+    recomputeOpenOrder(database, input.orderId, now);
+    appendAudit(database, {
+      action: 'operations.item-quantity-updated',
+      entityType: 'order',
+      entityId: input.orderId,
+      eventId: order.event_id,
+      before: { orderItemId: current.id, quantity: current.quantity },
+      after: { orderItemId: current.id, quantity: input.quantity },
+      impact: { quantityDifference: input.quantity - current.quantity },
+      details: {
+        itemId: current.item_id,
+        itemKind: current.item_kind,
+        itemName: current.item_name,
+      },
+    });
+  })();
+
+  return getOrder(database, input.orderId);
+}
+
 export function removeOrderItem(
   database: DatabaseContext,
   input: { readonly orderId: string; readonly orderItemId: string },
