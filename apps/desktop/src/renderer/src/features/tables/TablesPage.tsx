@@ -34,6 +34,7 @@ export function TablesPage(): React.JSX.Element {
     unbindVoucher,
     closeCurrentOrder,
     cancelOrder,
+    reprintOrder,
     clearOrder,
   } = useOperations();
   const production = sessionState?.profile === 'production';
@@ -130,7 +131,12 @@ export function TablesPage(): React.JSX.Element {
           />
 
           {production ? (
-            <RecentOrdersPanel busy={busy} onCancel={cancelOrder} orders={recentOrders} />
+            <RecentOrdersPanel
+              busy={busy}
+              onCancel={cancelOrder}
+              onReprint={reprintOrder}
+              orders={recentOrders}
+            />
           ) : null}
         </>
       ) : null}
@@ -151,6 +157,7 @@ export function TablesPage(): React.JSX.Element {
             }}
             onCloseOrder={closeCurrentOrder}
             onRemoveItem={removeItem}
+            onReprintOrder={reprintOrder}
             onSetItemQuantity={setItemQuantity}
             onUnbindVoucher={unbindVoucher}
             order={order}
