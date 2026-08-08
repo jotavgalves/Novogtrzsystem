@@ -36,6 +36,7 @@ export const dashboardStateSchema = z.object({
   netRevenueCents: z.number().int().nonnegative(),
   completedSales: z.number().int().nonnegative(),
   activeExpensesCents: z.number().int().nonnegative(),
+  inventoryExpenseCents: z.number().int().nonnegative(),
   projectedResultCents: z.number().int(),
   expectedCashCents: z.number().int(),
   cashVarianceCents: z.number().int().nullable(),
