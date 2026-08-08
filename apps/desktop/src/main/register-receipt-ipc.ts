@@ -6,7 +6,6 @@ import {
   receiptPrinterListSchema,
   receiptPrintResultSchema,
   receiptSettingsSchema,
-  updateReceiptSettingsInputSchema,
 } from '@gtrz/contracts';
 import { getReceiptSettings, type DatabaseContext, updateReceiptSettings } from '@gtrz/database';
 
@@ -35,7 +34,7 @@ export function registerReceiptIpcHandlers(options: RegisterReceiptIpcOptions): 
   });
 
   handleIpc(IPC_CHANNELS.receiptsUpdateSettings, (_event, payload: unknown) => {
-    const input = updateReceiptSettingsInputSchema.parse(payload);
+    const input = receiptSettingsSchema.parse(payload);
     return receiptSettingsSchema.parse(updateReceiptSettings(options.getDatabase(), input));
   });
 
