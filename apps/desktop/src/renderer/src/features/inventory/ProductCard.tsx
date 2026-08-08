@@ -225,8 +225,8 @@ export function ProductCard({
             </strong>
             <small>
               {deletePreview.deletionMode === 'permanent'
-                ? 'O item nunca teve estoque, vendas ou dependências e será removido do cadastro.'
-                : 'Para não apagar vendas, estoque ou composição de combos, ele sairá do catálogo ativo sem destruir o histórico.'}
+                ? 'O item nunca teve estoque, vendas, transferências ou dependências e será removido do cadastro.'
+                : 'Para não apagar vendas, estoque, transferências ou composição de combos, ele sairá do catálogo ativo sem destruir o histórico.'}
             </small>
           </div>
           <div className="inventory-delete__impact">
@@ -244,6 +244,9 @@ export function ProductCard({
             </span>
             <span>
               Movimentações <strong>{deletePreview.stockMovements}</strong>
+            </span>
+            <span>
+              Transferências <strong>{deletePreview.stockTransfers}</strong>
             </span>
           </div>
           <label className="form-field">
