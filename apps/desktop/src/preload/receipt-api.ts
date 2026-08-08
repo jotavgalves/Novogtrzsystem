@@ -4,13 +4,11 @@ import {
   receiptPrinterListSchema,
   receiptPrintResultSchema,
   receiptSettingsSchema,
-  updateReceiptSettingsInputSchema,
   type PrintReceiptInput,
   type ReceiptApi,
   type ReceiptPrinter,
   type ReceiptPrintResult,
   type ReceiptSettings,
-  type UpdateReceiptSettingsInput,
 } from '@gtrz/contracts';
 
 import { typedIpcRenderer as ipcRenderer } from './invoke-ipc';
@@ -21,8 +19,8 @@ export const receiptApi: ReceiptApi = {
     return receiptSettingsSchema.parse(payload);
   },
 
-  async updateSettings(input: UpdateReceiptSettingsInput): Promise<ReceiptSettings> {
-    const parsedInput = updateReceiptSettingsInputSchema.parse(input);
+  async updateSettings(input: ReceiptSettings): Promise<ReceiptSettings> {
+    const parsedInput = receiptSettingsSchema.parse(input);
     const payload: unknown = await ipcRenderer.invoke(
       IPC_CHANNELS.receiptsUpdateSettings,
       parsedInput,
