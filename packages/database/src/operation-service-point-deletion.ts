@@ -6,6 +6,7 @@ import { failDatabaseOperation } from './database-error';
 import { cancelOrder } from './operation-cancellation';
 import { requireActiveOperationEvent } from './operation-core';
 import { requireOperationReason } from './operation-validation';
+import { forgetPinnedServicePoint } from './service-point-pins';
 import type { DatabaseContext } from './types';
 
 export type DatabaseServicePointDeleteMode = 'keep-sales' | 'refund-sales';
@@ -173,6 +174,7 @@ export function deleteServicePoint(
          WHERE linked_service_point_id = ?`,
       )
       .run(now, preview.servicePointId);
+    forgetPinnedServicePoint(database, eventId, preview.servicePointId);
     database.sqlite
       .prepare('UPDATE service_points SET active = 0, updated_at = ? WHERE id = ?')
       .run(now, preview.servicePointId);
