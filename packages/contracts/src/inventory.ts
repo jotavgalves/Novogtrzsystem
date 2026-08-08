@@ -75,6 +75,7 @@ export const productDeletePreviewSchema = z.object({
   dependentCombos: z.array(z.string().trim().min(2).max(100)),
   historicalSales: z.number().int().nonnegative(),
   stockMovements: z.number().int().nonnegative(),
+  stockTransfers: z.number().int().nonnegative(),
   deletionMode: z.enum(['permanent', 'archive']),
 });
 
