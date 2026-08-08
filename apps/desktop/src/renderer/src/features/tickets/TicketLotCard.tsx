@@ -155,7 +155,9 @@ export function TicketLotCard({
             aria-label={`Motivo para excluir lote ${lot.name}`}
             disabled={busy}
             maxLength={240}
-            onChange={(event) => setDeleteReason(event.target.value)}
+            onChange={(event) => {
+              setDeleteReason(event.target.value);
+            }}
             placeholder="Motivo da exclusão"
             value={deleteReason}
           />
@@ -216,7 +218,9 @@ export function TicketLotCard({
           <button
             className="button button--danger button--compact"
             disabled={busy}
-            onClick={() => setDeleting(true)}
+            onClick={() => {
+              setDeleting(true);
+            }}
             type="button"
           >
             <Trash2 size={15} aria-hidden="true" />
