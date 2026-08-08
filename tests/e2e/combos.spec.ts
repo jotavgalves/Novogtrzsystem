@@ -20,7 +20,10 @@ test('SMK-CMB-001 — calcula combo pelo estoque dos componentes e protege custo
     await window.getByRole('link', { name: 'Eventos' }).click();
     await window.getByPlaceholder('Ex.: La Rumba Neon — Agosto').fill(eventName);
     await window.getByRole('button', { name: 'Criar evento' }).click();
-    await expect(window.getByText(eventName, { exact: true }).first()).toBeVisible();
+    const eventCard = window.locator('article.event-card').filter({ hasText: eventName });
+    await expect(eventCard).toBeVisible();
+    await eventCard.getByRole('button', { name: 'Operar evento' }).click();
+    await expect(eventCard.getByText('Em operação')).toBeVisible();
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     await window.getByPlaceholder('Ex.: Cervejas').fill(categoryName);

@@ -23,39 +23,41 @@ const auditRecord = {
 
 describe('insights contracts', () => {
   it('valida o painel consolidado', () => {
-    expect(
-      dashboardStateSchema.parse({
-        activeEvent: null,
-        grossSalesCents: 0,
-        grossRevenueCents: 0,
-        discountsCents: 0,
-        netRevenueCents: 0,
-        completedSales: 0,
-        activeExpensesCents: 0,
-        projectedResultCents: 0,
-        expectedCashCents: 0,
-        cashVarianceCents: null,
-        cashRegisterStatus: 'not-opened',
-        salesByMethod: {
-          cashCents: 0,
-          pixCents: 0,
-          creditCardCents: 0,
-          debitCardCents: 0,
-          voucherCents: 0,
-        },
-        vouchersUsedCents: 0,
-        orders: { open: 0, paid: 0, cancelled: 0 },
-        tickets: { sold: 0, courtesy: 0, available: 0, revenueCents: 0 },
-        vouchers: { active: 0, outstandingBalanceCents: 0 },
-        inventory: {
-          units: 0,
-          activeProducts: 0,
-          lowStockProducts: 0,
-          stockCostCents: 0,
-        },
-        recentActivity: [auditRecord],
-      }).recentActivity,
-    ).toHaveLength(1);
+    const parsed = dashboardStateSchema.parse({
+      activeEvent: null,
+      grossSalesCents: 0,
+      grossRevenueCents: 0,
+      discountsCents: 0,
+      netRevenueCents: 0,
+      completedSales: 0,
+      activeExpensesCents: 0,
+      inventoryExpenseCents: 0,
+      projectedResultCents: 0,
+      expectedCashCents: 0,
+      cashVarianceCents: null,
+      cashRegisterStatus: 'not-opened',
+      salesByMethod: {
+        cashCents: 0,
+        pixCents: 0,
+        creditCardCents: 0,
+        debitCardCents: 0,
+        voucherCents: 0,
+      },
+      vouchersUsedCents: 0,
+      orders: { open: 0, paid: 0, cancelled: 0 },
+      tickets: { sold: 0, courtesy: 0, available: 0, revenueCents: 0 },
+      vouchers: { active: 0, outstandingBalanceCents: 0 },
+      inventory: {
+        units: 0,
+        activeProducts: 0,
+        lowStockProducts: 0,
+        stockCostCents: 0,
+      },
+      recentActivity: [auditRecord],
+    });
+
+    expect(parsed.recentActivity).toHaveLength(1);
+    expect(parsed.inventoryExpenseCents).toBe(0);
   });
 
   it('valida consultas e rejeita intervalo invertido', () => {

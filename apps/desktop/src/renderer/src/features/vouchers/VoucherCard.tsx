@@ -44,6 +44,7 @@ export function VoucherCard({
   );
   const [addedBalance, setAddedBalance] = useState('');
   const addedBalanceCents = parseCurrencyInput(addedBalance);
+  const bindingLocked = voucher.linkedServicePointId !== null;
 
   const resetEditState = (): void => {
     setLabel(voucher.label);
@@ -74,7 +75,7 @@ export function VoucherCard({
         <span>Saldo disponível</span>
         <strong>{formatCurrency(voucher.remainingBalanceCents)}</strong>
         <small>Emitido com {formatCurrency(voucher.initialBalanceCents)}</small>
-        <small>Mesa: {voucher.linkedServicePointLabel ?? 'sem vínculo automático'}</small>
+        <small>Mesa: {voucher.linkedServicePointLabel ?? 'aguardando novo vínculo'}</small>
       </div>
 
       <div className="voucher-card__actions">
@@ -188,19 +189,31 @@ export function VoucherCard({
           <label className="form-field">
             <span>Mesa vinculada</span>
             <select
-              disabled={busy}
+              disabled={busy || bindingLocked}
               onChange={(event) => {
                 setLinkedServicePointId(event.target.value);
               }}
               value={linkedServicePointId}
             >
-              <option value="">Sem vínculo automático</option>
+              {!bindingLocked ? <option value="">Selecione uma mesa</option> : null}
               {servicePoints.map((servicePoint) => (
                 <option key={servicePoint.id} value={servicePoint.id}>
                   {servicePoint.label}
                 </option>
               ))}
+              {bindingLocked &&
+              voucher.linkedServicePointId !== null &&
+              !servicePoints.some((item) => item.id === voucher.linkedServicePointId) ? (
+                <option value={voucher.linkedServicePointId}>
+                  {voucher.linkedServicePointLabel ?? 'Mesa vinculada'}
+                </option>
+              ) : null}
             </select>
+            <small>
+              {bindingLocked
+                ? 'Vínculo fixo. Se a mesa for excluída, o voucher será liberado para uma nova mesa.'
+                : 'A mesa anterior foi excluída. Escolha uma nova mesa para reutilizar o voucher.'}
+            </small>
           </label>
           <label className="form-field">
             <span>Acréscimo de saldo</span>
@@ -217,7 +230,12 @@ export function VoucherCard({
           <div className="voucher-card__actions">
             <button
               className="button button--secondary button--compact"
-              disabled={busy || label.trim().length < 2 || code.trim().length < 4}
+              disabled={
+                busy ||
+                label.trim().length < 2 ||
+                code.trim().length < 4 ||
+                (!bindingLocked && linkedServicePointId.length === 0)
+              }
               type="submit"
             >
               <Save size={15} aria-hidden="true" />

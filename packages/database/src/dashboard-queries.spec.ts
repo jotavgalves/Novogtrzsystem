@@ -12,11 +12,11 @@ import {
   createExpense,
   createInventoryProduct,
   createProductCategory,
+  createServicePoint,
   createTicketLot,
   createTicketSale,
   createVoucher,
   getDashboardState,
-  getOperationState,
   openDatabase,
   openOrder,
   recordStockMovement,
@@ -38,7 +38,7 @@ afterEach(async () => {
 });
 
 describe('dashboard SQL aggregates', () => {
-  it('concilia bruto, desconto, líquido, voucher, ingresso, despesa e resultado projetado', async () => {
+  it('concilia receita, voucher, ingresso, despesas manuais e compras de estoque', async () => {
     const database = await createTemporaryDatabase();
     createEvent(database, { name: 'Evento dashboard completo', startsAt: Date.now() });
     const category = createProductCategory(database, 'Dashboard');
@@ -51,19 +51,14 @@ describe('dashboard SQL aggregates', () => {
       lowStockThreshold: 1,
     });
     recordStockMovement(database, { productId: product.id, type: 'purchase', quantity: 5 });
-    const counter = getOperationState(database).servicePoints[0];
-
-    if (counter === undefined) {
-      throw new Error('Balcão não criado.');
-    }
-
+    const table = createServicePoint(database, { label: 'Mesa Dashboard', type: 'table' });
     const voucher = createVoucher(database, {
       code: 'DASH-001',
       label: 'Crédito dashboard',
-      linkedServicePointId: counter.id,
+      linkedServicePointId: table.id,
       initialBalanceCents: 1000,
     });
-    const order = openOrder(database, counter.id);
+    const order = openOrder(database, table.id);
     addOrderItem(database, {
       orderId: order.id,
       itemKind: 'product',
@@ -112,8 +107,9 @@ describe('dashboard SQL aggregates', () => {
       netRevenueCents: 5900,
       grossSalesCents: 5900,
       completedSales: 2,
-      activeExpensesCents: 200,
-      projectedResultCents: 5700,
+      activeExpensesCents: 1700,
+      inventoryExpenseCents: 1500,
+      projectedResultCents: 4200,
       vouchersUsedCents: 400,
       tickets: {
         sold: 1,

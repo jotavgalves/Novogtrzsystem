@@ -85,10 +85,16 @@
   font-weight: 800;
 }
 
-.cash-movement-list,
-.expense-list {
+.cash-movement-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.expense-list {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -127,6 +133,7 @@
 .expense-card {
   display: flex;
   min-width: 0;
+  overflow: hidden;
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-5);
@@ -172,6 +179,7 @@
 .expense-card__ledger,
 .expense-payment-list {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-2);
 }
@@ -225,15 +233,33 @@
 
 .expense-payment-form {
   display: grid;
-  grid-template-columns: minmax(7rem, 0.8fr) minmax(7rem, 0.7fr) minmax(0, 1fr) auto;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
   gap: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
 
+.expense-payment-form > .form-field,
+.expense-payment-form > .button {
+  min-width: 0;
+}
+
+.expense-payment-form > .form-field:nth-of-type(3),
+.expense-payment-form > .button {
+  grid-column: 1 / -1;
+}
+
+.expense-payment-form > .button {
+  width: max-content;
+  max-width: 100%;
+  justify-self: flex-start;
+}
+
 .expense-payment-row {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(8rem, 1fr) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
@@ -263,6 +289,35 @@
 .expense-payment-row > input:focus {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 3px var(--color-brand-soft);
+}
+
+.inventory-expense-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid rgb(34 197 94 / 24%);
+  border-radius: var(--radius-lg);
+  background: var(--color-success-soft);
+}
+
+.inventory-expense-notice > svg,
+.inventory-expense-notice > strong {
+  color: var(--color-success);
+}
+
+.inventory-expense-notice > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inventory-expense-notice > div span {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .expense-cancel-section {
@@ -336,8 +391,7 @@
   .expense-layout,
   .finance-control-grid,
   .finance-breakdown-grid,
-  .cash-movement-list,
-  .expense-list {
+  .cash-movement-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -351,11 +405,16 @@
   .expense-payment-row,
   .expense-cancel-form,
   .expense-cancel-preview dl,
-  .cash-movement-row {
+  .cash-movement-row,
+  .inventory-expense-notice {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .expense-cancel-form__actions {
     flex-wrap: wrap;
+  }
+
+  .inventory-expense-notice > strong {
+    justify-self: start;
   }
 }

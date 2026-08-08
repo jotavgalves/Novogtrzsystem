@@ -1,4 +1,4 @@
-import { ReceiptText, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Boxes, ReceiptText, RefreshCw, TriangleAlert } from 'lucide-react';
 
 import { formatCurrency } from '@gtrz/domain';
 
@@ -24,7 +24,9 @@ export function ExpensesPage(): React.JSX.Element {
   const expenses = state?.expenses ?? [];
   const activeExpenses = expenses.filter((expense) => expense.status !== 'cancelled');
   const cancelledExpenses = expenses.filter((expense) => expense.status === 'cancelled');
-  const totalCents = activeExpenses.reduce((total, expense) => total + expense.totalCents, 0);
+  const manualExpenseCents = state?.manualExpenseCents ?? 0;
+  const inventoryCostCents = state?.inventoryCostCents ?? 0;
+  const totalExpenseCents = state?.totalExpenseCents ?? 0;
   const paidCents = activeExpenses.reduce((total, expense) => total + expense.paidCents, 0);
   const pendingCents = activeExpenses.reduce((total, expense) => total + expense.pendingCents, 0);
   const initialLoading = loading && state === null;
@@ -36,7 +38,8 @@ export function ExpensesPage(): React.JSX.Element {
           <span className="eyebrow">Obrigações e pagamentos do evento</span>
           <h1>Despesas</h1>
           <p>
-            Controle obrigações abertas, pagamentos parciais, edições e cancelamentos auditáveis.
+            Compras de estoque entram automaticamente no custo do evento; as demais obrigações são
+            controladas aqui com pagamentos parciais e cancelamentos auditáveis.
           </p>
         </div>
         <button
@@ -54,20 +57,24 @@ export function ExpensesPage(): React.JSX.Element {
 
       <div className="summary-grid summary-grid--compact">
         <article className="summary-card summary-card--accent">
-          <span>Obrigações ativas</span>
-          <strong>{formatCurrency(totalCents)}</strong>
+          <span>Despesas totais</span>
+          <strong>{formatCurrency(totalExpenseCents)}</strong>
+          <small>Manuais + compras de estoque</small>
         </article>
         <article className="summary-card">
-          <span>Total pago</span>
-          <strong>{formatCurrency(paidCents)}</strong>
+          <span>Custo de estoque</span>
+          <strong>{formatCurrency(inventoryCostCents)}</strong>
+          <small>Entradas registradas como Compra</small>
         </article>
         <article className="summary-card">
-          <span>Saldo pendente</span>
+          <span>Despesas manuais</span>
+          <strong>{formatCurrency(manualExpenseCents)}</strong>
+          <small>{formatCurrency(paidCents)} já pago</small>
+        </article>
+        <article className="summary-card">
+          <span>Saldo manual pendente</span>
           <strong>{formatCurrency(pendingCents)}</strong>
-        </article>
-        <article className="summary-card">
-          <span>Cancelados</span>
-          <strong>{cancelledExpenses.length}</strong>
+          <small>{cancelledExpenses.length} cancelada(s)</small>
         </article>
       </div>
 
@@ -77,6 +84,20 @@ export function ExpensesPage(): React.JSX.Element {
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
           <span>Selecione um evento aberto antes de registrar despesas.</span>
+        </div>
+      ) : null}
+
+      {state?.activeEventId !== null && state !== null ? (
+        <div className="inventory-expense-notice">
+          <Boxes size={20} aria-hidden="true" />
+          <div>
+            <strong>Custo de estoque contabilizado automaticamente</strong>
+            <span>
+              Cada entrada de estoque do tipo Compra compõe as despesas do evento. Não cadastre a
+              mesma compra novamente como despesa manual para evitar duplicidade.
+            </span>
+          </div>
+          <strong>{formatCurrency(inventoryCostCents)}</strong>
         </div>
       ) : null}
 
@@ -95,8 +116,8 @@ export function ExpensesPage(): React.JSX.Element {
             {!loading && expenses.length === 0 ? (
               <div className="empty-state">
                 <ReceiptText size={32} aria-hidden="true" />
-                <h2>Nenhuma despesa registrada</h2>
-                <p>Cadastre a primeira obrigação financeira do evento.</p>
+                <h2>Nenhuma despesa manual registrada</h2>
+                <p>Compras de estoque continuam sendo contabilizadas automaticamente acima.</p>
               </div>
             ) : null}
             {expenses.map((expense) => (

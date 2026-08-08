@@ -1,6 +1,7 @@
 import { getCashState } from './cash';
 import { getSessionState, listEvents } from './control';
 import { getDashboardAggregates } from './dashboard-queries';
+import { getExpenseState } from './expenses';
 import type { DatabaseContext } from './types';
 
 export type DatabaseInsightProfile = 'production' | 'cashier';
@@ -37,6 +38,7 @@ export interface DatabaseDashboardState {
   readonly netRevenueCents: number;
   readonly completedSales: number;
   readonly activeExpensesCents: number;
+  readonly inventoryExpenseCents: number;
   readonly projectedResultCents: number;
   readonly expectedCashCents: number;
   readonly cashVarianceCents: number | null;
@@ -351,6 +353,7 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
   const session = getSessionState(database);
   const activeEvent = session.activeEvent;
   const cashState = getCashState(database);
+  const expenseState = getExpenseState(database);
 
   if (activeEvent === null) {
     return {
@@ -361,6 +364,7 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
       netRevenueCents: 0,
       completedSales: 0,
       activeExpensesCents: 0,
+      inventoryExpenseCents: 0,
       projectedResultCents: 0,
       expectedCashCents: 0,
       cashVarianceCents: null,
@@ -389,8 +393,9 @@ export function getDashboardState(database: DatabaseContext): DatabaseDashboardS
     discountsCents: aggregates.discountsCents,
     netRevenueCents: aggregates.netRevenueCents,
     completedSales: aggregates.completedSales,
-    activeExpensesCents: cashState.activeExpensesCents,
-    projectedResultCents: aggregates.netRevenueCents - cashState.activeExpensesCents,
+    activeExpensesCents: expenseState.totalExpenseCents,
+    inventoryExpenseCents: expenseState.inventoryCostCents,
+    projectedResultCents: aggregates.netRevenueCents - expenseState.totalExpenseCents,
     expectedCashCents: cashState.expectedCashCents,
     cashVarianceCents: cashState.register?.varianceCents ?? null,
     cashRegisterStatus: cashState.register?.status ?? 'not-opened',

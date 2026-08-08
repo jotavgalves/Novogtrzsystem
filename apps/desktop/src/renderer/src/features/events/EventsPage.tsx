@@ -49,6 +49,7 @@ export function EventsPage(): React.JSX.Element {
       }
 
       await create(name, timestamp);
+      await refreshSession();
       setName('');
       setStartsAt(getDefaultDateTime());
     } catch (createError: unknown) {
@@ -136,7 +137,10 @@ export function EventsPage(): React.JSX.Element {
             <CalendarPlus size={20} aria-hidden="true" />
             <div>
               <h2>Novo evento</h2>
-              <p>O primeiro evento criado será selecionado automaticamente.</p>
+              <p>
+                O evento será apenas cadastrado. A operação começa somente ao clicar em “Operar
+                evento”.
+              </p>
             </div>
           </div>
 
@@ -189,7 +193,7 @@ export function EventsPage(): React.JSX.Element {
             <div className="empty-state">
               <CalendarPlus size={32} aria-hidden="true" />
               <h2>Nenhum evento cadastrado</h2>
-              <p>Crie o primeiro evento para liberar a operação.</p>
+              <p>Crie o primeiro evento e depois escolha quando iniciar a operação.</p>
             </div>
           ) : null}
           {events.map((event) => (

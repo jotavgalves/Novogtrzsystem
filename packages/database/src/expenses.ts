@@ -11,9 +11,10 @@ import {
   requireExpenseEvent,
   requireExpenseProduction,
   type DatabaseExpense,
-  type DatabaseExpenseState,
+  type DatabaseExpenseState as DatabaseExpenseRepositoryState,
   type DatabaseExpenseStatus,
 } from './expense-repository';
+import { getInventoryPurchaseExpenseCents } from './inventory-expenses';
 import type { DatabasePaymentMethod } from './operation-types';
 import type { DatabaseContext } from './types';
 
@@ -23,16 +24,41 @@ export type {
   DatabaseExpense,
   DatabaseExpensePayment,
   DatabaseExpensePaymentStatus,
-  DatabaseExpenseState,
   DatabaseExpenseStatus,
 } from './expense-repository';
+
+export interface DatabaseExpenseState extends DatabaseExpenseRepositoryState {
+  readonly manualExpenseCents: number;
+  readonly inventoryCostCents: number;
+  readonly totalExpenseCents: number;
+}
 
 export function getExpenseState(database: DatabaseContext): DatabaseExpenseState {
   const eventId = getSessionState(database).activeEvent?.id ?? null;
 
-  return eventId === null
-    ? { activeEventId: null, expenses: [] }
-    : { activeEventId: eventId, expenses: listExpensesForEvent(database, eventId) };
+  if (eventId === null) {
+    return {
+      activeEventId: null,
+      expenses: [],
+      manualExpenseCents: 0,
+      inventoryCostCents: 0,
+      totalExpenseCents: 0,
+    };
+  }
+
+  const expenses = listExpensesForEvent(database, eventId);
+  const manualExpenseCents = expenses
+    .filter((expense) => expense.status !== 'cancelled')
+    .reduce((total, expense) => total + expense.totalCents, 0);
+  const inventoryCostCents = getInventoryPurchaseExpenseCents(database, eventId);
+
+  return {
+    activeEventId: eventId,
+    expenses,
+    manualExpenseCents,
+    inventoryCostCents,
+    totalExpenseCents: manualExpenseCents + inventoryCostCents,
+  };
 }
 
 export function createExpense(

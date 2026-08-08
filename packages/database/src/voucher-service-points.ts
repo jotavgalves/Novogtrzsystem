@@ -47,9 +47,8 @@ export function listVoucherServicePoints(
        LEFT JOIN orders o
          ON o.service_point_id = sp.id
         AND o.status = 'open'
-       WHERE sp.event_id = ? AND sp.active = 1
-       ORDER BY CASE sp.type WHEN 'counter' THEN 0 ELSE 1 END,
-                sp.label COLLATE NOCASE`,
+       WHERE sp.event_id = ? AND sp.active = 1 AND sp.type = 'table'
+       ORDER BY sp.label COLLATE NOCASE`,
     )
     .all(eventId) as ServicePointRow[];
   return rows.map(mapServicePoint);
@@ -68,7 +67,7 @@ export function resolveLinkedServicePoint(
     .prepare(
       `SELECT id, label
        FROM service_points
-       WHERE id = ? AND event_id = ? AND active = 1`,
+       WHERE id = ? AND event_id = ? AND active = 1 AND type = 'table'`,
     )
     .get(linkedServicePointId, eventId) as
     | { readonly id: string; readonly label: string }

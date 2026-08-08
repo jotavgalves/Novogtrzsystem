@@ -122,9 +122,9 @@ export function DashboardPage(): React.JSX.Element {
             </article>
             <article className="summary-card">
               <ReceiptText className="summary-card__icon" size={20} aria-hidden="true" />
-              <span>Descontos</span>
-              <strong>{formatCurrency(state.discountsCents)}</strong>
-              <small>Reduções aplicadas às comandas</small>
+              <span>Despesas totais</span>
+              <strong>{formatCurrency(state.activeExpensesCents)}</strong>
+              <small>{formatCurrency(state.inventoryExpenseCents)} vêm de compras de estoque</small>
             </article>
             <article className="summary-card summary-card--accent">
               <TrendingUp className="summary-card__icon" size={20} aria-hidden="true" />
@@ -142,7 +142,7 @@ export function DashboardPage(): React.JSX.Element {
               <TrendingUp className="summary-card__icon" size={20} aria-hidden="true" />
               <span>Resultado projetado</span>
               <strong>{formatCurrency(state.projectedResultCents)}</strong>
-              <small>Receita líquida menos despesas</small>
+              <small>Receita líquida menos despesas manuais e estoque</small>
             </article>
           </div>
 
@@ -154,10 +154,10 @@ export function DashboardPage(): React.JSX.Element {
               <small>{state.orders.paid} comandas pagas</small>
             </article>
             <article className="insight-kpi">
-              <Banknote size={19} aria-hidden="true" />
-              <span>Despesas ativas</span>
-              <strong>{formatCurrency(state.activeExpensesCents)}</strong>
-              <small>Valores não cancelados</small>
+              <Boxes size={19} aria-hidden="true" />
+              <span>Custo de estoque</span>
+              <strong>{formatCurrency(state.inventoryExpenseCents)}</strong>
+              <small>Compras lançadas como entrada de estoque</small>
             </article>
             <article className="insight-kpi">
               <Banknote size={19} aria-hidden="true" />
@@ -191,9 +191,11 @@ export function DashboardPage(): React.JSX.Element {
             </article>
             <article className="insight-kpi">
               <Boxes size={19} aria-hidden="true" />
-              <span>Estoque do evento</span>
+              <span>Estoque atual</span>
               <strong>{state.inventory.units} un.</strong>
-              <small>{formatCurrency(state.inventory.stockCostCents)} em custo</small>
+              <small>
+                {formatCurrency(state.inventory.stockCostCents)} em valor de custo atual
+              </small>
             </article>
             <article className="insight-kpi">
               <Banknote size={19} aria-hidden="true" />

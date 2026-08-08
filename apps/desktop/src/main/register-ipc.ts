@@ -88,7 +88,15 @@ export function registerIpcHandlers(options: RegisterIpcOptions): void {
 
   handleIpc(IPC_CHANNELS.eventsCreate, (_event, payload: unknown) => {
     const input = createEventInputSchema.parse(payload);
-    return eventSchema.parse(createEvent(options.getDatabase(), input));
+    const database = options.getDatabase();
+    const hadActiveEvent = getSessionState(database).activeEvent !== null;
+    const created = createEvent(database, input);
+
+    if (!hadActiveEvent) {
+      setActiveEvent(database, null);
+    }
+
+    return eventSchema.parse(created);
   });
 
   handleIpc(IPC_CHANNELS.eventsRename, (_event, payload: unknown) => {

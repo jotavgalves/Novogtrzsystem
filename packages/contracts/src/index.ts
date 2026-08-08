@@ -58,6 +58,7 @@ export const IPC_CHANNELS = {
   operationsOpenOrder: 'operations:open-order',
   operationsGetOrder: 'operations:get-order',
   operationsAddItem: 'operations:add-item',
+  operationsSetItemQuantity: 'operations:set-item-quantity',
   operationsRemoveItem: 'operations:remove-item',
   operationsBindVoucher: 'operations:bind-voucher',
   operationsUnbindVoucher: 'operations:unbind-voucher',

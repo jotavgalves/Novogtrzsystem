@@ -13,7 +13,7 @@ async function ensureProduction(window: Page): Promise<void> {
   }
 }
 
-test('SMK-OPR-001 — vende, estorna e devolve o estoque pela interface', async () => {
+test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o estoque', async () => {
   const electronApplication = await electron.launch({ args: [applicationPath] });
 
   try {
@@ -29,7 +29,11 @@ test('SMK-OPR-001 — vende, estorna e devolve o estoque pela interface', async 
     await window.getByRole('link', { name: 'Eventos' }).click();
     await window.getByPlaceholder('Ex.: La Rumba Neon — Agosto').fill(eventName);
     await window.getByRole('button', { name: 'Criar evento' }).click();
-    await expect(window.getByText(eventName, { exact: true }).first()).toBeVisible();
+    const eventCard = window.locator('article.event-card').filter({ hasText: eventName });
+    await expect(eventCard).toBeVisible();
+    await expect(eventCard.getByRole('button', { name: 'Operar evento' })).toBeVisible();
+    await eventCard.getByRole('button', { name: 'Operar evento' }).click();
+    await expect(eventCard.getByText('Em operação')).toBeVisible();
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     await window.getByPlaceholder('Ex.: Cervejas').fill(categoryName);
@@ -58,20 +62,46 @@ test('SMK-OPR-001 — vende, estorna e devolve o estoque pela interface', async 
     const tableButton = window.locator('button.service-point-card').filter({ hasText: tableName });
     await expect(tableButton).toBeVisible();
     await tableButton.click();
+    await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
+    await expect(window.getByText('Esta mesa ainda não possui vendas concluídas.')).toBeVisible();
 
     const catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
     await expect(catalogItem).toBeVisible();
     await catalogItem.click();
     await expect(window.getByText(productName, { exact: true }).last()).toBeVisible();
+
+    const quantityInput = window.getByLabel(`Quantidade de ${productName}`);
+    await quantityInput.fill('2');
+    await quantityInput.press('Enter');
+    await expect(window.getByText('R$ 20,00', { exact: true }).last()).toBeVisible();
+    await window.getByRole('button', { name: `Diminuir ${productName}` }).click();
+    await expect(quantityInput).toHaveValue('1');
     await expect(window.getByText('R$ 10,00', { exact: true }).last()).toBeVisible();
 
-    await window.getByLabel('Valor do pagamento 1').fill('10.00');
+    await expect(window.getByText('Aplicado automaticamente')).toBeVisible();
+    await expect(window.getByText('R$ 10,00', { exact: true }).last()).toBeVisible();
+    await expect(window.getByLabel('Valor recebido 1')).toBeVisible();
     await window.getByLabel('Valor recebido 1').fill('20.00');
+    await expect(window.getByText('Troco: R$ 10,00', { exact: true })).toBeVisible();
     await window.getByRole('button', { name: 'Concluir venda' }).click();
-    await expect(window.getByText('Venda concluída e estoque atualizado.')).toBeVisible();
     await expect(
-      window.locator('button.service-point-card').filter({ hasText: tableName }),
-    ).toContainText('Livre');
+      window.getByText('Venda concluída e registrada no histórico da mesa.'),
+    ).toBeVisible();
+    await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
+    const tableHistory = window
+      .locator('article.recent-order-card')
+      .filter({ hasText: productName });
+    await expect(tableHistory).toContainText('Paga');
+
+    await window.getByRole('button', { name: 'Usar perfil Caixa' }).click();
+    await expect(window.getByText('Caixa', { exact: true })).toBeVisible();
+    await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
+    await expect(tableHistory).toContainText('Paga');
+    await expect(tableHistory.getByRole('button', { name: 'Estornar venda' })).toHaveCount(0);
+
+    await window.getByPlaceholder('Digite a senha').fill('121225');
+    await window.getByRole('button', { name: 'Entrar em Produção' }).click();
+    await expect(window.getByText('Produção', { exact: true })).toBeVisible();
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     productCard = window.locator('article.inventory-card').filter({ hasText: productName });

@@ -98,6 +98,9 @@ export const expenseSchema = z.object({
 export const expenseStateSchema = z.object({
   activeEventId: z.uuid().nullable(),
   expenses: z.array(expenseSchema),
+  manualExpenseCents: z.number().int().nonnegative(),
+  inventoryCostCents: z.number().int().nonnegative(),
+  totalExpenseCents: z.number().int().nonnegative(),
 });
 
 export const createExpenseInputSchema = z.object({

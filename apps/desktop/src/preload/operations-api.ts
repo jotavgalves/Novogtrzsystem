@@ -15,6 +15,7 @@ import {
   removeOrderItemInputSchema,
   servicePointDeletePreviewSchema,
   servicePointSchema,
+  setOrderItemQuantityInputSchema,
   unbindOrderVoucherInputSchema,
   type AddOrderItemInput,
   type BindOrderVoucherInput,
@@ -30,6 +31,7 @@ import {
   type RemoveOrderItemInput,
   type ServicePoint,
   type ServicePointDeletePreview,
+  type SetOrderItemQuantityInput,
   type UnbindOrderVoucherInput,
 } from '@gtrz/contracts';
 
@@ -88,6 +90,15 @@ export const operationsApi: OperationsApi = {
   async addItem(input: AddOrderItemInput): Promise<Order> {
     const parsedInput = addOrderItemInputSchema.parse(input);
     const payload: unknown = await ipcRenderer.invoke(IPC_CHANNELS.operationsAddItem, parsedInput);
+    return orderSchema.parse(payload);
+  },
+
+  async setItemQuantity(input: SetOrderItemQuantityInput): Promise<Order> {
+    const parsedInput = setOrderItemQuantityInputSchema.parse(input);
+    const payload: unknown = await ipcRenderer.invoke(
+      IPC_CHANNELS.operationsSetItemQuantity,
+      parsedInput,
+    );
     return orderSchema.parse(payload);
   },
 

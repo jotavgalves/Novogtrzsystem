@@ -51,7 +51,7 @@ export const voucherStateSchema = z.object({
 export const createVoucherInputSchema = z.object({
   code: z.string().trim().min(4).max(32).optional(),
   label: z.string().trim().min(2).max(100),
-  linkedServicePointId: z.uuid().nullable().optional(),
+  linkedServicePointId: z.uuid(),
   initialBalanceCents: z.number().int().positive(),
 });
 
