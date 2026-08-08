@@ -8,7 +8,7 @@ import {
 
 const actionTimeout = 5_000;
 
-test('SMK-TKT-001 — vende grupo, gera códigos e cancela com reflexo no caixa', async () => {
+test('SMK-TKT-001 — vende, cancela e exclui registros de ingresso com segurança', async () => {
   test.setTimeout(60_000);
   const electronApplication = await launchElectronApplication();
 
@@ -62,22 +62,19 @@ test('SMK-TKT-001 — vende grupo, gera códigos e cancela com reflexo no caixa'
       timeout: actionTimeout,
     });
 
-    const saleCard = window.locator('article.ticket-sale-card').filter({ hasText: attendeeName });
+    let saleCard = window.locator('article.ticket-sale-card').filter({ hasText: attendeeName });
     await expect(saleCard).toContainText('R$ 100,00');
     await expect(saleCard.locator('.ticket-code')).toHaveCount(2);
-    await expect(
-      window.locator('article.ticket-lot-card').filter({ hasText: lotName }),
-    ).toContainText('1');
+    let lotCard = window.locator('article.ticket-lot-card').filter({ hasText: lotName });
+    await expect(lotCard).toContainText('1');
 
     await window.getByRole('link', { name: 'Caixa' }).click();
     await expect(window.getByText('R$ 100,00', { exact: true }).first()).toBeVisible();
 
     await window.getByRole('link', { name: 'Ingressos' }).click();
-    const activeSaleCard = window
-      .locator('article.ticket-sale-card')
-      .filter({ hasText: attendeeName });
-    await activeSaleCard.getByPlaceholder('Ex.: venda duplicada').fill('Venda duplicada');
-    const cancelSaleButton = activeSaleCard.getByRole('button', {
+    saleCard = window.locator('article.ticket-sale-card').filter({ hasText: attendeeName });
+    await saleCard.getByPlaceholder('Ex.: venda duplicada').fill('Venda duplicada');
+    const cancelSaleButton = saleCard.getByRole('button', {
       name: 'Cancelar venda',
       exact: true,
     });
@@ -86,13 +83,26 @@ test('SMK-TKT-001 — vende grupo, gera códigos e cancela com reflexo no caixa'
     await expect(window.getByText('Venda cancelada.')).toBeVisible({
       timeout: actionTimeout,
     });
-    await expect(activeSaleCard).toContainText('Cancelada');
-    await expect(
-      window.locator('article.ticket-lot-card').filter({ hasText: lotName }),
-    ).toContainText('3');
+    await expect(saleCard).toContainText('Cancelada');
+    lotCard = window.locator('article.ticket-lot-card').filter({ hasText: lotName });
+    await expect(lotCard).toContainText('3');
 
     await window.getByRole('link', { name: 'Caixa' }).click();
     await expect(window.getByText('R$ 0,00', { exact: true }).first()).toBeVisible();
+
+    await window.getByRole('link', { name: 'Ingressos' }).click();
+    saleCard = window.locator('article.ticket-sale-card').filter({ hasText: attendeeName });
+    await saleCard.getByPlaceholder('Motivo da exclusão definitiva').fill('Limpar venda de teste');
+    await saleCard.getByRole('button', { name: 'Excluir registro' }).click();
+    await expect(window.getByText('Registro excluído.')).toBeVisible();
+    await expect(window.locator('article.ticket-sale-card').filter({ hasText: attendeeName })).toHaveCount(0);
+
+    lotCard = window.locator('article.ticket-lot-card').filter({ hasText: lotName });
+    await lotCard.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await lotCard.getByLabel(`Motivo para excluir lote ${lotName}`).fill('Limpar lote de teste');
+    await lotCard.getByRole('button', { name: 'Excluir lote' }).click();
+    await expect(window.getByText('Lote excluído.')).toBeVisible();
+    await expect(window.locator('article.ticket-lot-card').filter({ hasText: lotName })).toHaveCount(0);
   } finally {
     await closeElectronApplication(electronApplication);
   }
