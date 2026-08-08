@@ -7,6 +7,10 @@ import { CancellationForm } from './CancellationForm';
 interface RecentOrdersPanelProps {
   readonly orders: readonly Order[];
   readonly busy: boolean;
+  readonly allowCancel?: boolean;
+  readonly title?: string;
+  readonly description?: string;
+  readonly emptyMessage?: string;
   readonly onCancel: (orderId: string, reason: string) => Promise<void>;
 }
 
@@ -31,6 +35,10 @@ function formatDate(timestamp: number | null): string {
 export function RecentOrdersPanel({
   orders,
   busy,
+  allowCancel = true,
+  title = 'Vendas e cancelamentos recentes',
+  description = 'Estornos devolvem exatamente as unidades registradas na venda original.',
+  emptyMessage = 'Nenhuma venda concluída neste evento.',
   onCancel,
 }: RecentOrdersPanelProps): React.JSX.Element {
   return (
@@ -38,13 +46,13 @@ export function RecentOrdersPanel({
       <div className="panel__heading">
         <History size={20} aria-hidden="true" />
         <div>
-          <h2>Vendas e cancelamentos recentes</h2>
-          <p>Estornos devolvem exatamente as unidades registradas na venda original.</p>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
       </div>
 
       {orders.length === 0 ? (
-        <p className="operation-empty">Nenhuma venda concluída neste evento.</p>
+        <p className="operation-empty">{emptyMessage}</p>
       ) : (
         <div className="recent-order-list">
           {orders.map((order) => (
@@ -72,7 +80,7 @@ export function RecentOrdersPanel({
                   .join(' · ')}
               </p>
 
-              {order.status === 'paid' ? (
+              {allowCancel && order.status === 'paid' ? (
                 <div className="recent-order-card__cancel">
                   <RotateCcw size={18} aria-hidden="true" />
                   <CancellationForm
