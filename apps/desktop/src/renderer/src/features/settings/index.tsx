@@ -1,6 +1,8 @@
 import { KeyRound, Settings, ShieldCheck } from 'lucide-react';
 import { useState, type SyntheticEvent } from 'react';
 
+import { ReceiptSettingsPanel } from './ReceiptSettingsPanel';
+
 export function SettingsPage(): React.JSX.Element {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -43,7 +45,7 @@ export function SettingsPage(): React.JSX.Element {
         <div>
           <span className="eyebrow">Acesso exclusivo da Produção</span>
           <h1>Configurações</h1>
-          <p>Preferências administrativas e proteções do sistema offline.</p>
+          <p>Preferências administrativas, impressão e proteções do sistema offline.</p>
         </div>
         <span className="feature-icon" aria-hidden="true">
           <Settings size={26} />
@@ -63,6 +65,8 @@ export function SettingsPage(): React.JSX.Element {
             </p>
           </div>
         </article>
+
+        <ReceiptSettingsPanel />
 
         <form className="panel form-panel" onSubmit={(formEvent) => void handleSubmit(formEvent)}>
           <div className="panel__heading">
