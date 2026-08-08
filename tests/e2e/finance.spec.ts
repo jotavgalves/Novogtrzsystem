@@ -62,7 +62,11 @@ test('SMK-FIN-001 — acompanha despesa aberta, parcial, paga e concilia caixa',
     await expenseCard.getByRole('button', { name: 'Gerenciar' }).click();
 
     await expenseCard.getByText('Pagar parcela').locator('..').getByRole('textbox').fill('10,00');
-    await expenseCard.getByText('Forma', { exact: true }).locator('..').getByRole('combobox').selectOption('cash');
+    await expenseCard
+      .getByText('Forma', { exact: true })
+      .locator('..')
+      .getByRole('combobox')
+      .selectOption('cash');
     await expenseCard.getByRole('button', { name: 'Registrar pagamento' }).click();
     await expect(window.getByText('Pagamento registrado.')).toBeVisible();
 

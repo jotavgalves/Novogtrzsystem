@@ -148,7 +148,9 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
     await expect(wrongProductCard).toBeVisible();
     await wrongProductCard.getByRole('button', { name: 'Excluir', exact: true }).click();
     await expect(wrongProductCard.getByText('Exclusão definitiva disponível')).toBeVisible();
-    await wrongProductCard.getByPlaceholder('Ex.: item cadastrado por engano').fill('Cadastro duplicado');
+    await wrongProductCard
+      .getByPlaceholder('Ex.: item cadastrado por engano')
+      .fill('Cadastro duplicado');
     await wrongProductCard.getByRole('button', { name: 'Excluir definitivamente' }).click();
     await expect(
       window.locator('article.inventory-card').filter({ hasText: wrongProductName }),

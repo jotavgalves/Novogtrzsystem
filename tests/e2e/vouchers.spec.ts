@@ -86,7 +86,9 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo, restitui e exclui', 
     await expect(voucherCard).toContainText('R$ 6,00');
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
-    const recentOrder = window.locator('article.recent-order-card').filter({ hasText: productName });
+    const recentOrder = window
+      .locator('article.recent-order-card')
+      .filter({ hasText: productName });
     await expect(recentOrder).toContainText('Paga');
     await recentOrder.getByPlaceholder('Ex.: lançamento duplicado').fill('Estorno voucher');
     await recentOrder.getByRole('button', { name: 'Estornar venda' }).click();
@@ -96,7 +98,9 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo, restitui e exclui', 
     voucherCard = window.locator('article.voucher-card').filter({ hasText: voucherCode });
     await expect(voucherCard).toContainText('R$ 10,00');
     await voucherCard.getByRole('button', { name: 'Excluir', exact: true }).click();
-    await voucherCard.getByPlaceholder('Ex.: voucher emitido incorretamente').fill('Encerrar voucher de teste');
+    await voucherCard
+      .getByPlaceholder('Ex.: voucher emitido incorretamente')
+      .fill('Encerrar voucher de teste');
     await voucherCard.getByRole('button', { name: 'Excluir e estornar' }).click();
     await expect(window.getByText('Voucher excluído.')).toBeVisible();
     await expect(
@@ -104,7 +108,9 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo, restitui e exclui', 
     ).toHaveCount(0);
 
     await window.getByRole('button', { name: /Excluídos/u }).click();
-    await expect(window.locator('article.voucher-card').filter({ hasText: voucherCode })).toBeVisible();
+    await expect(
+      window.locator('article.voucher-card').filter({ hasText: voucherCode }),
+    ).toBeVisible();
   } finally {
     await closeElectronApplication(electronApplication);
   }

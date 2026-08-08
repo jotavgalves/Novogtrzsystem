@@ -95,14 +95,18 @@ test('SMK-TKT-001 — vende, cancela e exclui registros de ingresso com seguran�
     await saleCard.getByPlaceholder('Motivo da exclusão definitiva').fill('Limpar venda de teste');
     await saleCard.getByRole('button', { name: 'Excluir registro' }).click();
     await expect(window.getByText('Registro excluído.')).toBeVisible();
-    await expect(window.locator('article.ticket-sale-card').filter({ hasText: attendeeName })).toHaveCount(0);
+    await expect(
+      window.locator('article.ticket-sale-card').filter({ hasText: attendeeName }),
+    ).toHaveCount(0);
 
     lotCard = window.locator('article.ticket-lot-card').filter({ hasText: lotName });
     await lotCard.getByRole('button', { name: 'Excluir', exact: true }).click();
     await lotCard.getByLabel(`Motivo para excluir lote ${lotName}`).fill('Limpar lote de teste');
     await lotCard.getByRole('button', { name: 'Excluir lote' }).click();
     await expect(window.getByText('Lote excluído.')).toBeVisible();
-    await expect(window.locator('article.ticket-lot-card').filter({ hasText: lotName })).toHaveCount(0);
+    await expect(
+      window.locator('article.ticket-lot-card').filter({ hasText: lotName }),
+    ).toHaveCount(0);
   } finally {
     await closeElectronApplication(electronApplication);
   }
