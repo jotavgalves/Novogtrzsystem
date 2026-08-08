@@ -13,7 +13,7 @@ async function ensureProduction(window: Page): Promise<void> {
   }
 }
 
-test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o estoque', async () => {
+test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e estorna', async () => {
   const electronApplication = await electron.launch({ args: [applicationPath] });
 
   try {
@@ -25,6 +25,7 @@ test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o est
     const categoryName = `Operação ${suffix}`;
     const productName = `Água venda ${suffix}`;
     const tableName = `Mesa ${suffix.slice(-4)}`;
+    const secondTableName = `Mesa B ${suffix.slice(-4)}`;
 
     await window.getByRole('link', { name: 'Eventos' }).click();
     await window.getByPlaceholder('Ex.: La Rumba Neon — Agosto').fill(eventName);
@@ -56,30 +57,56 @@ test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o est
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
     await expect(window.getByRole('heading', { name: 'Mesas e balcão' })).toBeVisible();
-    await window.getByPlaceholder('Ex.: Mesa 12').fill(tableName);
+    const tableInput = window.getByPlaceholder('Ex.: Mesa 12');
+    await tableInput.fill(tableName);
+    await window.getByRole('button', { name: 'Criar mesa' }).click();
+    await tableInput.fill(secondTableName);
     await window.getByRole('button', { name: 'Criar mesa' }).click();
 
+    await window.getByRole('button', { name: `Fixar ${tableName}` }).click();
+    await expect(window.getByRole('button', { name: `Desafixar ${tableName}` })).toBeVisible();
+    await window.getByRole('button', { name: `Fixar ${secondTableName}` }).click();
+    await expect(window.getByRole('button', { name: `Desafixar ${secondTableName}` })).toBeVisible();
+
     const tableButton = window.locator('button.service-point-card').filter({ hasText: tableName });
-    await expect(tableButton).toBeVisible();
+    const secondTableButton = window
+      .locator('button.service-point-card')
+      .filter({ hasText: secondTableName });
     await tableButton.click();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
     await expect(window.getByText('Esta mesa ainda não possui vendas concluídas.')).toBeVisible();
 
-    const catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
-    await expect(catalogItem).toBeVisible();
+    let catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
+    await expect(catalogItem).toContainText('5 disponíveis nesta mesa');
     await catalogItem.click();
+    await expect(window.locator('.route-state')).toHaveCount(0);
     await expect(window.getByText(productName, { exact: true }).last()).toBeVisible();
+    catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
+    await expect(catalogItem).toContainText('4 disponíveis nesta mesa');
 
     const quantityInput = window.getByLabel(`Quantidade de ${productName}`);
     await quantityInput.fill('2');
     await quantityInput.press('Enter');
     await expect(window.getByText('R$ 20,00', { exact: true }).last()).toBeVisible();
-    await window.getByRole('button', { name: `Diminuir ${productName}` }).click();
-    await expect(quantityInput).toHaveValue('1');
-    await expect(window.getByText('R$ 10,00', { exact: true }).last()).toBeVisible();
+    await expect(catalogItem).toContainText('3 disponíveis nesta mesa');
 
+    await window.getByRole('button', { name: 'Voltar para mesas' }).click();
+    await secondTableButton.click();
+    await expect(window.getByRole('heading', { name: secondTableName })).toBeVisible();
+    await expect(
+      window.getByRole('button', { name: new RegExp(productName, 'u') }),
+    ).toContainText('5 disponíveis nesta mesa');
+
+    await window.getByRole('button', { name: 'Voltar para mesas' }).click();
+    await tableButton.click();
+    catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
+    await expect(catalogItem).toContainText('3 disponíveis nesta mesa');
+    await window.getByRole('button', { name: `Diminuir ${productName}` }).click();
+    await expect(window.getByLabel(`Quantidade de ${productName}`)).toHaveValue('1');
+    await expect(catalogItem).toContainText('4 disponíveis nesta mesa');
+
+    await expect(window.locator('.checkout-form')).toBeVisible();
     await expect(window.getByText('Aplicado automaticamente')).toBeVisible();
-    await expect(window.getByText('R$ 10,00', { exact: true }).last()).toBeVisible();
     await expect(window.getByLabel('Valor recebido 1')).toBeVisible();
     await window.getByLabel('Valor recebido 1').fill('20.00');
     await expect(window.getByText('Troco: R$ 10,00', { exact: true })).toBeVisible();
@@ -88,9 +115,11 @@ test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o est
       window.getByText('Venda concluída e registrada no histórico da mesa.'),
     ).toBeVisible();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
-    const tableHistory = window
-      .locator('article.recent-order-card')
-      .filter({ hasText: productName });
+    const compactHistory = window.locator('article.recent-orders-panel--compact');
+    await expect(compactHistory).toBeVisible();
+    const tableHistory = compactHistory.locator('article.recent-order-card').filter({
+      hasText: productName,
+    });
     await expect(tableHistory).toContainText('Paga');
 
     await window.getByRole('button', { name: 'Usar perfil Caixa' }).click();
