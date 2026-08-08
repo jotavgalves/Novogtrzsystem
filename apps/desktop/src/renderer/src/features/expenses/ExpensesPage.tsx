@@ -1,5 +1,5 @@
 import { Boxes, ReceiptText, RefreshCw, TriangleAlert } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import type { ExpenseStatus } from '@gtrz/contracts';
 import { formatCurrency } from '@gtrz/domain';
@@ -35,10 +35,8 @@ export function ExpensesPage(): React.JSX.Element {
   const paidCents = activeExpenses.reduce((total, expense) => total + expense.paidCents, 0);
   const pendingCents = activeExpenses.reduce((total, expense) => total + expense.pendingCents, 0);
   const initialLoading = loading && state === null;
-  const filteredExpenses = useMemo(
-    () => (filter === 'all' ? expenses : expenses.filter((expense) => expense.status === filter)),
-    [expenses, filter],
-  );
+  const filteredExpenses =
+    filter === 'all' ? expenses : expenses.filter((expense) => expense.status === filter);
   const statusCount = (status: ExpenseStatus): number =>
     expenses.filter((expense) => expense.status === status).length;
 
@@ -129,7 +127,9 @@ export function ExpensesPage(): React.JSX.Element {
                     ? 'expense-filter expense-filter--all is-active'
                     : 'expense-filter expense-filter--all'
                 }
-                onClick={() => setFilter('all')}
+                onClick={() => {
+                  setFilter('all');
+                }}
                 type="button"
               >
                 Todas <strong>{expenses.length}</strong>
@@ -141,7 +141,9 @@ export function ExpensesPage(): React.JSX.Element {
                     ? 'expense-filter expense-filter--open is-active'
                     : 'expense-filter expense-filter--open'
                 }
-                onClick={() => setFilter('open')}
+                onClick={() => {
+                  setFilter('open');
+                }}
                 type="button"
               >
                 Em aberto <strong>{statusCount('open')}</strong>
@@ -153,7 +155,9 @@ export function ExpensesPage(): React.JSX.Element {
                     ? 'expense-filter expense-filter--partial is-active'
                     : 'expense-filter expense-filter--partial'
                 }
-                onClick={() => setFilter('partial')}
+                onClick={() => {
+                  setFilter('partial');
+                }}
                 type="button"
               >
                 Parcial <strong>{statusCount('partial')}</strong>
@@ -165,7 +169,9 @@ export function ExpensesPage(): React.JSX.Element {
                     ? 'expense-filter expense-filter--paid is-active'
                     : 'expense-filter expense-filter--paid'
                 }
-                onClick={() => setFilter('paid')}
+                onClick={() => {
+                  setFilter('paid');
+                }}
                 type="button"
               >
                 Pago <strong>{statusCount('paid')}</strong>
@@ -177,7 +183,9 @@ export function ExpensesPage(): React.JSX.Element {
                     ? 'expense-filter expense-filter--cancelled is-active'
                     : 'expense-filter expense-filter--cancelled'
                 }
-                onClick={() => setFilter('cancelled')}
+                onClick={() => {
+                  setFilter('cancelled');
+                }}
                 type="button"
               >
                 Canceladas <strong>{statusCount('cancelled')}</strong>
