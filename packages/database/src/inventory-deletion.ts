@@ -118,7 +118,9 @@ export function deleteProduct(
 
   if (preview.deletionMode === 'permanent') {
     database.sqlite.transaction(() => {
-      database.sqlite.prepare('DELETE FROM event_stock WHERE product_id = ?').run(preview.productId);
+      database.sqlite
+        .prepare('DELETE FROM event_stock WHERE product_id = ?')
+        .run(preview.productId);
       database.sqlite.prepare('DELETE FROM products WHERE id = ?').run(preview.productId);
       appendAudit(database, {
         action: 'inventory.product-permanently-deleted',

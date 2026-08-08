@@ -97,17 +97,15 @@ export function VouchersPage(): React.JSX.Element {
       {state?.activeEventId !== null && state !== null ? (
         <>
           <article className="panel">
-            <VoucherForm
-              busy={busy}
-              onSubmit={createVoucher}
-              servicePoints={state.servicePoints}
-            />
+            <VoucherForm busy={busy} onSubmit={createVoucher} servicePoints={state.servicePoints} />
           </article>
 
           <div className="voucher-view-toggle">
             <button
               aria-pressed={!showDeleted}
-              className={!showDeleted ? 'button button--secondary is-active' : 'button button--ghost'}
+              className={
+                !showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
+              }
               onClick={() => setShowDeleted(false)}
               type="button"
             >
@@ -116,7 +114,9 @@ export function VouchersPage(): React.JSX.Element {
             </button>
             <button
               aria-pressed={showDeleted}
-              className={showDeleted ? 'button button--secondary is-active' : 'button button--ghost'}
+              className={
+                showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
+              }
               onClick={() => setShowDeleted(true)}
               type="button"
             >

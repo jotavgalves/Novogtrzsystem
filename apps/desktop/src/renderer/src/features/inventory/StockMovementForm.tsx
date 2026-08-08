@@ -142,7 +142,11 @@ export function StockMovementForm({
           <X size={16} aria-hidden="true" />
           Cancelar
         </button>
-        <button className={decreasesStock ? 'button button--danger' : 'button button--primary'} disabled={busy} type="submit">
+        <button
+          className={decreasesStock ? 'button button--danger' : 'button button--primary'}
+          disabled={busy}
+          type="submit"
+        >
           <ArrowDownToLine size={17} aria-hidden="true" />
           {decreasesStock ? 'Confirmar baixa' : 'Registrar movimento'}
         </button>

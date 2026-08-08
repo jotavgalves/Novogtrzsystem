@@ -74,7 +74,9 @@ export function previewDeleteVoucher(
     .prepare('SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ?')
     .get(voucher.id) as { readonly value: number };
   const nonIssueTransactions = database.sqlite
-    .prepare("SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type != 'issue'")
+    .prepare(
+      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type != 'issue'",
+    )
     .get(voucher.id) as { readonly value: number };
   const deletionMode =
     allAllocations.value === 0 && nonIssueTransactions.value === 0 ? 'permanent' : 'reversal';
@@ -254,8 +256,12 @@ export function deleteVoucher(
 
   if (preview.deletionMode === 'permanent') {
     database.sqlite.transaction(() => {
-      database.sqlite.prepare('DELETE FROM order_voucher_allocations WHERE voucher_id = ?').run(voucher.id);
-      database.sqlite.prepare('DELETE FROM voucher_transactions WHERE voucher_id = ?').run(voucher.id);
+      database.sqlite
+        .prepare('DELETE FROM order_voucher_allocations WHERE voucher_id = ?')
+        .run(voucher.id);
+      database.sqlite
+        .prepare('DELETE FROM voucher_transactions WHERE voucher_id = ?')
+        .run(voucher.id);
       database.sqlite.prepare('DELETE FROM vouchers WHERE id = ?').run(voucher.id);
       appendAudit(database, {
         action: 'voucher.permanently-deleted',

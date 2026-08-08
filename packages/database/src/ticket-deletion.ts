@@ -128,7 +128,9 @@ export function deleteTicketCode(
     .get(input.codeId) as TicketCodeRow | undefined;
 
   if (code === undefined) {
-    failDatabaseOperation('NOT_FOUND', 'O ingresso informado não existe.', { codeId: input.codeId });
+    failDatabaseOperation('NOT_FOUND', 'O ingresso informado não existe.', {
+      codeId: input.codeId,
+    });
   }
 
   if (code.event_id !== eventId) {

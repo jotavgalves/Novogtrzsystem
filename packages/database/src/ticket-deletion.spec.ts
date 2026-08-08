@@ -44,7 +44,9 @@ describe('ticket deletion', () => {
         capacity: 100,
       });
 
-      expect(deleteTicketLot(database, { lotId: lot.id, reason: 'Lote criado por engano' })).toEqual({
+      expect(
+        deleteTicketLot(database, { lotId: lot.id, reason: 'Lote criado por engano' }),
+      ).toEqual({
         success: true,
       });
       expect(getTicketState(database).lots.find((item) => item.id === lot.id)).toBeUndefined();
@@ -71,15 +73,17 @@ describe('ticket deletion', () => {
         paymentMethod: 'pix',
       });
 
-      expect(() =>
-        deleteTicketLot(database, { lotId: lot.id, reason: 'Remover lote' }),
-      ).toThrow('Este lote possui vendas ou cortesias registradas. Exclua esses registros primeiro.');
+      expect(() => deleteTicketLot(database, { lotId: lot.id, reason: 'Remover lote' })).toThrow(
+        'Este lote possui vendas ou cortesias registradas. Exclua esses registros primeiro.',
+      );
       expect(() =>
         deleteTicketSale(database, { saleId: sale.id, reason: 'Remover venda' }),
       ).toThrow('Cancele a venda antes de excluir definitivamente o registro.');
 
       cancelTicketSale(database, { saleId: sale.id, reason: 'Venda duplicada' });
-      expect(deleteTicketSale(database, { saleId: sale.id, reason: 'Limpar registro duplicado' })).toEqual({
+      expect(
+        deleteTicketSale(database, { saleId: sale.id, reason: 'Limpar registro duplicado' }),
+      ).toEqual({
         success: true,
       });
       expect(deleteTicketLot(database, { lotId: lot.id, reason: 'Lote de teste' })).toEqual({
@@ -119,7 +123,9 @@ describe('ticket deletion', () => {
         deleteTicketCode(database, { codeId: code.id, reason: 'Excluir código' }),
       ).toThrow('Cancele o ingresso antes de excluir definitivamente o código.');
       cancelTicketCode(database, { codeId: code.id, reason: 'Ingresso duplicado' });
-      expect(deleteTicketCode(database, { codeId: code.id, reason: 'Limpar código duplicado' })).toEqual({
+      expect(
+        deleteTicketCode(database, { codeId: code.id, reason: 'Limpar código duplicado' }),
+      ).toEqual({
         success: true,
       });
       const updatedSale = getTicketState(database).sales.find((item) => item.id === sale.id);

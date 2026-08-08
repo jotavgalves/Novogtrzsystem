@@ -155,10 +155,14 @@ describe('inventory database', () => {
     );
     deleteProduct(database, { productId, reason: 'Cadastro criado por engano' });
 
-    expect(getInventoryState(database).products.find((item) => item.id === productId)).toBeUndefined();
+    expect(
+      getInventoryState(database).products.find((item) => item.id === productId),
+    ).toBeUndefined();
     expect(
       database.sqlite
-        .prepare("SELECT COUNT(*) AS value FROM audit_log WHERE action = 'inventory.product-permanently-deleted' AND entity_id = ?")
+        .prepare(
+          "SELECT COUNT(*) AS value FROM audit_log WHERE action = 'inventory.product-permanently-deleted' AND entity_id = ?",
+        )
         .get(productId),
     ).toEqual({ value: 1 });
     database.close();

@@ -52,7 +52,9 @@ describe('voucher permanent deletion', () => {
       });
       deleteVoucher(database, { voucherId: voucher.id, reason: 'Emitido por engano' });
 
-      expect(getVoucherState(database).vouchers.find((item) => item.id === voucher.id)).toBeUndefined();
+      expect(
+        getVoucherState(database).vouchers.find((item) => item.id === voucher.id),
+      ).toBeUndefined();
       expect(
         database.sqlite
           .prepare('SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ?')

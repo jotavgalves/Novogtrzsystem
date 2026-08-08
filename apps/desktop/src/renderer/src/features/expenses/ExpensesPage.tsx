@@ -124,7 +124,11 @@ export function ExpensesPage(): React.JSX.Element {
             <div className="expense-status-filters" aria-label="Filtrar despesas por status">
               <button
                 aria-pressed={filter === 'all'}
-                className={filter === 'all' ? 'expense-filter expense-filter--all is-active' : 'expense-filter expense-filter--all'}
+                className={
+                  filter === 'all'
+                    ? 'expense-filter expense-filter--all is-active'
+                    : 'expense-filter expense-filter--all'
+                }
                 onClick={() => setFilter('all')}
                 type="button"
               >
@@ -132,7 +136,11 @@ export function ExpensesPage(): React.JSX.Element {
               </button>
               <button
                 aria-pressed={filter === 'open'}
-                className={filter === 'open' ? 'expense-filter expense-filter--open is-active' : 'expense-filter expense-filter--open'}
+                className={
+                  filter === 'open'
+                    ? 'expense-filter expense-filter--open is-active'
+                    : 'expense-filter expense-filter--open'
+                }
                 onClick={() => setFilter('open')}
                 type="button"
               >
@@ -140,7 +148,11 @@ export function ExpensesPage(): React.JSX.Element {
               </button>
               <button
                 aria-pressed={filter === 'partial'}
-                className={filter === 'partial' ? 'expense-filter expense-filter--partial is-active' : 'expense-filter expense-filter--partial'}
+                className={
+                  filter === 'partial'
+                    ? 'expense-filter expense-filter--partial is-active'
+                    : 'expense-filter expense-filter--partial'
+                }
                 onClick={() => setFilter('partial')}
                 type="button"
               >
@@ -148,7 +160,11 @@ export function ExpensesPage(): React.JSX.Element {
               </button>
               <button
                 aria-pressed={filter === 'paid'}
-                className={filter === 'paid' ? 'expense-filter expense-filter--paid is-active' : 'expense-filter expense-filter--paid'}
+                className={
+                  filter === 'paid'
+                    ? 'expense-filter expense-filter--paid is-active'
+                    : 'expense-filter expense-filter--paid'
+                }
                 onClick={() => setFilter('paid')}
                 type="button"
               >
@@ -156,7 +172,11 @@ export function ExpensesPage(): React.JSX.Element {
               </button>
               <button
                 aria-pressed={filter === 'cancelled'}
-                className={filter === 'cancelled' ? 'expense-filter expense-filter--cancelled is-active' : 'expense-filter expense-filter--cancelled'}
+                className={
+                  filter === 'cancelled'
+                    ? 'expense-filter expense-filter--cancelled is-active'
+                    : 'expense-filter expense-filter--cancelled'
+                }
                 onClick={() => setFilter('cancelled')}
                 type="button"
               >

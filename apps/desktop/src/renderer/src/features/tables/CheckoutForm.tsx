@@ -4,11 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CloseOrderInput, Order, PaymentMethod } from '@gtrz/contracts';
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@gtrz/domain';
 
-import {
-  type CheckoutMode,
-  type PaymentDraft,
-  validateCheckout,
-} from './checkout-validation';
+import { type CheckoutMode, type PaymentDraft, validateCheckout } from './checkout-validation';
 import { VoucherCheckout } from './VoucherCheckout';
 
 interface CheckoutFormProps {
@@ -217,7 +213,9 @@ export function CheckoutForm({
               <CreditCard size={17} aria-hidden="true" />
               <span>
                 <small>Valor aplicado automaticamente</small>
-                <strong>{formatCurrency(Math.max(checkout.totalCents - checkout.voucherCents, 0))}</strong>
+                <strong>
+                  {formatCurrency(Math.max(checkout.totalCents - checkout.voucherCents, 0))}
+                </strong>
               </span>
             </div>
           )}
@@ -345,7 +343,9 @@ export function CheckoutForm({
             <p className="form-error">Use no máximo uma linha de pagamento em dinheiro.</p>
           ) : null}
           {checkout.cashInvalid ? (
-            <p className="form-error">O dinheiro recebido não pode ser menor que o valor aplicado.</p>
+            <p className="form-error">
+              O dinheiro recebido não pode ser menor que o valor aplicado.
+            </p>
           ) : null}
 
           <button

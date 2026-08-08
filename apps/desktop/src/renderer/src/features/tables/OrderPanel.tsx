@@ -115,7 +115,11 @@ export function OrderPanel({
         ) : null}
       </article>
 
-      <section className={historyOpen ? 'order-history-drawer order-history-drawer--open' : 'order-history-drawer'}>
+      <section
+        className={
+          historyOpen ? 'order-history-drawer order-history-drawer--open' : 'order-history-drawer'
+        }
+      >
         <button
           aria-expanded={historyOpen}
           className="order-history-drawer__trigger"
