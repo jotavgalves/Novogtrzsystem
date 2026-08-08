@@ -14,6 +14,7 @@ import {
   createExpense,
   createInventoryProduct,
   createProductCategory,
+  createServicePoint,
   createVoucher,
   getCashState,
   getOperationState,
@@ -77,58 +78,73 @@ function createOrder(database: DatabaseContext, productId: string): string {
 describe('cash and expenses database', () => {
   it('concilia vendas por meio, voucher, despesas e movimentações físicas', async () => {
     const database = await createTemporaryDatabase();
-    createEvent(database, { name: 'Evento financeiro', startsAt: Date.now() });
-    const productId = seedProduct(database);
-    const voucher = createVoucher(database, {
-      code: 'FIN-001',
-      label: 'Crédito financeiro',
-      initialBalanceCents: 500,
-    });
-    openCashRegister(database, 1000);
 
-    closeOrder(database, {
-      orderId: createOrder(database, productId),
-      discountCents: 0,
-      payments: [{ method: 'cash', amountCents: 1000, receivedCents: 1500 }],
-    });
-    const voucherOrderId = createOrder(database, productId);
-    bindOrderVoucher(database, { orderId: voucherOrderId, code: voucher.code });
-    closeOrder(database, {
-      orderId: voucherOrderId,
-      discountCents: 0,
-      payments: [{ method: 'pix', amountCents: 500 }],
-      voucherUses: [{ code: voucher.code, amountCents: 500 }],
-    });
-    createExpense(database, {
-      category: 'Operação',
-      description: 'Gelo emergencial',
-      amountCents: 300,
-      paymentMethod: 'cash',
-    });
-    createExpense(database, {
-      category: 'Mídia',
-      description: 'Impulsionamento',
-      amountCents: 200,
-      paymentMethod: 'credit-card',
-    });
-    recordCashMovement(database, { type: 'supply', amountCents: 400, note: 'Troco' });
-    recordCashMovement(database, { type: 'withdrawal', amountCents: 250, note: 'Sangria' });
+    try {
+      createEvent(database, { name: 'Evento financeiro', startsAt: Date.now() });
+      const productId = seedProduct(database);
+      const voucherTable = createServicePoint(database, {
+        label: 'Mesa Financeiro',
+        type: 'table',
+      });
+      const voucher = createVoucher(database, {
+        code: 'FIN-001',
+        label: 'Crédito financeiro',
+        linkedServicePointId: voucherTable.id,
+        initialBalanceCents: 500,
+      });
+      openCashRegister(database, 1000);
 
-    expect(getCashState(database)).toMatchObject({
-      salesByMethod: {
-        cashCents: 1000,
-        pixCents: 500,
-        creditCardCents: 0,
-        debitCardCents: 0,
-        voucherCents: 500,
-      },
-      grossSalesCents: 2000,
-      activeExpensesCents: 500,
-      cashExpensesCents: 300,
-      expectedCashCents: 1850,
-      projectedResultCents: 1500,
-    });
-    database.close();
+      closeOrder(database, {
+        orderId: createOrder(database, productId),
+        discountCents: 0,
+        payments: [{ method: 'cash', amountCents: 1000, receivedCents: 1500 }],
+      });
+      const voucherOrder = openOrder(database, voucherTable.id);
+      const voucherOrderId = addOrderItem(database, {
+        orderId: voucherOrder.id,
+        itemKind: 'product',
+        itemId: productId,
+        quantity: 1,
+      }).id;
+      bindOrderVoucher(database, { orderId: voucherOrderId, code: voucher.code });
+      closeOrder(database, {
+        orderId: voucherOrderId,
+        discountCents: 0,
+        payments: [{ method: 'pix', amountCents: 500 }],
+        voucherUses: [{ code: voucher.code, amountCents: 500 }],
+      });
+      createExpense(database, {
+        category: 'Operação',
+        description: 'Gelo emergencial',
+        amountCents: 300,
+        paymentMethod: 'cash',
+      });
+      createExpense(database, {
+        category: 'Mídia',
+        description: 'Impulsionamento',
+        amountCents: 200,
+        paymentMethod: 'credit-card',
+      });
+      recordCashMovement(database, { type: 'supply', amountCents: 400, note: 'Troco' });
+      recordCashMovement(database, { type: 'withdrawal', amountCents: 250, note: 'Sangria' });
+
+      expect(getCashState(database)).toMatchObject({
+        salesByMethod: {
+          cashCents: 1000,
+          pixCents: 500,
+          creditCardCents: 0,
+          debitCardCents: 0,
+          voucherCents: 500,
+        },
+        grossSalesCents: 2000,
+        activeExpensesCents: 500,
+        cashExpensesCents: 300,
+        expectedCashCents: 1850,
+        projectedResultCents: 1500,
+      });
+    } finally {
+      database.close();
+    }
   });
 
   it('fecha com diferença e preserva os valores apurados', async () => {
