@@ -120,7 +120,7 @@ export function CheckoutForm({
         </small>
         {checkout.overpaidCents > 0 ? (
           <small className="checkout-warning">
-            O valor informado supera o total em {formatCurrency(checkout.overpaidCents)}.
+            Os pagamentos sem dinheiro superam o total em {formatCurrency(checkout.overpaidCents)}.
           </small>
         ) : null}
       </div>
@@ -140,11 +140,12 @@ export function CheckoutForm({
 
       <div className="payment-list">
         {payments.map((payment, index) => {
-          const amountCents = parseCurrencyInput(payment.amount);
           const receivedCents = parseCurrencyInput(payment.received);
-          const changeCents = Math.max(receivedCents - amountCents, 0);
           const receivedIsInsufficient =
-            payment.method === 'cash' && receivedCents > 0 && receivedCents < amountCents;
+            payment.method === 'cash' &&
+            checkout.cashAppliedCents > 0 &&
+            receivedCents > 0 &&
+            receivedCents < checkout.cashAppliedCents;
 
           return (
             <div className="payment-row" key={payment.id}>
@@ -154,6 +155,7 @@ export function CheckoutForm({
                 onChange={(event) => {
                   updatePayment(payment.id, {
                     method: event.target.value as PaymentMethod,
+                    amount: '',
                     received: '',
                   });
                 }}
@@ -165,16 +167,25 @@ export function CheckoutForm({
                   </option>
                 ))}
               </select>
-              <input
-                aria-label={`Valor do pagamento ${String(index + 1)}`}
-                disabled={busy}
-                inputMode="decimal"
-                onChange={(event) => {
-                  updatePayment(payment.id, { amount: event.target.value });
-                }}
-                placeholder="Valor aplicado"
-                value={payment.amount}
-              />
+
+              {payment.method === 'cash' ? (
+                <div className="payment-row__applied">
+                  <small>Aplicado automaticamente</small>
+                  <strong>{formatCurrency(checkout.cashAppliedCents)}</strong>
+                </div>
+              ) : (
+                <input
+                  aria-label={`Valor do pagamento ${String(index + 1)}`}
+                  disabled={busy}
+                  inputMode="decimal"
+                  onChange={(event) => {
+                    updatePayment(payment.id, { amount: event.target.value });
+                  }}
+                  placeholder="Valor aplicado"
+                  value={payment.amount}
+                />
+              )}
+
               {payment.method === 'cash' ? (
                 <div className="cash-received-field">
                   <input
@@ -185,13 +196,13 @@ export function CheckoutForm({
                     onChange={(event) => {
                       updatePayment(payment.id, { received: event.target.value });
                     }}
-                    placeholder="Valor recebido"
+                    placeholder="Dinheiro recebido"
                     value={payment.received}
                   />
                   <small className={receivedIsInsufficient ? 'checkout-warning' : undefined}>
                     {receivedIsInsufficient
-                      ? `Faltam ${formatCurrency(amountCents - receivedCents)}`
-                      : `Troco: ${formatCurrency(changeCents)}`}
+                      ? `Faltam ${formatCurrency(checkout.cashAppliedCents - receivedCents)}`
+                      : `Troco: ${formatCurrency(checkout.totalChangeCents)}`}
                   </small>
                 </div>
               ) : (
@@ -216,6 +227,15 @@ export function CheckoutForm({
         })}
       </div>
 
+      {checkout.paymentConfigurationInvalid ? (
+        <p className="form-error">Use no máximo uma linha de pagamento em dinheiro.</p>
+      ) : null}
+      {checkout.cashInvalid && checkout.cashAppliedCents > 0 ? (
+        <p className="form-error">
+          Informe quanto o cliente entregou em dinheiro para calcular o troco.
+        </p>
+      ) : null}
+
       {checkout.totalChangeCents > 0 ? (
         <div className="checkout-change" role="status">
           <span>Troco a entregar</span>
@@ -235,7 +255,7 @@ export function CheckoutForm({
           <Plus size={16} aria-hidden="true" />
           Adicionar pagamento
         </button>
-        <button className="button" disabled={!checkout.canSubmit} type="submit">
+        <button className="button button--success" disabled={!checkout.canSubmit} type="submit">
           Concluir venda
         </button>
       </div>
