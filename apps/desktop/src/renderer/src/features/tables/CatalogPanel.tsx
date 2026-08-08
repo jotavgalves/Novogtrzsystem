@@ -74,9 +74,11 @@ export function CatalogPanel({ items, onAdd }: CatalogPanelProps): React.JSX.Ele
                 }
 
                 setPendingKey(key);
-                void onAdd(item).finally(() => {
-                  setPendingKey(null);
-                });
+                void onAdd(item)
+                  .catch(() => undefined)
+                  .finally(() => {
+                    setPendingKey(null);
+                  });
               }}
               type="button"
             >
