@@ -93,6 +93,16 @@ test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o est
       .filter({ hasText: productName });
     await expect(tableHistory).toContainText('Paga');
 
+    await window.getByRole('button', { name: 'Usar perfil Caixa' }).click();
+    await expect(window.getByText('Caixa', { exact: true })).toBeVisible();
+    await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
+    await expect(tableHistory).toContainText('Paga');
+    await expect(tableHistory.getByRole('button', { name: 'Estornar venda' })).toHaveCount(0);
+
+    await window.getByPlaceholder('Digite a senha').fill('121225');
+    await window.getByRole('button', { name: 'Entrar em Produção' }).click();
+    await expect(window.getByText('Produção', { exact: true })).toBeVisible();
+
     await window.getByRole('link', { name: 'Estoque' }).click();
     productCard = window.locator('article.inventory-card').filter({ hasText: productName });
     await expect(productCard.getByText('4 un.', { exact: true })).toBeVisible();
