@@ -1,5 +1,5 @@
 import { CreditCard, RefreshCw, TicketCheck, TriangleAlert } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { formatCurrency } from '@gtrz/domain';
 
@@ -23,14 +23,8 @@ export function VouchersPage(): React.JSX.Element {
   } = useVouchers();
   const [showDeleted, setShowDeleted] = useState(false);
   const vouchers = state?.vouchers ?? [];
-  const operationalVouchers = useMemo(
-    () => vouchers.filter((voucher) => voucher.status !== 'cancelled'),
-    [vouchers],
-  );
-  const deletedVouchers = useMemo(
-    () => vouchers.filter((voucher) => voucher.status === 'cancelled'),
-    [vouchers],
-  );
+  const operationalVouchers = vouchers.filter((voucher) => voucher.status !== 'cancelled');
+  const deletedVouchers = vouchers.filter((voucher) => voucher.status === 'cancelled');
   const visibleVouchers = showDeleted ? deletedVouchers : operationalVouchers;
   const activeBalanceCents = operationalVouchers.reduce(
     (total, voucher) => total + voucher.remainingBalanceCents,
@@ -106,7 +100,9 @@ export function VouchersPage(): React.JSX.Element {
               className={
                 !showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
               }
-              onClick={() => setShowDeleted(false)}
+              onClick={() => {
+                setShowDeleted(false);
+              }}
               type="button"
             >
               <CreditCard size={16} aria-hidden="true" />
@@ -117,7 +113,9 @@ export function VouchersPage(): React.JSX.Element {
               className={
                 showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
               }
-              onClick={() => setShowDeleted(true)}
+              onClick={() => {
+                setShowDeleted(true);
+              }}
               type="button"
             >
               <TicketCheck size={16} aria-hidden="true" />
