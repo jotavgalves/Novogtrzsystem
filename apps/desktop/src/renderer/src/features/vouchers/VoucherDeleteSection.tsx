@@ -27,7 +27,7 @@ export function VoucherDeleteSection({
   if (preview === null) {
     return (
       <button
-        className="button button--ghost button--compact"
+        className="button button--danger button--compact"
         disabled={busy}
         onClick={() => {
           void onPreviewDelete(voucher.id).then(setPreview);
@@ -57,6 +57,19 @@ export function VoucherDeleteSection({
         });
       }}
     >
+      <div className="voucher-delete-mode">
+        <strong>
+          {preview.deletionMode === 'permanent'
+            ? 'Este voucher será apagado definitivamente'
+            : 'Este voucher já possui histórico e será excluído da operação'}
+        </strong>
+        <small>
+          {preview.deletionMode === 'permanent'
+            ? 'Ele nunca foi utilizado em venda e seus registros de emissão serão removidos junto com o cadastro.'
+            : 'As vendas afetadas serão estornadas, estoque e saldo serão recompostos e o voucher ficará somente no histórico de excluídos.'}
+        </small>
+      </div>
+
       <div className="voucher-card__impact">
         <span>
           Saldo restante <strong>{formatCurrency(preview.remainingBalanceCents)}</strong>
@@ -65,7 +78,10 @@ export function VoucherDeleteSection({
           Comandas pagas afetadas <strong>{preview.paidOrders}</strong>
         </span>
         <span>
-          Alocações abertas <strong>{preview.openAllocations}</strong>
+          Alocações históricas <strong>{preview.allAllocations}</strong>
+        </span>
+        <span>
+          Movimentos históricos <strong>{preview.historicalTransactions}</strong>
         </span>
         <span>
           Receita das vendas afetadas{' '}
@@ -126,7 +142,7 @@ export function VoucherDeleteSection({
           type="submit"
         >
           <Trash2 size={15} aria-hidden="true" />
-          Confirmar exclusão
+          {preview.deletionMode === 'permanent' ? 'Excluir definitivamente' : 'Excluir e estornar'}
         </button>
         <button
           className="button button--secondary button--compact"
