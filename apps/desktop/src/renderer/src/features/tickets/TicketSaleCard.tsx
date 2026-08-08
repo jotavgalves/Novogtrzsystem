@@ -226,7 +226,9 @@ export function TicketSaleCard({
             <input
               disabled={busy}
               maxLength={240}
-              onChange={(event) => setDeleteReason(event.target.value)}
+              onChange={(event) => {
+                setDeleteReason(event.target.value);
+              }}
               placeholder="Motivo da exclusão definitiva"
               value={deleteReason}
             />
