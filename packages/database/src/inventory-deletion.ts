@@ -11,14 +11,18 @@ export interface DatabaseProductDeletePreview {
   readonly name: string;
   readonly active: boolean;
   readonly activeEventStockQuantity: number;
+  readonly totalStockQuantity: number;
   readonly dependentCombos: readonly string[];
   readonly historicalSales: number;
   readonly stockMovements: number;
+  readonly stockTransfers: number;
+  readonly deletionMode: 'permanent' | 'archive';
 }
 
 interface DependentComboRow {
   readonly id: string;
   readonly name: string;
+  readonly active: number;
 }
 
 function requireProduction(database: DatabaseContext): void {
@@ -27,16 +31,16 @@ function requireProduction(database: DatabaseContext): void {
   }
 }
 
-function listActiveDependentCombos(
+function listDependentCombos(
   database: DatabaseContext,
   productId: string,
 ): readonly DependentComboRow[] {
   return database.sqlite
     .prepare(
-      `SELECT c.id, c.name
+      `SELECT c.id, c.name, c.active
        FROM combo_components cc
        INNER JOIN combos c ON c.id = cc.combo_id
-       WHERE cc.product_id = ? AND c.active = 1
+       WHERE cc.product_id = ?
        ORDER BY c.name COLLATE NOCASE`,
     )
     .all(productId) as DependentComboRow[];
@@ -61,7 +65,10 @@ export function previewDeleteProduct(
   const stock = database.sqlite
     .prepare('SELECT quantity FROM event_stock WHERE event_id = ? AND product_id = ?')
     .get(activeEventId, product.id) as { readonly quantity: number } | undefined;
-  const combos = listActiveDependentCombos(database, product.id);
+  const totalStock = database.sqlite
+    .prepare('SELECT COALESCE(SUM(quantity), 0) AS value FROM event_stock WHERE product_id = ?')
+    .get(product.id) as { readonly value: number };
+  const combos = listDependentCombos(database, product.id);
   const sales = database.sqlite
     .prepare(
       `SELECT COUNT(*) AS value
@@ -72,15 +79,29 @@ export function previewDeleteProduct(
   const movements = database.sqlite
     .prepare('SELECT COUNT(*) AS value FROM stock_movements WHERE product_id = ?')
     .get(product.id) as { readonly value: number };
+  const transfers = database.sqlite
+    .prepare('SELECT COUNT(*) AS value FROM stock_transfers WHERE product_id = ?')
+    .get(product.id) as { readonly value: number };
+  const deletionMode =
+    totalStock.value === 0 &&
+    sales.value === 0 &&
+    movements.value === 0 &&
+    transfers.value === 0 &&
+    combos.length === 0
+      ? 'permanent'
+      : 'archive';
 
   return {
     productId: product.id,
     name: product.name,
     active: product.active === 1,
     activeEventStockQuantity: stock?.quantity ?? 0,
+    totalStockQuantity: totalStock.value,
     dependentCombos: combos.map((combo) => combo.name),
     historicalSales: sales.value,
     stockMovements: movements.value,
+    stockTransfers: transfers.value,
+    deletionMode,
   };
 }
 
@@ -89,16 +110,41 @@ export function deleteProduct(
   input: { readonly productId: string; readonly reason: string },
 ): DatabaseInventoryProduct {
   const preview = previewDeleteProduct(database, input);
-
-  if (!preview.active) {
-    throw new Error('Este produto já está inativo.');
-  }
-
   const reason = requireOperationReason(input.reason);
-  const dependentCombos = listActiveDependentCombos(database, preview.productId);
   const activeEventId = getSessionState(database).activeEvent?.id ?? null;
+  const beforeProduct = getProduct(database, preview.productId, activeEventId);
   const correlationId = randomUUID();
   const now = Date.now();
+
+  if (preview.deletionMode === 'permanent') {
+    database.sqlite.transaction(() => {
+      database.sqlite
+        .prepare('DELETE FROM event_stock WHERE product_id = ?')
+        .run(preview.productId);
+      database.sqlite.prepare('DELETE FROM products WHERE id = ?').run(preview.productId);
+      appendAudit(database, {
+        action: 'inventory.product-permanently-deleted',
+        entityType: 'product',
+        entityId: preview.productId,
+        eventId: activeEventId,
+        correlationId,
+        details: { reason },
+        before: beforeProduct,
+        after: null,
+        impact: preview,
+      });
+    })();
+
+    return { ...beforeProduct, active: false };
+  }
+
+  if (!preview.active) {
+    throw new Error('Este produto já está arquivado.');
+  }
+
+  const dependentCombos = listDependentCombos(database, preview.productId).filter(
+    (combo) => combo.active === 1,
+  );
 
   database.sqlite.transaction(() => {
     for (const combo of dependentCombos) {
@@ -126,7 +172,7 @@ export function deleteProduct(
       .prepare('UPDATE products SET active = 0, updated_at = ? WHERE id = ?')
       .run(now, preview.productId);
     appendAudit(database, {
-      action: 'inventory.product-deleted',
+      action: 'inventory.product-archived',
       entityType: 'product',
       entityId: preview.productId,
       eventId: activeEventId,

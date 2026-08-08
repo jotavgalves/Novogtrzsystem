@@ -19,7 +19,7 @@ async function ensureProduction(window: Page): Promise<void> {
   }
 }
 
-test('SMK-FIN-001 — concilia despesa, suprimento e diferença de caixa', async () => {
+test('SMK-FIN-001 — acompanha despesa aberta, parcial, paga e concilia caixa', async () => {
   const electronApplication = await electron.launch({ args: [applicationPath] });
 
   try {
@@ -28,6 +28,7 @@ test('SMK-FIN-001 — concilia despesa, suprimento e diferença de caixa', async
     await ensureProduction(window);
     const suffix = String(Date.now());
     const eventName = `Evento financeiro ${suffix}`;
+    const expenseName = `Compra de gelo ${suffix.slice(-5)}`;
 
     await window.getByRole('link', { name: 'Eventos' }).click();
     await window.getByPlaceholder('Ex.: La Rumba Neon — Agosto').fill(eventName);
@@ -48,13 +49,33 @@ test('SMK-FIN-001 — concilia despesa, suprimento e diferença de caixa', async
 
     await window.getByRole('link', { name: 'Despesas' }).click();
     await window.getByPlaceholder('Ex.: Estrutura').fill('Operação');
-    await window.getByPlaceholder('Ex.: Locação de gerador').fill('Compra de gelo');
+    await window.getByPlaceholder('Ex.: Locação de gerador').fill(expenseName);
     await window.getByLabel('Valor total').fill('20,00');
-    await window.getByLabel('Pago agora').fill('20,00');
-    await window.getByLabel('Forma de pagamento').selectOption('cash');
     await window.getByRole('button', { name: 'Registrar despesa' }).click();
     await expect(window.getByText('Despesa registrada.')).toBeVisible();
-    await expect(window.getByText('R$ 20,00', { exact: true }).first()).toBeVisible();
+
+    let expenseCard = window.locator('article.expense-card').filter({ hasText: expenseName });
+    await expect(expenseCard.locator('.expense-status--open')).toHaveText('Em aberto');
+    await expect(window.getByRole('button', { name: /Em aberto/u })).toContainText('1');
+    await expect(expenseCard.getByRole('button', { name: 'Gerenciar' })).toBeVisible();
+    await expect(expenseCard.getByText('Pagar parcela')).toHaveCount(0);
+    await expenseCard.getByRole('button', { name: 'Gerenciar' }).click();
+
+    await expenseCard.getByLabel('Pagar parcela').fill('10,00');
+    await expenseCard.getByLabel('Forma').selectOption('cash');
+    await expenseCard.getByRole('button', { name: 'Registrar pagamento' }).click();
+    await expect(window.getByText('Pagamento de despesa registrado.')).toBeVisible();
+
+    expenseCard = window.locator('article.expense-card').filter({ hasText: expenseName });
+    await expect(expenseCard.locator('.expense-status--partial')).toHaveText('Parcial');
+    await expect(window.getByRole('button', { name: /Parcial/u })).toContainText('1');
+    await expenseCard.getByLabel('Pagar parcela').fill('10,00');
+    await expenseCard.getByRole('button', { name: 'Registrar pagamento' }).click();
+    await expect(window.getByText('Pagamento de despesa registrado.')).toBeVisible();
+
+    expenseCard = window.locator('article.expense-card').filter({ hasText: expenseName });
+    await expect(expenseCard.locator('.expense-status--paid')).toHaveText('Pago');
+    await expect(window.getByRole('button', { name: /Pago/u })).toContainText('1');
 
     await window.getByRole('link', { name: 'Caixa' }).click();
     await expect(window.getByText('R$ 80,00', { exact: true }).first()).toBeVisible();

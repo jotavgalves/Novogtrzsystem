@@ -1,0 +1,209 @@
+.expense-list-column {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.expense-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.expense-filter {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.expense-filter strong {
+  min-width: 1.35rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 6%);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.expense-filter--open {
+  border-color: rgb(239 68 68 / 35%);
+  color: rgb(252 165 165);
+}
+
+.expense-filter--partial {
+  border-color: rgb(234 179 8 / 38%);
+  color: rgb(253 224 71);
+}
+
+.expense-filter--paid {
+  border-color: rgb(34 197 94 / 38%);
+  color: rgb(134 239 172);
+}
+
+.expense-filter--cancelled {
+  color: var(--color-text-muted);
+}
+
+.expense-filter.is-active {
+  box-shadow: inset 0 0 0 1px currentColor;
+  background: var(--color-surface);
+}
+
+.expense-card {
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.expense-card__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(9rem, 0.65fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.expense-card__summary .expense-card__header {
+  align-items: flex-start;
+}
+
+.expense-card__summary .expense-card__value {
+  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.expense-card__summary .expense-card__value > strong {
+  font-size: 1.05rem;
+}
+
+.expense-card__progress {
+  display: flex;
+  grid-column: 1 / 3;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+.expense-card__progress strong {
+  margin-left: var(--space-1);
+  color: var(--color-text);
+}
+
+.expense-card__manage {
+  display: inline-flex;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.expense-card__manage > svg:last-child {
+  transition: transform var(--transition-fast);
+}
+
+.expense-card--expanded .expense-card__manage > svg:last-child {
+  transform: rotate(180deg);
+}
+
+.expense-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.expense-status {
+  display: inline-flex;
+  min-height: 1.7rem;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.expense-status--open {
+  border-color: rgb(239 68 68 / 35%);
+  background: rgb(127 29 29 / 20%);
+  color: rgb(252 165 165);
+}
+
+.expense-status--partial {
+  border-color: rgb(234 179 8 / 38%);
+  background: rgb(113 63 18 / 20%);
+  color: rgb(253 224 71);
+}
+
+.expense-status--paid {
+  border-color: rgb(34 197 94 / 38%);
+  background: rgb(20 83 45 / 24%);
+  color: rgb(134 239 172);
+}
+
+.expense-status--cancelled {
+  border-color: var(--color-border);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 900px) {
+  .expense-card__summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .expense-card__summary .expense-card__value {
+    grid-column: 1;
+    align-items: flex-start;
+  }
+
+  .expense-card__progress {
+    grid-column: 1;
+  }
+
+  .expense-card__manage {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
+}
+
+@media (max-width: 620px) {
+  .expense-card__summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .expense-card__manage,
+  .expense-card__summary .expense-card__value,
+  .expense-card__progress {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .expense-card__manage {
+    width: 100%;
+  }
+}

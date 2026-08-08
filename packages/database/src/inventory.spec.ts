@@ -136,40 +136,69 @@ describe('inventory database', () => {
     database.close();
   });
 
-  it('exclui produto logicamente sem alterar estoque ou razão', async () => {
+  it('exclui definitivamente produto sem histórico, estoque ou dependências', async () => {
     const database = await createTemporaryDatabase();
-    createEvent(database, { name: 'Evento exclusão produto', startsAt: Date.now() });
+    createEvent(database, { name: 'Evento exclusão física', startsAt: Date.now() });
+    const { productId } = createCatalog(database);
+
+    expect(previewDeleteProduct(database, { productId })).toMatchObject({
+      productId,
+      totalStockQuantity: 0,
+      historicalSales: 0,
+      stockMovements: 0,
+      stockTransfers: 0,
+      dependentCombos: [],
+      deletionMode: 'permanent',
+    });
+    expect(() => deleteProduct(database, { productId, reason: '  ' })).toThrow(
+      'Informe uma justificativa com pelo menos 3 caracteres.',
+    );
+    deleteProduct(database, { productId, reason: 'Cadastro criado por engano' });
+
+    expect(
+      getInventoryState(database).products.find((item) => item.id === productId),
+    ).toBeUndefined();
+    expect(
+      database.sqlite
+        .prepare(
+          "SELECT COUNT(*) AS value FROM audit_log WHERE action = 'inventory.product-permanently-deleted' AND entity_id = ?",
+        )
+        .get(productId),
+    ).toEqual({ value: 1 });
+    database.close();
+  });
+
+  it('arquiva produto com histórico sem alterar estoque ou razão', async () => {
+    const database = await createTemporaryDatabase();
+    createEvent(database, { name: 'Evento arquivamento produto', startsAt: Date.now() });
     const { productId } = createCatalog(database);
     recordStockMovement(database, { productId, type: 'purchase', quantity: 4 });
 
     expect(previewDeleteProduct(database, { productId })).toMatchObject({
       productId,
       activeEventStockQuantity: 4,
+      totalStockQuantity: 4,
       historicalSales: 0,
       stockMovements: 1,
+      stockTransfers: 0,
+      deletionMode: 'archive',
     });
-    expect(() => deleteProduct(database, { productId, reason: '  ' })).toThrow(
-      'Informe uma justificativa com pelo menos 3 caracteres.',
-    );
-    const deleted = deleteProduct(database, {
+    const archived = deleteProduct(database, {
       productId,
       reason: 'Produto fora de catálogo',
     });
 
-    expect(deleted).toMatchObject({ active: false, quantity: 4 });
+    expect(archived).toMatchObject({ active: false, quantity: 4 });
     expect(
       getInventoryState(database).products.find((item) => item.id === productId),
-    ).toMatchObject({
-      active: false,
-      quantity: 4,
-    });
+    ).toMatchObject({ active: false, quantity: 4 });
     expect(() => deleteProduct(database, { productId, reason: 'Excluir novamente' })).toThrow(
-      'Este produto já está inativo.',
+      'Este produto já está arquivado.',
     );
     database.close();
   });
 
-  it('desativa combos dependentes na mesma transação e correlação da exclusão do produto', async () => {
+  it('desativa combos dependentes na mesma transação e correlação do arquivamento do produto', async () => {
     const database = await createTemporaryDatabase();
     createEvent(database, { name: 'Evento dependência combo', startsAt: Date.now() });
     const { productId } = createCatalog(database);
@@ -179,9 +208,10 @@ describe('inventory database', () => {
       components: [{ productId, quantity: 2 }],
     });
 
-    expect(previewDeleteProduct(database, { productId }).dependentCombos).toEqual([
-      'Combo dependente',
-    ]);
+    expect(previewDeleteProduct(database, { productId })).toMatchObject({
+      dependentCombos: ['Combo dependente'],
+      deletionMode: 'archive',
+    });
     deleteProduct(database, {
       productId,
       reason: 'Produto descontinuado',
@@ -195,7 +225,7 @@ describe('inventory database', () => {
       .prepare(
         `SELECT action, entity_id, correlation_id
          FROM audit_log
-         WHERE action IN ('combo.deactivated-by-product-deletion', 'inventory.product-deleted')
+         WHERE action IN ('combo.deactivated-by-product-deletion', 'inventory.product-archived')
          ORDER BY id`,
       )
       .all() as {
@@ -205,7 +235,7 @@ describe('inventory database', () => {
     }[];
     expect(auditRows.map(({ action, entity_id }) => ({ action, entity_id }))).toEqual([
       { action: 'combo.deactivated-by-product-deletion', entity_id: combo.id },
-      { action: 'inventory.product-deleted', entity_id: productId },
+      { action: 'inventory.product-archived', entity_id: productId },
     ]);
     expect(auditRows[0]?.correlation_id).not.toBeNull();
     expect(new Set(auditRows.map((row) => row.correlation_id)).size).toBe(1);

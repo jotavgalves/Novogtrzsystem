@@ -1,10 +1,10 @@
-import { RefreshCw, Ticket, TriangleAlert } from 'lucide-react';
+import { CreditCard, RefreshCw, TicketCheck, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
 
 import { formatCurrency } from '@gtrz/domain';
 
 import { VoucherCard } from './VoucherCard';
 import { VoucherForm } from './VoucherForm';
-import { VoucherHistory } from './VoucherHistory';
 import { useVouchers } from './useVouchers';
 
 export function VouchersPage(): React.JSX.Element {
@@ -21,12 +21,17 @@ export function VouchersPage(): React.JSX.Element {
     deleteVoucher,
     changeStatus,
   } = useVouchers();
+  const [showDeleted, setShowDeleted] = useState(false);
   const vouchers = state?.vouchers ?? [];
-  const transactions = state?.transactions ?? [];
-  const activeVouchers = vouchers.filter((voucher) => voucher.status === 'active');
-  const cancelledVouchers = vouchers.filter((voucher) => voucher.status === 'cancelled');
-  const availableCents = activeVouchers.reduce(
+  const operationalVouchers = vouchers.filter((voucher) => voucher.status !== 'cancelled');
+  const deletedVouchers = vouchers.filter((voucher) => voucher.status === 'cancelled');
+  const visibleVouchers = showDeleted ? deletedVouchers : operationalVouchers;
+  const activeBalanceCents = operationalVouchers.reduce(
     (total, voucher) => total + voucher.remainingBalanceCents,
+    0,
+  );
+  const usedBalanceCents = operationalVouchers.reduce(
+    (total, voucher) => total + (voucher.initialBalanceCents - voucher.remainingBalanceCents),
     0,
   );
   const initialLoading = loading && state === null;
@@ -35,9 +40,9 @@ export function VouchersPage(): React.JSX.Element {
     <section className="feature-page">
       <header className="feature-header">
         <div>
-          <span className="eyebrow">Crédito controlado por evento</span>
+          <span className="eyebrow">Créditos vinculados às mesas</span>
           <h1>Vouchers</h1>
-          <p>Emita créditos, acompanhe saldos individuais e audite cada uso ou restituição.</p>
+          <p>Emita, use e exclua créditos sem permitir o mesmo voucher em duas mesas.</p>
         </div>
         <button
           className="button button--secondary"
@@ -54,20 +59,20 @@ export function VouchersPage(): React.JSX.Element {
 
       <div className="summary-grid summary-grid--compact">
         <article className="summary-card">
-          <span>Vouchers ativos</span>
-          <strong>{activeVouchers.length}</strong>
+          <span>Vouchers operacionais</span>
+          <strong>{operationalVouchers.length}</strong>
+        </article>
+        <article className="summary-card">
+          <span>Saldo disponível</span>
+          <strong>{formatCurrency(activeBalanceCents)}</strong>
+        </article>
+        <article className="summary-card">
+          <span>Saldo já usado</span>
+          <strong>{formatCurrency(usedBalanceCents)}</strong>
         </article>
         <article className="summary-card summary-card--accent">
-          <span>Saldo disponível</span>
-          <strong>{formatCurrency(availableCents)}</strong>
-        </article>
-        <article className="summary-card">
-          <span>Cancelados</span>
-          <strong>{cancelledVouchers.length}</strong>
-        </article>
-        <article className="summary-card">
-          <span>Movimentações</span>
-          <strong>{transactions.length}</strong>
+          <span>Excluídos no histórico</span>
+          <strong>{deletedVouchers.length}</strong>
         </article>
       </div>
 
@@ -76,7 +81,7 @@ export function VouchersPage(): React.JSX.Element {
       {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
-          <span>Selecione um evento aberto antes de emitir vouchers.</span>
+          <span>Selecione um evento aberto antes de administrar vouchers.</span>
         </div>
       ) : null}
 
@@ -84,22 +89,56 @@ export function VouchersPage(): React.JSX.Element {
       {message === null ? null : <p className="form-success">{message}</p>}
 
       {state?.activeEventId !== null && state !== null ? (
-        <div className="voucher-layout">
+        <>
           <article className="panel">
             <VoucherForm busy={busy} onSubmit={createVoucher} servicePoints={state.servicePoints} />
           </article>
+
+          <div className="voucher-view-toggle">
+            <button
+              aria-pressed={!showDeleted}
+              className={
+                !showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
+              }
+              onClick={() => {
+                setShowDeleted(false);
+              }}
+              type="button"
+            >
+              <CreditCard size={16} aria-hidden="true" />
+              Operacionais ({operationalVouchers.length})
+            </button>
+            <button
+              aria-pressed={showDeleted}
+              className={
+                showDeleted ? 'button button--secondary is-active' : 'button button--ghost'
+              }
+              onClick={() => {
+                setShowDeleted(true);
+              }}
+              type="button"
+            >
+              <TicketCheck size={16} aria-hidden="true" />
+              Excluídos ({deletedVouchers.length})
+            </button>
+          </div>
+
           <div className="voucher-list" aria-live="polite">
             {loading && vouchers.length === 0 ? (
               <div className="route-state">Carregando vouchers…</div>
             ) : null}
-            {!loading && vouchers.length === 0 ? (
+            {!loading && visibleVouchers.length === 0 ? (
               <div className="empty-state">
-                <Ticket size={32} aria-hidden="true" />
-                <h2>Nenhum voucher emitido</h2>
-                <p>Emita o primeiro crédito para o evento ativo.</p>
+                <CreditCard size={32} aria-hidden="true" />
+                <h2>{showDeleted ? 'Nenhum voucher excluído' : 'Nenhum voucher operacional'}</h2>
+                <p>
+                  {showDeleted
+                    ? 'Vouchers nunca utilizados podem ser apagados definitivamente e não aparecem aqui.'
+                    : 'Emita o primeiro voucher para uma mesa do evento.'}
+                </p>
               </div>
             ) : null}
-            {vouchers.map((voucher) => (
+            {visibleVouchers.map((voucher) => (
               <VoucherCard
                 busy={busy}
                 key={voucher.id}
@@ -112,11 +151,7 @@ export function VouchersPage(): React.JSX.Element {
               />
             ))}
           </div>
-        </div>
-      ) : null}
-
-      {state?.activeEventId !== null && state !== null ? (
-        <VoucherHistory transactions={transactions} />
+        </>
       ) : null}
     </section>
   );

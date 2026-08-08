@@ -77,6 +77,11 @@
   gap: var(--space-3);
 }
 
+.ticket-lot-card__actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
 .ticket-lot-card__header > span:first-child,
 .ticket-sale-card__header > span:first-child {
   display: flex;
@@ -146,7 +151,8 @@
   gap: var(--space-2);
 }
 
-.ticket-lot-edit input {
+.ticket-lot-edit input,
+.ticket-delete-form input {
   width: 100%;
   min-width: 0;
   min-height: 2.75rem;
@@ -158,13 +164,31 @@
   color: var(--color-text);
 }
 
-.ticket-lot-edit input:focus {
+.ticket-lot-edit input:focus,
+.ticket-delete-form input:focus {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 .ticket-lot-edit .button {
   min-height: 2.75rem;
+}
+
+.ticket-delete-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid rgb(239 68 68 / 28%);
+  border-radius: var(--radius-md);
+  background: rgb(127 29 29 / 10%);
+}
+
+.ticket-delete-form p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 .ticket-code-list {
@@ -181,7 +205,7 @@
 }
 
 .ticket-code-control--cancelled {
-  opacity: 0.64;
+  opacity: 0.78;
 }
 
 .ticket-code-control > input {
@@ -230,6 +254,10 @@
 
 .ticket-sale-cancel > .button {
   min-height: 2.75rem;
+}
+
+.ticket-sale-delete {
+  border-top-color: rgb(239 68 68 / 30%);
 }
 
 @media (max-width: 1180px) {

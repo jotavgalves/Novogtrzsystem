@@ -49,7 +49,7 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     await productForm.getByRole('button', { name: 'Cadastrar produto' }).click();
 
     let productCard = window.locator('article.inventory-card').filter({ hasText: productName });
-    await productCard.getByRole('button', { name: 'Movimentar' }).click();
+    await productCard.getByRole('button', { name: 'Entrada / ajuste' }).click();
     const movementForm = window.locator('form.movement-form');
     await movementForm.getByLabel('Quantidade', { exact: true }).fill('5');
     await movementForm.getByRole('button', { name: 'Registrar movimento' }).click();
@@ -79,7 +79,9 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
 
     await tableButton.click();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
-    await expect(window.getByText('Esta mesa ainda não possui vendas concluídas.')).toBeVisible();
+    const historyDrawer = window.getByRole('button', { name: /Histórico da mesa/u });
+    await expect(historyDrawer).toHaveAttribute('aria-expanded', 'false');
+    await expect(window.locator('article.recent-orders-panel--compact')).toHaveCount(0);
 
     await expect(catalogItem()).toContainText('5 disponíveis nesta mesa');
     await catalogItem().click();
@@ -106,15 +108,20 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     await expect(catalogItem()).toContainText('4 disponíveis nesta mesa');
 
     await expect(window.locator('.checkout-form')).toBeVisible();
-    await expect(window.getByText('Aplicado automaticamente')).toBeVisible();
-    await expect(window.getByLabel('Valor recebido 1')).toBeVisible();
-    await window.getByLabel('Valor recebido 1').fill('20.00');
+    await expect(window.getByRole('button', { name: 'Pagamento misto' })).toBeVisible();
+    const finishSale = window.getByRole('button', { name: 'Concluir venda' });
+    const receivedInput = window.getByLabel('Valor recebido em dinheiro');
+    await expect(receivedInput).toBeVisible();
+    await expect(finishSale).toBeEnabled();
+    await receivedInput.fill('20.00');
     await expect(window.getByText('Troco: R$ 10,00', { exact: true })).toBeVisible();
-    await window.getByRole('button', { name: 'Concluir venda' }).click();
+    await finishSale.click();
     await expect(
       window.getByText('Venda concluída e registrada no histórico da mesa.'),
     ).toBeVisible();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
+    const drawerAfterSale = window.getByRole('button', { name: /Histórico da mesa/u });
+    await drawerAfterSale.click();
     const compactHistory = window.locator('article.recent-orders-panel--compact');
     await expect(compactHistory).toBeVisible();
     const tableHistory = compactHistory.locator('article.recent-order-card').filter({

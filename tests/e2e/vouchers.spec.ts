@@ -8,7 +8,7 @@ import {
 
 test.setTimeout(60_000);
 
-test('SMK-VCH-001 — restringe voucher à mesa, usa saldo parcial e restitui no estorno', async () => {
+test('SMK-VCH-001 — restringe voucher à mesa, usa saldo, restitui e exclui', async () => {
   const electronApplication = await launchElectronApplication();
 
   try {
@@ -41,7 +41,7 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo parcial e restitui no
     await productForm.getByLabel('Aviso de estoque baixo', { exact: true }).fill('1');
     await productForm.getByRole('button', { name: 'Cadastrar produto' }).click();
     const productCard = window.locator('article.inventory-card').filter({ hasText: productName });
-    await productCard.getByRole('button', { name: 'Movimentar' }).click();
+    await productCard.getByRole('button', { name: 'Entrada / ajuste' }).click();
     const movementForm = window.locator('form.movement-form');
     await movementForm.getByLabel('Quantidade', { exact: true }).fill('3');
     await movementForm.getByRole('button', { name: 'Registrar movimento' }).click();
@@ -66,13 +66,15 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo parcial e restitui no
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
     await window.locator('button.service-point-card').filter({ hasText: tableName }).click();
-    await window.getByRole('button', { name: new RegExp(productName, 'u') }).click();
+    await window.locator('button.catalog-item').filter({ hasText: productName }).click();
     const voucherSelect = window.getByLabel('Voucher vinculado à comanda');
     await expect(voucherSelect.locator('option', { hasText: voucherCode })).toHaveCount(1);
     await voucherSelect.selectOption(voucherCode);
     await expect(window.getByText('Saldo disponível', { exact: true })).toBeVisible();
     await window.getByLabel('Valor a utilizar').fill('4,00');
-    await window.getByLabel('Valor recebido 1').fill('10,00');
+    const receivedInput = window.getByLabel('Valor recebido em dinheiro');
+    await expect(receivedInput).toBeVisible();
+    await receivedInput.fill('10,00');
     await expect(window.getByText('Troco: R$ 4,00', { exact: true })).toBeVisible();
     await window.getByRole('button', { name: 'Concluir venda' }).click();
     await expect(
@@ -95,6 +97,20 @@ test('SMK-VCH-001 — restringe voucher à mesa, usa saldo parcial e restitui no
     await window.getByRole('link', { name: 'Vouchers' }).click();
     voucherCard = window.locator('article.voucher-card').filter({ hasText: voucherCode });
     await expect(voucherCard).toContainText('R$ 10,00');
+    await voucherCard.getByRole('button', { name: 'Excluir', exact: true }).click();
+    await voucherCard
+      .getByPlaceholder('Ex.: voucher emitido incorretamente')
+      .fill('Encerrar voucher de teste');
+    await voucherCard.getByRole('button', { name: 'Excluir e estornar' }).click();
+    await expect(window.getByText('Voucher excluído.')).toBeVisible();
+    await expect(
+      window.locator('article.voucher-card').filter({ hasText: voucherCode }),
+    ).toHaveCount(0);
+
+    await window.getByRole('button', { name: /Excluídos/u }).click();
+    await expect(
+      window.locator('article.voucher-card').filter({ hasText: voucherCode }),
+    ).toBeVisible();
   } finally {
     await closeElectronApplication(electronApplication);
   }

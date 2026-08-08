@@ -42,7 +42,7 @@ test('SMK-DASH-002 — exibe equilibrio por produto e valor potencial do estoque
     await productForm.getByRole('button', { name: 'Cadastrar produto' }).click();
 
     const productCard = window.locator('article.inventory-card').filter({ hasText: productName });
-    await productCard.getByRole('button', { name: 'Movimentar' }).click();
+    await productCard.getByRole('button', { name: 'Entrada / ajuste' }).click();
     const movementForm = window.locator('form.movement-form');
     await movementForm.getByLabel('Quantidade', { exact: true }).fill('30');
     await movementForm.getByRole('button', { name: 'Registrar movimento' }).click();

@@ -30,6 +30,10 @@ export interface DatabaseVoucherDeletePreview {
   readonly label: string;
   readonly remainingBalanceCents: number;
   readonly openAllocations: number;
+  readonly allAllocations: number;
+  readonly historicalTransactions: number;
+  readonly nonIssueTransactions: number;
+  readonly deletionMode: 'permanent' | 'reversal';
   readonly paidOrders: number;
   readonly paidOrderIds: readonly string[];
   readonly refundVoucherCents: number;
@@ -63,12 +67,30 @@ export function previewDeleteVoucher(
   }
 
   const impact = calculateVoucherDeleteImpact(database, voucher.id);
+  const allAllocations = database.sqlite
+    .prepare('SELECT COUNT(*) AS value FROM order_voucher_allocations WHERE voucher_id = ?')
+    .get(voucher.id) as { readonly value: number };
+  const historicalTransactions = database.sqlite
+    .prepare('SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ?')
+    .get(voucher.id) as { readonly value: number };
+  const nonIssueTransactions = database.sqlite
+    .prepare(
+      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type != 'issue'",
+    )
+    .get(voucher.id) as { readonly value: number };
+  const deletionMode =
+    allAllocations.value === 0 && nonIssueTransactions.value === 0 ? 'permanent' : 'reversal';
+
   return {
     voucherId: voucher.id,
     code: voucher.code,
     label: voucher.label,
     remainingBalanceCents: voucher.remaining_balance_cents,
     openAllocations: impact.openAllocations,
+    allAllocations: allAllocations.value,
+    historicalTransactions: historicalTransactions.value,
+    nonIssueTransactions: nonIssueTransactions.value,
+    deletionMode,
     paidOrders: impact.paidOrders.length,
     paidOrderIds: impact.paidOrders.map((order) => order.order_id),
     refundVoucherCents: impact.financialImpact.voucherRefundCents,
@@ -102,10 +124,9 @@ export function updateVoucher(
   }
 
   if (voucher.status === 'cancelled') {
-    failDatabaseOperation('INVALID_STATE', 'Reative o voucher antes de editá-lo.', {
+    failDatabaseOperation('INVALID_STATE', 'O voucher foi excluído e não pode ser editado.', {
       voucherId: voucher.id,
       status: voucher.status,
-      requiredStatus: 'active-or-exhausted',
     });
   }
 
@@ -214,12 +235,8 @@ export function updateVoucher(
         remainingBalanceCents: nextRemainingBalance,
         status: nextStatus,
       },
-      impact: {
-        addedBalanceCents: input.addedBalanceCents,
-      },
-      details: {
-        addedBalanceCents: input.addedBalanceCents,
-      },
+      impact: { addedBalanceCents: input.addedBalanceCents },
+      details: { addedBalanceCents: input.addedBalanceCents },
     });
   })();
 
@@ -236,6 +253,31 @@ export function deleteVoucher(
   const correlationId = randomUUID();
   const eventId = requireActiveEvent(database);
   const before = mapVoucher(voucher);
+
+  if (preview.deletionMode === 'permanent') {
+    database.sqlite.transaction(() => {
+      database.sqlite
+        .prepare('DELETE FROM order_voucher_allocations WHERE voucher_id = ?')
+        .run(voucher.id);
+      database.sqlite
+        .prepare('DELETE FROM voucher_transactions WHERE voucher_id = ?')
+        .run(voucher.id);
+      database.sqlite.prepare('DELETE FROM vouchers WHERE id = ?').run(voucher.id);
+      appendAudit(database, {
+        action: 'voucher.permanently-deleted',
+        entityType: 'voucher',
+        entityId: voucher.id,
+        eventId,
+        correlationId,
+        details: { reason },
+        before,
+        after: null,
+        impact: preview,
+      });
+    })();
+
+    return { ...before, status: 'cancelled', updatedAt: Date.now() };
+  }
 
   database.sqlite.transaction(() => {
     for (const orderId of preview.paidOrderIds) {

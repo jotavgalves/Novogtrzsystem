@@ -40,19 +40,20 @@ function payment(patch: Partial<PaymentDraft> = {}): PaymentDraft {
   return {
     id: 'payment-1',
     method: 'cash',
-    amount: '10,00',
+    amount: '',
     received: '',
     ...patch,
   };
 }
 
 describe('validateCheckout', () => {
-  it('normaliza pagamentos e libera fechamento quando a soma fecha o total', () => {
+  it('no modo simples assume o valor exato sem obrigar valor recebido', () => {
     const result = validateCheckout({
       busy: false,
       discount: '',
+      mode: 'single',
       order: baseOrder,
-      payments: [payment({ received: '20,00' })],
+      payments: [payment()],
       voucherAmount: '',
     });
 
@@ -60,10 +61,63 @@ describe('validateCheckout', () => {
       canSubmit: true,
       informedCents: 1_000,
       remainingCents: 0,
-      totalChangeCents: 1_000,
+      totalChangeCents: 0,
     });
+    expect(result.normalizedPayments).toEqual([{ method: 'cash', amountCents: 1_000 }]);
+  });
+
+  it('no modo simples usa valor recebido somente para calcular troco', () => {
+    const result = validateCheckout({
+      busy: false,
+      discount: '',
+      mode: 'single',
+      order: baseOrder,
+      payments: [payment({ received: '20,00' })],
+      voucherAmount: '',
+    });
+
+    expect(result).toMatchObject({ canSubmit: true, totalChangeCents: 1_000 });
     expect(result.normalizedPayments).toEqual([
       { method: 'cash', amountCents: 1_000, receivedCents: 2_000 },
+    ]);
+  });
+
+  it('no modo simples aplica automaticamente o total a PIX, crédito ou débito', () => {
+    const result = validateCheckout({
+      busy: false,
+      discount: '',
+      mode: 'single',
+      order: baseOrder,
+      payments: [payment({ method: 'pix' })],
+      voucherAmount: '',
+    });
+
+    expect(result.canSubmit).toBe(true);
+    expect(result.normalizedPayments).toEqual([{ method: 'pix', amountCents: 1_000 }]);
+  });
+
+  it('no modo misto exige rateio explícito e calcula troco apenas no dinheiro', () => {
+    const result = validateCheckout({
+      busy: false,
+      discount: '',
+      mode: 'mixed',
+      order: baseOrder,
+      payments: [
+        payment({ amount: '4,00', received: '5,00' }),
+        payment({ id: 'payment-2', method: 'pix', amount: '6,00' }),
+      ],
+      voucherAmount: '',
+    });
+
+    expect(result).toMatchObject({
+      canSubmit: true,
+      informedCents: 1_000,
+      remainingCents: 0,
+      totalChangeCents: 100,
+    });
+    expect(result.normalizedPayments).toEqual([
+      { method: 'cash', amountCents: 400, receivedCents: 500 },
+      { method: 'pix', amountCents: 600 },
     ]);
   });
 
@@ -72,6 +126,7 @@ describe('validateCheckout', () => {
       validateCheckout({
         busy: false,
         discount: '',
+        mode: 'single',
         order: baseOrder,
         payments: [payment({ received: '5,00' })],
         voucherAmount: '',
@@ -82,8 +137,9 @@ describe('validateCheckout', () => {
       validateCheckout({
         busy: false,
         discount: '',
+        mode: 'mixed',
         order: baseOrder,
-        payments: [payment({ amount: '11,00' })],
+        payments: [payment({ method: 'pix', amount: '11,00' })],
         voucherAmount: '',
       }),
     ).toMatchObject({ canSubmit: false, overpaidCents: 100 });
@@ -92,6 +148,7 @@ describe('validateCheckout', () => {
       validateCheckout({
         busy: false,
         discount: '',
+        mode: 'single',
         order: {
           ...baseOrder,
           voucherAllocation: {
@@ -104,7 +161,7 @@ describe('validateCheckout', () => {
             updatedAt: 1,
           },
         },
-        payments: [payment({ amount: '5,00' })],
+        payments: [payment()],
         voucherAmount: '6,00',
       }),
     ).toMatchObject({ canSubmit: false, voucherInvalid: true });
