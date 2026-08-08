@@ -2,23 +2,17 @@ import { PackageSearch, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import type { OperationCatalogItem, OrderItemKind } from '@gtrz/contracts';
+import { formatCurrency } from '@gtrz/domain';
 
 interface CatalogPanelProps {
   readonly items: readonly OperationCatalogItem[];
-  readonly busy: boolean;
   readonly onAdd: (item: OperationCatalogItem) => Promise<void>;
 }
 
-function formatMoney(cents: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
-}
-
-export function CatalogPanel({ items, busy, onAdd }: CatalogPanelProps): React.JSX.Element {
+export function CatalogPanel({ items, onAdd }: CatalogPanelProps): React.JSX.Element {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState<OrderItemKind | 'all'>('all');
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const filtered = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase('pt-BR');
     return items.filter(
@@ -34,7 +28,7 @@ export function CatalogPanel({ items, busy, onAdd }: CatalogPanelProps): React.J
         <PackageSearch size={20} aria-hidden="true" />
         <div>
           <h2>Produtos e combos</h2>
-          <p>Os itens indisponíveis permanecem visíveis, mas não podem ser adicionados.</p>
+          <p>O saldo exibido já desconta virtualmente o carrinho desta mesa.</p>
         </div>
       </div>
 
@@ -66,13 +60,23 @@ export function CatalogPanel({ items, busy, onAdd }: CatalogPanelProps): React.J
       <div className="operation-catalog__list">
         {filtered.map((item) => {
           const available = item.active && item.availableQuantity > 0;
+          const key = `${item.kind}-${item.id}`;
+          const pending = pendingKey === key;
           return (
             <button
-              className="catalog-item"
-              disabled={busy || !available}
-              key={`${item.kind}-${item.id}`}
+              aria-busy={pending}
+              className={pending ? 'catalog-item catalog-item--pending' : 'catalog-item'}
+              disabled={!available}
+              key={key}
               onClick={() => {
-                void onAdd(item);
+                if (pendingKey !== null) {
+                  return;
+                }
+
+                setPendingKey(key);
+                void onAdd(item).finally(() => {
+                  setPendingKey(null);
+                });
               }}
               type="button"
             >
@@ -80,10 +84,10 @@ export function CatalogPanel({ items, busy, onAdd }: CatalogPanelProps): React.J
                 <strong>{item.name}</strong>
                 <small>
                   {item.kind === 'combo' ? 'Combo' : 'Produto'} · {item.availableQuantity}{' '}
-                  disponíveis
+                  disponíveis nesta mesa
                 </small>
               </span>
-              <span className="catalog-item__price">{formatMoney(item.salePriceCents)}</span>
+              <span className="catalog-item__price">{formatCurrency(item.salePriceCents)}</span>
               <Plus size={17} aria-hidden="true" />
             </button>
           );
