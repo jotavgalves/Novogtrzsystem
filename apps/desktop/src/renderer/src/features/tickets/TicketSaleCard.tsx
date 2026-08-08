@@ -1,4 +1,4 @@
-import { Ban, Copy, Gift, TicketCheck } from 'lucide-react';
+import { Ban, Copy, Gift, TicketCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 import type { TicketSale } from '@gtrz/contracts';
@@ -8,6 +8,8 @@ interface TicketSaleCardProps {
   readonly busy: boolean;
   readonly onCancel: (saleId: string, reason: string) => Promise<void>;
   readonly onCancelCode: (codeId: string, reason: string) => Promise<void>;
+  readonly onDeleteSale: (saleId: string, reason: string) => Promise<void>;
+  readonly onDeleteCode: (codeId: string, reason: string) => Promise<void>;
 }
 
 const SOURCE_LABELS = {
@@ -29,8 +31,11 @@ export function TicketSaleCard({
   busy,
   onCancel,
   onCancelCode,
+  onDeleteSale,
+  onDeleteCode,
 }: TicketSaleCardProps): React.JSX.Element {
   const [reason, setReason] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
   const [codeReasons, setCodeReasons] = useState<Readonly<Record<string, string>>>({});
 
   return (
@@ -128,6 +133,36 @@ export function TicketSaleCard({
                   </button>
                 </>
               ) : null}
+              {ticketCode.status === 'cancelled' && sale.status === 'active' ? (
+                <>
+                  <input
+                    aria-label="Motivo da exclusão do ingresso"
+                    disabled={busy}
+                    maxLength={240}
+                    onChange={(event) => {
+                      setCodeReasons((current) => ({
+                        ...current,
+                        [ticketCode.id]: event.target.value,
+                      }));
+                    }}
+                    placeholder="Motivo para excluir"
+                    value={codeReason}
+                  />
+                  <button
+                    className="button button--danger button--compact"
+                    disabled={busy || codeReason.trim().length < 3}
+                    onClick={() => {
+                      void onDeleteCode(ticketCode.id, codeReason.trim()).then(() => {
+                        setCodeReasons((current) => ({ ...current, [ticketCode.id]: '' }));
+                      });
+                    }}
+                    type="button"
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                    Excluir ingresso
+                  </button>
+                </>
+              ) : null}
             </div>
           );
         })}
@@ -170,7 +205,42 @@ export function TicketSaleCard({
             Cancelar venda
           </button>
         </form>
-      ) : null}
+      ) : (
+        <form
+          className="ticket-sale-cancel ticket-sale-delete"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const normalizedReason = deleteReason.trim();
+
+            if (normalizedReason.length < 3) {
+              return;
+            }
+
+            void onDeleteSale(sale.id, normalizedReason).then(() => {
+              setDeleteReason('');
+            });
+          }}
+        >
+          <label className="form-field">
+            <span>Excluir registro cancelado</span>
+            <input
+              disabled={busy}
+              maxLength={240}
+              onChange={(event) => setDeleteReason(event.target.value)}
+              placeholder="Motivo da exclusão definitiva"
+              value={deleteReason}
+            />
+          </label>
+          <button
+            className="button button--danger"
+            disabled={busy || deleteReason.trim().length < 3}
+            type="submit"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Excluir registro
+          </button>
+        </form>
+      )}
     </article>
   );
 }
