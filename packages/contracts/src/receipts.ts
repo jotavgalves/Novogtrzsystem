@@ -6,8 +6,6 @@ export const receiptSettingsSchema = z.object({
   paperWidthMm: z.union([z.literal(58), z.literal(80)]),
 });
 
-export const updateReceiptSettingsInputSchema = receiptSettingsSchema;
-
 export const receiptPrinterSchema = z.object({
   name: z.string().min(1),
   displayName: z.string().min(1),
@@ -26,14 +24,13 @@ export const receiptPrintResultSchema = z.object({
 });
 
 export type ReceiptSettings = z.infer<typeof receiptSettingsSchema>;
-export type UpdateReceiptSettingsInput = z.infer<typeof updateReceiptSettingsInputSchema>;
 export type ReceiptPrinter = z.infer<typeof receiptPrinterSchema>;
 export type PrintReceiptInput = z.infer<typeof printReceiptInputSchema>;
 export type ReceiptPrintResult = z.infer<typeof receiptPrintResultSchema>;
 
 export interface ReceiptApi {
   getSettings(): Promise<ReceiptSettings>;
-  updateSettings(input: UpdateReceiptSettingsInput): Promise<ReceiptSettings>;
+  updateSettings(input: ReceiptSettings): Promise<ReceiptSettings>;
   listPrinters(): Promise<readonly ReceiptPrinter[]>;
   printOrder(input: PrintReceiptInput): Promise<ReceiptPrintResult>;
 }
