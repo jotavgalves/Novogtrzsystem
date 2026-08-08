@@ -15,6 +15,7 @@ export interface DatabaseProductDeletePreview {
   readonly dependentCombos: readonly string[];
   readonly historicalSales: number;
   readonly stockMovements: number;
+  readonly stockTransfers: number;
   readonly deletionMode: 'permanent' | 'archive';
 }
 
@@ -78,8 +79,15 @@ export function previewDeleteProduct(
   const movements = database.sqlite
     .prepare('SELECT COUNT(*) AS value FROM stock_movements WHERE product_id = ?')
     .get(product.id) as { readonly value: number };
+  const transfers = database.sqlite
+    .prepare('SELECT COUNT(*) AS value FROM stock_transfers WHERE product_id = ?')
+    .get(product.id) as { readonly value: number };
   const deletionMode =
-    totalStock.value === 0 && sales.value === 0 && movements.value === 0 && combos.length === 0
+    totalStock.value === 0 &&
+    sales.value === 0 &&
+    movements.value === 0 &&
+    transfers.value === 0 &&
+    combos.length === 0
       ? 'permanent'
       : 'archive';
 
@@ -92,6 +100,7 @@ export function previewDeleteProduct(
     dependentCombos: combos.map((combo) => combo.name),
     historicalSales: sales.value,
     stockMovements: movements.value,
+    stockTransfers: transfers.value,
     deletionMode,
   };
 }
