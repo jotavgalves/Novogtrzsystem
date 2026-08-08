@@ -8,7 +8,7 @@ import {
 
 test.setTimeout(60_000);
 
-test('SMK-VCH-001 — vincula voucher à mesa, usa saldo parcial e restitui no estorno', async () => {
+test('SMK-VCH-001 — restringe voucher à mesa, usa saldo parcial e restitui no estorno', async () => {
   const electronApplication = await launchElectronApplication();
 
   try {
@@ -20,16 +20,15 @@ test('SMK-VCH-001 — vincula voucher à mesa, usa saldo parcial e restitui no e
     const categoryName = `Categoria voucher ${suffix}`;
     const productName = `Produto voucher ${suffix}`;
     const voucherCode = `VCH-${suffix.slice(-8)}`;
+    const tableName = `Mesa Voucher ${suffix.slice(-4)}`;
 
     await window.getByRole('link', { name: 'Eventos' }).click();
     await window.getByPlaceholder('Ex.: La Rumba Neon — Agosto').fill(eventName);
     await window.getByRole('button', { name: 'Criar evento' }).click();
     const eventCard = window.locator('article.event-card').filter({ hasText: eventName });
     await expect(eventCard).toBeVisible();
-    const operateButton = eventCard.getByRole('button', { name: 'Operar evento' });
-    if (await operateButton.isVisible()) {
-      await operateButton.click();
-    }
+    await eventCard.getByRole('button', { name: 'Operar evento' }).click();
+    await expect(eventCard.getByText('Em operação')).toBeVisible();
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     await window.getByPlaceholder('Ex.: Cervejas').fill(categoryName);
@@ -49,40 +48,39 @@ test('SMK-VCH-001 — vincula voucher à mesa, usa saldo parcial e restitui no e
     await expect(productCard.getByText('3 un.', { exact: true })).toBeVisible();
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
-    await expect(window.getByRole('button', { name: /Balcão/u })).toBeVisible();
+    await window.getByPlaceholder('Ex.: Mesa 12').fill(tableName);
+    await window.getByRole('button', { name: 'Criar mesa' }).click();
+    await expect(window.locator('button.service-point-card').filter({ hasText: tableName })).toBeVisible();
 
     await window.getByRole('link', { name: 'Vouchers' }).click();
     await window.getByPlaceholder('Ex.: Crédito patrocinador').fill(`Crédito ${suffix}`);
     await window.getByPlaceholder('Gerado automaticamente').fill(voucherCode);
-    await window.getByLabel('Mesa vinculada').selectOption({ label: 'Balcão' });
+    await window.getByLabel('Mesa vinculada').selectOption({ label: tableName });
     await window.getByPlaceholder('100,00').fill('10,00');
     await window.getByRole('button', { name: 'Emitir voucher' }).click();
     let voucherCard = window.locator('article.voucher-card').filter({ hasText: voucherCode });
     await expect(voucherCard).toContainText('R$ 10,00');
+    await expect(voucherCard).toContainText(tableName);
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
-    await window.getByRole('button', { name: /Balcão/u }).click();
+    await window.locator('button.service-point-card').filter({ hasText: tableName }).click();
     await window.getByRole('button', { name: new RegExp(productName, 'u') }).click();
     const voucherSelect = window.getByLabel('Voucher vinculado à comanda');
     await expect(voucherSelect.locator('option', { hasText: voucherCode })).toHaveCount(1);
     await voucherSelect.selectOption(voucherCode);
     await expect(window.getByText('Saldo disponível', { exact: true })).toBeVisible();
-    await expect(window.getByText('R$ 10,00', { exact: true }).last()).toBeVisible();
     await window.getByLabel('Valor a utilizar').fill('4,00');
-    await window.getByLabel('Valor do pagamento 1').fill('6,00');
     await window.getByLabel('Valor recebido 1').fill('10,00');
     await expect(window.getByText('Troco: R$ 4,00', { exact: true })).toBeVisible();
     await window.getByRole('button', { name: 'Concluir venda' }).click();
-    await expect(window.getByText('Venda concluída e estoque atualizado.')).toBeVisible();
+    await expect(window.getByText('Venda concluída e registrada no histórico da mesa.')).toBeVisible();
 
     await window.getByRole('link', { name: 'Vouchers' }).click();
     voucherCard = window.locator('article.voucher-card').filter({ hasText: voucherCode });
     await expect(voucherCard).toContainText('R$ 6,00');
 
     await window.getByRole('link', { name: 'Mesas e balcão' }).click();
-    const recentOrder = window
-      .locator('article.recent-order-card')
-      .filter({ hasText: productName });
+    const recentOrder = window.locator('article.recent-order-card').filter({ hasText: productName });
     await expect(recentOrder).toContainText('Paga');
     await recentOrder.getByPlaceholder('Ex.: lançamento duplicado').fill('Estorno voucher');
     await recentOrder.getByRole('button', { name: 'Estornar venda' }).click();
