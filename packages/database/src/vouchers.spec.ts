@@ -293,7 +293,9 @@ describe('vouchers database', () => {
         status: 'active',
       });
       expect(
-        getVoucherState(database).transactions.filter((transaction) => transaction.type === 'refund'),
+        getVoucherState(database).transactions.filter(
+          (transaction) => transaction.type === 'refund',
+        ),
       ).toHaveLength(1);
     } finally {
       database.close();
@@ -304,7 +306,10 @@ describe('vouchers database', () => {
     const database = await createTemporaryDatabase();
 
     try {
-      const event = createEvent(database, { name: 'Evento exclusão voucher', startsAt: Date.now() });
+      const event = createEvent(database, {
+        name: 'Evento exclusão voucher',
+        startsAt: Date.now(),
+      });
       const productId = seedProduct(database);
       const seeded = openProductOrder(database, productId, 'Mesa Exclusão');
       const voucher = createVoucher(database, {
@@ -376,7 +381,10 @@ describe('vouchers database', () => {
     const database = await createTemporaryDatabase();
 
     try {
-      const event = createEvent(database, { name: 'Evento rollback voucher', startsAt: Date.now() });
+      const event = createEvent(database, {
+        name: 'Evento rollback voucher',
+        startsAt: Date.now(),
+      });
       const productId = seedProduct(database);
       const seeded = openProductOrder(database, productId, 'Mesa Saldo Curto');
       const voucher = createVoucher(database, {
@@ -424,9 +432,9 @@ describe('vouchers database', () => {
         status: 'cancelled',
         remainingBalanceCents: 1500,
       });
-      expect(changeVoucherStatus(database, { voucherId: voucher.id, status: 'active' }).status).toBe(
-        'active',
-      );
+      expect(
+        changeVoucherStatus(database, { voucherId: voucher.id, status: 'active' }).status,
+      ).toBe('active');
       switchProfile(database, 'cashier');
       expect(() =>
         createVoucher(database, {
