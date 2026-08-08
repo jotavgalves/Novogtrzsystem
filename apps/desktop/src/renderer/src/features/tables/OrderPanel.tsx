@@ -100,7 +100,7 @@ export function OrderPanel({
           <strong>{formatMoney(order?.subtotalCents ?? 0)}</strong>
         </div>
 
-        {hasItems && order !== null ? (
+        {order !== null && order.items.length > 0 ? (
           <CheckoutForm
             busy={busy}
             onBindVoucher={onBindVoucher}
