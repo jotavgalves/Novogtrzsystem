@@ -1,4 +1,5 @@
-import { ArrowLeft, ReceiptText } from 'lucide-react';
+import { ArrowLeft, ChevronDown, History, ReceiptText } from 'lucide-react';
+import { useState } from 'react';
 
 import type { CloseOrderInput, Order, ServicePoint } from '@gtrz/contracts';
 import { formatCurrency } from '@gtrz/domain';
@@ -41,6 +42,7 @@ export function OrderPanel({
   onCancelHistoricalOrder,
   onReprintOrder,
 }: OrderPanelProps): React.JSX.Element {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const hasItems = order !== null && order.items.length > 0;
 
   return (
@@ -113,17 +115,39 @@ export function OrderPanel({
         ) : null}
       </article>
 
-      <RecentOrdersPanel
-        allowCancel={production}
-        busy={busy}
-        compact
-        description="As vendas permanecem ligadas a esta mesa mesmo depois do pagamento."
-        emptyMessage="Esta mesa ainda não possui vendas concluídas."
-        onCancel={onCancelHistoricalOrder}
-        onReprint={onReprintOrder}
-        orders={history}
-        title="Histórico da mesa"
-      />
+      <section className={historyOpen ? 'order-history-drawer order-history-drawer--open' : 'order-history-drawer'}>
+        <button
+          aria-expanded={historyOpen}
+          className="order-history-drawer__trigger"
+          onClick={() => {
+            setHistoryOpen((current) => !current);
+          }}
+          type="button"
+        >
+          <span>
+            <History size={18} aria-hidden="true" />
+            <strong>Histórico da mesa</strong>
+            <small>{history.length} venda(s) registrada(s)</small>
+          </span>
+          <ChevronDown size={18} aria-hidden="true" />
+        </button>
+
+        {historyOpen ? (
+          <div className="order-history-drawer__content">
+            <RecentOrdersPanel
+              allowCancel={production}
+              busy={busy}
+              compact
+              description="As vendas permanecem ligadas a esta mesa mesmo depois do pagamento."
+              emptyMessage="Esta mesa ainda não possui vendas concluídas."
+              onCancel={onCancelHistoricalOrder}
+              onReprint={onReprintOrder}
+              orders={history}
+              title="Histórico da mesa"
+            />
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }
