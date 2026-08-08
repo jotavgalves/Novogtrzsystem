@@ -1,4 +1,4 @@
-import { Pencil, Save, Ticket } from 'lucide-react';
+import { Pencil, Save, Ticket, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { TicketLot, UpdateTicketLotInput } from '@gtrz/contracts';
@@ -7,6 +7,7 @@ interface TicketLotCardProps {
   readonly lot: TicketLot;
   readonly busy: boolean;
   readonly onUpdate: (input: UpdateTicketLotInput) => Promise<void>;
+  readonly onDelete: (lotId: string, reason: string) => Promise<void>;
 }
 
 function formatMoney(cents: number): string {
@@ -21,8 +22,15 @@ function parseMoney(value: string): number {
   return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
 }
 
-export function TicketLotCard({ lot, busy, onUpdate }: TicketLotCardProps): React.JSX.Element {
+export function TicketLotCard({
+  lot,
+  busy,
+  onUpdate,
+  onDelete,
+}: TicketLotCardProps): React.JSX.Element {
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
   const [name, setName] = useState(lot.name);
   const [price, setPrice] = useState(String(lot.priceCents / 100));
   const [capacity, setCapacity] = useState(String(lot.capacity));
@@ -120,7 +128,63 @@ export function TicketLotCard({ lot, busy, onUpdate }: TicketLotCardProps): Reac
             Salvar
           </button>
         </form>
-      ) : (
+      ) : null}
+
+      {deleting ? (
+        <form
+          className="ticket-delete-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const reason = deleteReason.trim();
+
+            if (reason.length < 3) {
+              return;
+            }
+
+            void onDelete(lot.id, reason).then(() => {
+              setDeleting(false);
+              setDeleteReason('');
+            });
+          }}
+        >
+          <p>
+            O lote só será removido se não possuir nenhuma venda ou cortesia registrada, inclusive
+            cancelada.
+          </p>
+          <input
+            aria-label={`Motivo para excluir lote ${lot.name}`}
+            disabled={busy}
+            maxLength={240}
+            onChange={(event) => setDeleteReason(event.target.value)}
+            placeholder="Motivo da exclusão"
+            value={deleteReason}
+          />
+          <div className="ticket-lot-card__actions">
+            <button
+              className="button button--danger button--compact"
+              disabled={busy || deleteReason.trim().length < 3}
+              type="submit"
+            >
+              <Trash2 size={15} aria-hidden="true" />
+              Excluir lote
+            </button>
+            <button
+              className="button button--ghost button--compact"
+              disabled={busy}
+              onClick={() => {
+                setDeleting(false);
+                setDeleteReason('');
+              }}
+              type="button"
+            >
+              <X size={15} aria-hidden="true" />
+              Voltar
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {!editing && !deleting ? (
         <div className="ticket-lot-card__actions">
           <button
             className="button button--ghost button--compact"
@@ -149,8 +213,17 @@ export function TicketLotCard({ lot, busy, onUpdate }: TicketLotCardProps): Reac
           >
             {lot.active ? 'Desativar' : 'Ativar'}
           </button>
+          <button
+            className="button button--danger button--compact"
+            disabled={busy}
+            onClick={() => setDeleting(true)}
+            type="button"
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            Excluir
+          </button>
         </div>
-      )}
+      ) : null}
     </article>
   );
 }
