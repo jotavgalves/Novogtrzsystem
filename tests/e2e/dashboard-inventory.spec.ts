@@ -55,10 +55,10 @@ test('SMK-DASH-002 — exibe equilibrio por produto e valor potencial do estoque
     await expect(forecast).toContainText('R$ 60,00');
 
     const breakEvenPanel = window.locator('article.inventory-break-even-panel');
+    await expect(breakEvenPanel.getByRole('heading', { name: categoryName })).toBeVisible();
     const productRow = breakEvenPanel.locator('.inventory-break-even-row').filter({
       hasText: productName,
     });
-    await expect(productRow).toContainText(categoryName);
     await expect(productRow).toContainText('30 compradas');
     await expect(productRow).toContainText('12 un.');
   } finally {
