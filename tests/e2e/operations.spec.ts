@@ -108,6 +108,7 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     await expect(catalogItem()).toContainText('4 disponíveis nesta mesa');
 
     await expect(window.locator('.checkout-form')).toBeVisible();
+    await expect(window.getByRole('button', { name: 'Pagamento misto' })).toBeVisible();
     const finishSale = window.getByRole('button', { name: 'Concluir venda' });
     const receivedInput = window.getByLabel('Valor recebido em dinheiro');
     await expect(receivedInput).toBeVisible();
