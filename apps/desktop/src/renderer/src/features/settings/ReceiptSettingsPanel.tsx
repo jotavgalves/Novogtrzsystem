@@ -118,7 +118,6 @@ export function ReceiptSettingsPanel(): React.JSX.Element {
               {printers.map((printer) => (
                 <option key={printer.name} value={printer.name}>
                   {printer.displayName}
-                  {printer.isDefault ? ' · padrão' : ''}
                 </option>
               ))}
             </select>
