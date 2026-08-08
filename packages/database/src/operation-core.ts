@@ -16,6 +16,7 @@ import type {
   DatabaseServicePointType,
 } from './operation-types';
 import { getOrderVoucherAllocation } from './operation-vouchers';
+import { getPinnedServicePointIds } from './service-point-pins';
 import type { DatabaseContext } from './types';
 import { listOrderVoucherRedemptions } from './vouchers';
 
@@ -88,7 +89,7 @@ function requireProduction(database: DatabaseContext): void {
   }
 }
 
-function mapServicePoint(row: ServicePointRow): DatabaseServicePoint {
+function mapServicePoint(row: ServicePointRow, pinned: boolean): DatabaseServicePoint {
   return {
     id: row.id,
     eventId: row.event_id,
@@ -97,6 +98,7 @@ function mapServicePoint(row: ServicePointRow): DatabaseServicePoint {
     status: row.active_order_id === null ? 'available' : 'open',
     activeOrderId: row.active_order_id,
     activeOrderTotalCents: row.active_order_total_cents,
+    pinned,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -291,12 +293,22 @@ export function listServicePoints(
        LEFT JOIN orders o
          ON o.service_point_id = sp.id
         AND o.status = 'open'
-       WHERE sp.event_id = ? AND sp.active = 1
-       ORDER BY CASE sp.type WHEN 'counter' THEN 0 ELSE 1 END,
-                sp.label COLLATE NOCASE`,
+       WHERE sp.event_id = ? AND sp.active = 1`,
     )
     .all(eventId) as ServicePointRow[];
-  return rows.map(mapServicePoint);
+  const pinnedIds = getPinnedServicePointIds(database, eventId);
+
+  return rows
+    .map((row) => mapServicePoint(row, pinnedIds.has(row.id)))
+    .sort((left, right) => {
+      if (left.pinned !== right.pinned) {
+        return left.pinned ? -1 : 1;
+      }
+      if (left.type !== right.type) {
+        return left.type === 'counter' ? -1 : 1;
+      }
+      return left.label.localeCompare(right.label, 'pt-BR');
+    });
 }
 
 export function recomputeOpenOrder(database: DatabaseContext, orderId: string, now: number): void {
