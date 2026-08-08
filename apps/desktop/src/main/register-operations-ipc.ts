@@ -18,6 +18,7 @@ import {
   servicePointDeletePreviewSchema,
   servicePointSchema,
   setOrderItemQuantityInputSchema,
+  setServicePointPinnedInputSchema,
   unbindOrderVoucherInputSchema,
 } from '@gtrz/contracts';
 import {
@@ -29,10 +30,13 @@ import {
   deleteServicePoint,
   getOperationState,
   getOrder,
+  listServicePoints,
   openOrder,
   previewDeleteServicePoint,
   removeOrderItem,
+  requireActiveOperationEvent,
   setOrderItemQuantity,
+  setServicePointPinned,
   type DatabaseCloseOrderPaymentInput,
   type DatabaseContext,
   unbindOrderVoucher,
@@ -47,6 +51,7 @@ interface RegisterOperationsIpcOptions {
 const OPERATION_CHANNELS = [
   IPC_CHANNELS.operationsGetState,
   IPC_CHANNELS.operationsCreateServicePoint,
+  OPERATIONS_IPC_CHANNELS.setServicePointPinned,
   OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint,
   OPERATIONS_IPC_CHANNELS.deleteServicePoint,
   IPC_CHANNELS.operationsOpenOrder,
@@ -88,6 +93,22 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
   handleIpc(IPC_CHANNELS.operationsCreateServicePoint, (_event, payload: unknown) => {
     const input = createServicePointInputSchema.parse(payload);
     return servicePointSchema.parse(createServicePoint(options.getDatabase(), input));
+  });
+
+  handleIpc(OPERATIONS_IPC_CHANNELS.setServicePointPinned, (_event, payload: unknown) => {
+    const input = setServicePointPinnedInputSchema.parse(payload);
+    const database = options.getDatabase();
+    setServicePointPinned(database, input);
+    const eventId = requireActiveOperationEvent(database);
+    const servicePoint = listServicePoints(database, eventId).find(
+      (item) => item.id === input.servicePointId,
+    );
+
+    if (servicePoint === undefined) {
+      throw new Error('A mesa fixada não pôde ser recarregada.');
+    }
+
+    return servicePointSchema.parse(servicePoint);
   });
 
   handleIpc(OPERATIONS_IPC_CHANNELS.previewDeleteServicePoint, (_event, payload: unknown) => {
