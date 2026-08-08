@@ -1,4 +1,5 @@
 import { failDatabaseOperation } from './database-error';
+import { getPinnedServicePointIds } from './service-point-pins';
 import type { DatabaseServicePoint, DatabaseServicePointType } from './service-point-types';
 import type { DatabaseContext } from './types';
 import type { DatabaseVoucher } from './voucher-types';
@@ -14,7 +15,7 @@ interface ServicePointRow {
   readonly updated_at: number;
 }
 
-function mapServicePoint(row: ServicePointRow): DatabaseServicePoint {
+function mapServicePoint(row: ServicePointRow, pinned: boolean): DatabaseServicePoint {
   return {
     id: row.id,
     eventId: row.event_id,
@@ -23,6 +24,7 @@ function mapServicePoint(row: ServicePointRow): DatabaseServicePoint {
     status: row.active_order_id === null ? 'available' : 'open',
     activeOrderId: row.active_order_id,
     activeOrderTotalCents: row.active_order_total_cents,
+    pinned,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -51,7 +53,8 @@ export function listVoucherServicePoints(
        ORDER BY sp.label COLLATE NOCASE`,
     )
     .all(eventId) as ServicePointRow[];
-  return rows.map(mapServicePoint);
+  const pinnedIds = getPinnedServicePointIds(database, eventId);
+  return rows.map((row) => mapServicePoint(row, pinnedIds.has(row.id)));
 }
 
 export function resolveLinkedServicePoint(
