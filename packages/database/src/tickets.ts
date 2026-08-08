@@ -1,3 +1,4 @@
+export { deleteTicketCode, deleteTicketLot, deleteTicketSale } from './ticket-deletion';
 export { createTicketLot, updateTicketLot } from './ticket-lots';
 export type {
   DatabaseTicketCode,
