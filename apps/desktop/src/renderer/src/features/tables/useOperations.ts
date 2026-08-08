@@ -35,6 +35,7 @@ interface OperationsViewState {
   readonly unbindVoucher: () => Promise<void>;
   readonly closeCurrentOrder: (input: Omit<CloseOrderInput, 'orderId'>) => Promise<void>;
   readonly cancelOrder: (orderId: string, reason: string) => Promise<void>;
+  readonly reprintOrder: (orderId: string) => Promise<void>;
   readonly clearOrder: () => void;
 }
 
@@ -289,6 +290,27 @@ export function useOperations(): OperationsViewState {
     [order?.id, run],
   );
 
+  const reprintOrder = useCallback(async (orderId: string): Promise<void> => {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await window.gtrz.receipts.printOrder({ orderId });
+
+      if (result.status !== 'printed') {
+        throw new Error(result.message ?? 'A impressora não confirmou a nota.');
+      }
+
+      setMessage('Nota enviada para a impressora.');
+    } catch (printError: unknown) {
+      setError(getErrorMessage(printError));
+      throw printError;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
   const clearOrder = useCallback((): void => {
     setSelectedServicePoint(null);
     setOrder(null);
@@ -317,6 +339,7 @@ export function useOperations(): OperationsViewState {
     unbindVoucher,
     closeCurrentOrder,
     cancelOrder,
+    reprintOrder,
     clearOrder,
   };
 }
