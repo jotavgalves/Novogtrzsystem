@@ -87,7 +87,8 @@ export function updateReceiptSettings(
   input: DatabaseReceiptSettings,
 ): DatabaseReceiptSettings {
   requireProduction(database);
-  const printerName = input.printerName?.trim() || null;
+  const normalizedPrinterName = input.printerName?.trim() ?? '';
+  const printerName = normalizedPrinterName.length === 0 ? null : normalizedPrinterName;
   const paperWidthMm = input.paperWidthMm === 80 ? 80 : 58;
   const now = Date.now();
 
