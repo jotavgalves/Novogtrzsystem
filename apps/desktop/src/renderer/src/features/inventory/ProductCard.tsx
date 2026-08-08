@@ -1,4 +1,12 @@
-import { ArrowLeftRight, CircleDollarSign, Pencil, Trash2, TriangleAlert, X } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  CircleDollarSign,
+  MinusCircle,
+  Pencil,
+  Trash2,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import type {
@@ -6,6 +14,7 @@ import type {
   ProductDeletePreview,
   ProductCategory,
   RecordStockMovementInput,
+  StockMovementType,
   UpdateProductInput,
 } from '@gtrz/contracts';
 
@@ -23,6 +32,8 @@ interface ProductCardProps {
   readonly onPreviewDelete: (productId: string) => Promise<ProductDeletePreview>;
   readonly onDelete: (productId: string, reason: string) => Promise<void>;
 }
+
+type ProductCardMode = 'view' | 'edit' | 'movement';
 
 function formatMoney(cents: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -42,7 +53,8 @@ export function ProductCard({
   onPreviewDelete,
   onDelete,
 }: ProductCardProps): React.JSX.Element {
-  const [mode, setMode] = useState<'view' | 'edit' | 'movement'>('view');
+  const [mode, setMode] = useState<ProductCardMode>('view');
+  const [movementType, setMovementType] = useState<StockMovementType>('purchase');
   const [deletePreview, setDeletePreview] = useState<ProductDeletePreview | null>(null);
   const [deleteReason, setDeleteReason] = useState('');
 
@@ -70,6 +82,7 @@ export function ProductCard({
       <article className="inventory-card inventory-card--expanded">
         <StockMovementForm
           busy={busy}
+          initialType={movementType}
           onCancel={() => {
             setMode('view');
           }}
@@ -124,7 +137,7 @@ export function ProductCard({
           {product.kind === 'drink' ? 'Bebida' : 'Comida'}
         </span>
         {!product.active ? (
-          <span className="status-badge status-badge--archived">Inativo</span>
+          <span className="status-badge status-badge--archived">Arquivado</span>
         ) : null}
         {production ? (
           <div className="inventory-card__actions">
@@ -143,13 +156,33 @@ export function ProductCard({
               className="button button--secondary button--compact"
               disabled={busy || !hasActiveEvent}
               onClick={() => {
+                setMovementType('purchase');
                 setMode('movement');
               }}
               title={hasActiveEvent ? undefined : 'Selecione um evento aberto.'}
               type="button"
             >
               <ArrowLeftRight size={15} aria-hidden="true" />
-              Movimentar
+              Entrada / ajuste
+            </button>
+            <button
+              className="button button--danger button--compact"
+              disabled={busy || !hasActiveEvent || product.quantity <= 0}
+              onClick={() => {
+                setMovementType('loss');
+                setMode('movement');
+              }}
+              title={
+                !hasActiveEvent
+                  ? 'Selecione um evento aberto.'
+                  : product.quantity <= 0
+                    ? 'Este produto não possui saldo para baixar.'
+                    : 'Registre perda, quebra, consumo interno ou correção negativa.'
+              }
+              type="button"
+            >
+              <MinusCircle size={15} aria-hidden="true" />
+              Baixar estoque
             </button>
             {product.active ? (
               <button
@@ -184,9 +217,24 @@ export function ProductCard({
             });
           }}
         >
+          <div className="inventory-delete__mode">
+            <strong>
+              {deletePreview.deletionMode === 'permanent'
+                ? 'Exclusão definitiva disponível'
+                : 'Este produto possui histórico e será arquivado'}
+            </strong>
+            <small>
+              {deletePreview.deletionMode === 'permanent'
+                ? 'O item nunca teve estoque, vendas ou dependências e será removido do cadastro.'
+                : 'Para não apagar vendas, estoque ou composição de combos, ele sairá do catálogo ativo sem destruir o histórico.'}
+            </small>
+          </div>
           <div className="inventory-delete__impact">
             <span>
-              Estoque no evento <strong>{deletePreview.activeEventStockQuantity}</strong>
+              Estoque neste evento <strong>{deletePreview.activeEventStockQuantity}</strong>
+            </span>
+            <span>
+              Estoque em todos os eventos <strong>{deletePreview.totalStockQuantity}</strong>
             </span>
             <span>
               Combos dependentes <strong>{deletePreview.dependentCombos.length}</strong>
@@ -199,25 +247,27 @@ export function ProductCard({
             </span>
           </div>
           <label className="form-field">
-            <span>Motivo da exclusão</span>
+            <span>Motivo</span>
             <input
               disabled={busy}
               maxLength={240}
               onChange={(event) => {
                 setDeleteReason(event.target.value);
               }}
-              placeholder="Ex.: item fora de catálogo"
+              placeholder="Ex.: item cadastrado por engano"
               value={deleteReason}
             />
           </label>
           <div className="inventory-card__actions">
             <button
-              className="button button--ghost button--compact"
+              className="button button--danger button--compact"
               disabled={busy || deleteReason.trim().length < 3}
               type="submit"
             >
               <Trash2 size={15} aria-hidden="true" />
-              Confirmar exclusão
+              {deletePreview.deletionMode === 'permanent'
+                ? 'Excluir definitivamente'
+                : 'Arquivar produto'}
             </button>
             <button
               className="button button--secondary button--compact"
