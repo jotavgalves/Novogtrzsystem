@@ -60,7 +60,7 @@ export function previewDeleteVoucher(
   }
 
   if (voucher.status === 'cancelled') {
-    failDatabaseOperation('CONFLICT', 'Este voucher já está excluído.', {
+    failDatabaseOperation('CONFLICT', 'Este voucher já está cancelado.', {
       voucherId: voucher.id,
       status: voucher.status,
     });
