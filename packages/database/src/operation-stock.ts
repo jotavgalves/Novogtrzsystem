@@ -60,6 +60,7 @@ export function listOperationCatalog(
     salePriceCents: product.sale_price_cents,
     availableQuantity: eventId === null ? 0 : product.available_quantity,
     active: product.active === 1,
+    components: [{ productId: product.id, quantity: 1 }],
   }));
   const comboItems = listCombos(database).map((combo) => ({
     id: combo.id,
@@ -68,6 +69,10 @@ export function listOperationCatalog(
     salePriceCents: combo.salePriceCents,
     availableQuantity: combo.availableUnits,
     active: combo.active,
+    components: combo.components.map((component) => ({
+      productId: component.productId,
+      quantity: component.quantity,
+    })),
   }));
 
   return [...productItems, ...comboItems].sort((left, right) =>
