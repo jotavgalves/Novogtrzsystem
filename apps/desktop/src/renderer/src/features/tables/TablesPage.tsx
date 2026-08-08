@@ -19,6 +19,7 @@ export function TablesPage(): React.JSX.Element {
   const { state: sessionState } = useSession();
   const {
     state,
+    selectedServicePoint,
     order,
     loading,
     busy,
@@ -30,6 +31,7 @@ export function TablesPage(): React.JSX.Element {
     deleteTable,
     openServicePoint,
     addItem,
+    setItemQuantity,
     removeItem,
     bindVoucher,
     unbindVoucher,
@@ -41,6 +43,10 @@ export function TablesPage(): React.JSX.Element {
   const servicePoints = state?.servicePoints ?? [];
   const catalog = state?.catalog ?? [];
   const recentOrders = state?.recentOrders ?? [];
+  const selectedHistory =
+    selectedServicePoint === null
+      ? []
+      : recentOrders.filter((item) => item.servicePointId === selectedServicePoint.id);
   const openPoints = servicePoints.filter((item) => item.status === 'open');
   const openTotalCents = openPoints.reduce((total, item) => total + item.activeOrderTotalCents, 0);
   const availableItems = catalog.filter((item) => item.active && item.availableQuantity > 0).length;
@@ -52,7 +58,7 @@ export function TablesPage(): React.JSX.Element {
         <div>
           <span className="eyebrow">Operação completa do evento</span>
           <h1>Mesas e balcão</h1>
-          <p>Abra comandas, adicione produtos ou combos e conclua pagamentos simples ou mistos.</p>
+          <p>Abra uma mesa, monte o carrinho e conclua vendas sem perder o contexto ou o histórico.</p>
         </div>
         <button
           className="button button--secondary"
@@ -94,11 +100,11 @@ export function TablesPage(): React.JSX.Element {
       {!initialLoading && (state?.activeEventId === null || state === null) ? (
         <div className="inventory-warning">
           <TriangleAlert size={19} aria-hidden="true" />
-          <span>Selecione um evento aberto antes de operar mesas e vendas.</span>
+          <span>Clique em “Operar evento” antes de registrar mesas e vendas.</span>
         </div>
       ) : null}
 
-      {state?.activeEventId !== null && state !== null && order === null ? (
+      {state?.activeEventId !== null && state !== null && selectedServicePoint === null ? (
         <>
           {production ? (
             <article className="panel table-creation-panel">
@@ -128,19 +134,27 @@ export function TablesPage(): React.JSX.Element {
         </>
       ) : null}
 
-      {order === null ? null : (
+      {selectedServicePoint === null ? null : (
         <div className="operation-workspace">
           <CatalogPanel busy={busy} items={catalog} onAdd={addItem} />
           <OrderPanel
             busy={busy}
+            history={selectedHistory}
             onBack={clearOrder}
             onBindVoucher={bindVoucher}
-            onCancelOrder={(reason) => cancelOrder(order.id, reason)}
+            onCancelHistoricalOrder={cancelOrder}
+            onCancelOrder={async (reason) => {
+              if (order !== null) {
+                await cancelOrder(order.id, reason);
+              }
+            }}
             onCloseOrder={closeCurrentOrder}
             onRemoveItem={removeItem}
+            onSetItemQuantity={setItemQuantity}
             onUnbindVoucher={unbindVoucher}
             order={order}
             production={production}
+            servicePoint={selectedServicePoint}
           />
         </div>
       )}
