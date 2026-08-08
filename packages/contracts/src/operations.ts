@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const OPERATIONS_IPC_CHANNELS = {
   previewDeleteServicePoint: 'operations:preview-delete-service-point',
   deleteServicePoint: 'operations:delete-service-point',
+  setServicePointPinned: 'operations:set-service-point-pinned',
 } as const;
 
 export const servicePointTypeSchema = z.enum(['table', 'counter']);
@@ -19,6 +20,7 @@ export const servicePointSchema = z.object({
   status: servicePointStatusSchema,
   activeOrderId: z.uuid().nullable(),
   activeOrderTotalCents: z.number().int().nonnegative(),
+  pinned: z.boolean(),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
 });
@@ -81,6 +83,11 @@ export const orderSchema = z.object({
   updatedAt: z.number().int().nonnegative(),
 });
 
+export const operationCatalogComponentSchema = z.object({
+  productId: z.uuid(),
+  quantity: z.number().int().positive(),
+});
+
 export const operationCatalogItemSchema = z.object({
   id: z.uuid(),
   kind: orderItemKindSchema,
@@ -88,6 +95,7 @@ export const operationCatalogItemSchema = z.object({
   salePriceCents: z.number().int().nonnegative(),
   availableQuantity: z.number().int().nonnegative(),
   active: z.boolean(),
+  components: z.array(operationCatalogComponentSchema).min(1),
 });
 
 export const operationStateSchema = z.object({
@@ -100,6 +108,11 @@ export const operationStateSchema = z.object({
 export const createServicePointInputSchema = z.object({
   label: z.string().trim().min(1).max(40),
   type: servicePointTypeSchema,
+});
+
+export const setServicePointPinnedInputSchema = z.object({
+  servicePointId: z.uuid(),
+  pinned: z.boolean(),
 });
 
 export const servicePointDeleteModeSchema = z.enum(['keep-sales', 'refund-sales']);
@@ -203,9 +216,11 @@ export type Payment = z.infer<typeof paymentSchema>;
 export type VoucherAllocation = z.infer<typeof voucherAllocationSchema>;
 export type VoucherRedemption = z.infer<typeof voucherRedemptionSchema>;
 export type Order = z.infer<typeof orderSchema>;
+export type OperationCatalogComponent = z.infer<typeof operationCatalogComponentSchema>;
 export type OperationCatalogItem = z.infer<typeof operationCatalogItemSchema>;
 export type OperationState = z.infer<typeof operationStateSchema>;
 export type CreateServicePointInput = z.infer<typeof createServicePointInputSchema>;
+export type SetServicePointPinnedInput = z.infer<typeof setServicePointPinnedInputSchema>;
 export type ServicePointDeleteMode = z.infer<typeof servicePointDeleteModeSchema>;
 export type PreviewDeleteServicePointInput = z.infer<typeof previewDeleteServicePointInputSchema>;
 export type ServicePointDeletePreview = z.infer<typeof servicePointDeletePreviewSchema>;
@@ -223,6 +238,7 @@ export type CancelOrderInput = z.infer<typeof cancelOrderInputSchema>;
 export interface OperationsApi {
   getState(): Promise<OperationState>;
   createServicePoint(input: CreateServicePointInput): Promise<ServicePoint>;
+  setServicePointPinned(input: SetServicePointPinnedInput): Promise<ServicePoint>;
   previewDeleteServicePoint(
     input: PreviewDeleteServicePointInput,
   ): Promise<ServicePointDeletePreview>;
