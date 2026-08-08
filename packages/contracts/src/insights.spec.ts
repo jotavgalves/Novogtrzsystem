@@ -32,6 +32,7 @@ describe('insights contracts', () => {
         netRevenueCents: 0,
         completedSales: 0,
         activeExpensesCents: 0,
+        inventoryExpenseCents: 0,
         projectedResultCents: 0,
         expectedCashCents: 0,
         cashVarianceCents: null,
