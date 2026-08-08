@@ -94,6 +94,9 @@ export const IPC_CHANNELS = {
   ticketsCreateSale: 'tickets:create-sale',
   ticketsCancelSale: 'tickets:cancel-sale',
   ticketsCancelCode: 'tickets:cancel-code',
+  ticketsDeleteLot: 'tickets:delete-lot',
+  ticketsDeleteSale: 'tickets:delete-sale',
+  ticketsDeleteCode: 'tickets:delete-code',
 } as const;
 
 export const systemInfoSchema = z.object({
