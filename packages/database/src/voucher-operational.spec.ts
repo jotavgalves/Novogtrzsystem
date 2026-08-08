@@ -15,7 +15,6 @@ import {
   createServicePoint,
   createVoucher,
   deleteVoucher,
-  getOperationState,
   getOrder,
   listAvailableVouchersForServicePoint,
   openDatabase,
@@ -64,114 +63,117 @@ function getStock(database: DatabaseContext, eventId: string, productId: string)
 describe('voucher operational queries and deletion impact', () => {
   it('consulta no banco somente vouchers ativos vinculados à mesa e permite leitura no Caixa', async () => {
     const database = await createTemporaryDatabase();
-    createEvent(database, { name: 'Evento consulta voucher', startsAt: Date.now() });
-    const firstTable = createServicePoint(database, { label: 'Mesa 10', type: 'table' });
-    const secondTable = createServicePoint(database, { label: 'Mesa 11', type: 'table' });
-    const firstVoucher = createVoucher(database, {
-      code: 'MESA-10-A',
-      label: 'Crédito da mesa 10',
-      linkedServicePointId: firstTable.id,
-      initialBalanceCents: 1000,
-    });
-    const cancelledVoucher = createVoucher(database, {
-      code: 'MESA-10-B',
-      label: 'Crédito cancelado',
-      linkedServicePointId: firstTable.id,
-      initialBalanceCents: 500,
-    });
-    createVoucher(database, {
-      code: 'MESA-11-A',
-      label: 'Crédito da mesa 11',
-      linkedServicePointId: secondTable.id,
-      initialBalanceCents: 700,
-    });
-    changeVoucherStatus(database, { voucherId: cancelledVoucher.id, status: 'cancelled' });
-    switchProfile(database, 'cashier');
 
-    const available = listAvailableVouchersForServicePoint(database, {
-      servicePointId: firstTable.id,
-    });
+    try {
+      createEvent(database, { name: 'Evento consulta voucher', startsAt: Date.now() });
+      const firstTable = createServicePoint(database, { label: 'Mesa 10', type: 'table' });
+      const secondTable = createServicePoint(database, { label: 'Mesa 11', type: 'table' });
+      const firstVoucher = createVoucher(database, {
+        code: 'MESA-10-A',
+        label: 'Crédito da mesa 10',
+        linkedServicePointId: firstTable.id,
+        initialBalanceCents: 1000,
+      });
+      const cancelledVoucher = createVoucher(database, {
+        code: 'MESA-10-B',
+        label: 'Crédito cancelado',
+        linkedServicePointId: firstTable.id,
+        initialBalanceCents: 500,
+      });
+      createVoucher(database, {
+        code: 'MESA-11-A',
+        label: 'Crédito da mesa 11',
+        linkedServicePointId: secondTable.id,
+        initialBalanceCents: 700,
+      });
+      changeVoucherStatus(database, { voucherId: cancelledVoucher.id, status: 'cancelled' });
+      switchProfile(database, 'cashier');
 
-    expect(available).toHaveLength(1);
-    expect(available[0]).toMatchObject({
-      id: firstVoucher.id,
-      code: 'MESA-10-A',
-      linkedServicePointId: firstTable.id,
-      status: 'active',
-      remainingBalanceCents: 1000,
-    });
-    expect(() =>
-      listAvailableVouchersForServicePoint(database, { servicePointId: secondTable.id }),
-    ).not.toThrow();
-    database.close();
+      const available = listAvailableVouchersForServicePoint(database, {
+        servicePointId: firstTable.id,
+      });
+
+      expect(available).toHaveLength(1);
+      expect(available[0]).toMatchObject({
+        id: firstVoucher.id,
+        code: 'MESA-10-A',
+        linkedServicePointId: firstTable.id,
+        status: 'active',
+        remainingBalanceCents: 1000,
+      });
+      expect(() =>
+        listAvailableVouchersForServicePoint(database, { servicePointId: secondTable.id }),
+      ).not.toThrow();
+    } finally {
+      database.close();
+    }
   });
 
   it('prévia identifica pagamentos, receita e estoque antes da exclusão transacional', async () => {
     const database = await createTemporaryDatabase();
-    const event = createEvent(database, { name: 'Evento impacto voucher', startsAt: Date.now() });
-    const productId = seedProduct(database);
-    const counter = getOperationState(database).servicePoints[0];
 
-    if (counter === undefined) {
-      throw new Error('Balcão não criado.');
-    }
-
-    const voucher = createVoucher(database, {
-      code: 'IMPACTO-01',
-      label: 'Voucher de impacto',
-      linkedServicePointId: counter.id,
-      initialBalanceCents: 1000,
-    });
-    const order = openOrder(database, counter.id);
-    addOrderItem(database, {
-      orderId: order.id,
-      itemKind: 'product',
-      itemId: productId,
-      quantity: 1,
-    });
-    bindOrderVoucher(database, { orderId: order.id, code: voucher.code });
-    closeOrder(database, {
-      orderId: order.id,
-      discountCents: 0,
-      payments: [{ method: 'cash', amountCents: 600, receivedCents: 1000 }],
-      voucherUses: [{ code: voucher.code, amountCents: 400 }],
-    });
-
-    expect(getStock(database, event.id, productId)).toBe(2);
-    const preview = previewDeleteVoucher(database, { voucherId: voucher.id });
-
-    expect(preview).toMatchObject({
-      voucherId: voucher.id,
-      paidOrders: 1,
-      refundVoucherCents: 400,
-      affectedOrderTotalCents: 1000,
-      financialImpact: {
-        affectedRevenueCents: 1000,
-        nonVoucherPaymentCents: 600,
-        voucherRefundCents: 400,
-        paymentRecordCount: 1,
-        voucherRedemptionRecordCount: 1,
-      },
-    });
-    expect(preview.affectedPayments).toHaveLength(1);
-    expect(preview.affectedPayments[0]).toMatchObject({
-      orderId: order.id,
-      method: 'cash',
-      amountCents: 600,
-      receivedCents: 1000,
-      changeCents: 400,
-    });
-    expect(preview.stockReturns).toEqual([
-      {
-        productId,
-        productName: 'Produto impacto voucher',
+    try {
+      const event = createEvent(database, { name: 'Evento impacto voucher', startsAt: Date.now() });
+      const productId = seedProduct(database);
+      const table = createServicePoint(database, { label: 'Mesa Impacto', type: 'table' });
+      const voucher = createVoucher(database, {
+        code: 'IMPACTO-01',
+        label: 'Voucher de impacto',
+        linkedServicePointId: table.id,
+        initialBalanceCents: 1000,
+      });
+      const order = openOrder(database, table.id);
+      addOrderItem(database, {
+        orderId: order.id,
+        itemKind: 'product',
+        itemId: productId,
         quantity: 1,
-      },
-    ]);
+      });
+      bindOrderVoucher(database, { orderId: order.id, code: voucher.code });
+      closeOrder(database, {
+        orderId: order.id,
+        discountCents: 0,
+        payments: [{ method: 'cash', amountCents: 600, receivedCents: 1000 }],
+        voucherUses: [{ code: voucher.code, amountCents: 400 }],
+      });
 
-    deleteVoucher(database, { voucherId: voucher.id, reason: 'Emissão operacional incorreta' });
-    expect(getOrder(database, order.id).status).toBe('cancelled');
-    expect(getStock(database, event.id, productId)).toBe(3);
-    database.close();
+      expect(getStock(database, event.id, productId)).toBe(2);
+      const preview = previewDeleteVoucher(database, { voucherId: voucher.id });
+
+      expect(preview).toMatchObject({
+        voucherId: voucher.id,
+        paidOrders: 1,
+        refundVoucherCents: 400,
+        affectedOrderTotalCents: 1000,
+        financialImpact: {
+          affectedRevenueCents: 1000,
+          nonVoucherPaymentCents: 600,
+          voucherRefundCents: 400,
+          paymentRecordCount: 1,
+          voucherRedemptionRecordCount: 1,
+        },
+      });
+      expect(preview.affectedPayments).toHaveLength(1);
+      expect(preview.affectedPayments[0]).toMatchObject({
+        orderId: order.id,
+        method: 'cash',
+        amountCents: 600,
+        receivedCents: 1000,
+        changeCents: 400,
+      });
+      expect(preview.stockReturns).toEqual([
+        {
+          productId,
+          productName: 'Produto impacto voucher',
+          quantity: 1,
+        },
+      ]);
+
+      deleteVoucher(database, { voucherId: voucher.id, reason: 'Emissão operacional incorreta' });
+      expect(getOrder(database, order.id).status).toBe('cancelled');
+      expect(getStock(database, event.id, productId)).toBe(3);
+    } finally {
+      database.close();
+    }
   });
 });
