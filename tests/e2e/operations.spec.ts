@@ -74,38 +74,35 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     const secondTableButton = window
       .locator('button.service-point-card')
       .filter({ hasText: secondTableName });
+    const catalogItem = () => window.locator('button.catalog-item').filter({ hasText: productName });
+
     await tableButton.click();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
     await expect(window.getByText('Esta mesa ainda não possui vendas concluídas.')).toBeVisible();
 
-    let catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
-    await expect(catalogItem).toContainText('5 disponíveis nesta mesa');
-    await catalogItem.click();
+    await expect(catalogItem()).toContainText('5 disponíveis nesta mesa');
+    await catalogItem().click();
     await expect(window.locator('.route-state')).toHaveCount(0);
     await expect(window.getByText(productName, { exact: true }).last()).toBeVisible();
-    catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
-    await expect(catalogItem).toContainText('4 disponíveis nesta mesa');
+    await expect(catalogItem()).toContainText('4 disponíveis nesta mesa');
 
     const quantityInput = window.getByLabel(`Quantidade de ${productName}`);
     await quantityInput.fill('2');
     await quantityInput.press('Enter');
     await expect(window.getByText('R$ 20,00', { exact: true }).last()).toBeVisible();
-    await expect(catalogItem).toContainText('3 disponíveis nesta mesa');
+    await expect(catalogItem()).toContainText('3 disponíveis nesta mesa');
 
     await window.getByRole('button', { name: 'Voltar para mesas' }).click();
     await secondTableButton.click();
     await expect(window.getByRole('heading', { name: secondTableName })).toBeVisible();
-    await expect(window.getByRole('button', { name: new RegExp(productName, 'u') })).toContainText(
-      '5 disponíveis nesta mesa',
-    );
+    await expect(catalogItem()).toContainText('5 disponíveis nesta mesa');
 
     await window.getByRole('button', { name: 'Voltar para mesas' }).click();
     await tableButton.click();
-    catalogItem = window.getByRole('button', { name: new RegExp(productName, 'u') });
-    await expect(catalogItem).toContainText('3 disponíveis nesta mesa');
+    await expect(catalogItem()).toContainText('3 disponíveis nesta mesa');
     await window.getByRole('button', { name: `Diminuir ${productName}` }).click();
     await expect(window.getByLabel(`Quantidade de ${productName}`)).toHaveValue('1');
-    await expect(catalogItem).toContainText('4 disponíveis nesta mesa');
+    await expect(catalogItem()).toContainText('4 disponíveis nesta mesa');
 
     await expect(window.locator('.checkout-form')).toBeVisible();
     await expect(window.getByText('Aplicado automaticamente')).toBeVisible();
