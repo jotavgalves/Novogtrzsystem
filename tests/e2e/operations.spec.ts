@@ -74,7 +74,8 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     const secondTableButton = window
       .locator('button.service-point-card')
       .filter({ hasText: secondTableName });
-    const catalogItem = () => window.locator('button.catalog-item').filter({ hasText: productName });
+    const catalogItem = () =>
+      window.locator('button.catalog-item').filter({ hasText: productName });
 
     await tableButton.click();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
