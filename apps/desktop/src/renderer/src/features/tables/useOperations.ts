@@ -151,13 +151,14 @@ export function useOperations(): OperationsViewState {
       setSelectedServicePoint(servicePoint);
       setMessage(null);
       setError(null);
+      const activeOrderId = servicePoint.activeOrderId;
 
-      if (servicePoint.activeOrderId === null) {
+      if (activeOrderId === null) {
         setOrder(null);
         return;
       }
 
-      const selected = await run(() => window.gtrz.operations.getOrder(servicePoint.activeOrderId));
+      const selected = await run(() => window.gtrz.operations.getOrder(activeOrderId));
       setOrder(selected);
     },
     [run],
