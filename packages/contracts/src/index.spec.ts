@@ -90,7 +90,7 @@ describe('operational contracts', () => {
     ).toThrow();
   });
 
-  it('exige uma mesa ao emitir voucher pela API do aplicativo', () => {
+  it('exige uma mesa válida ao emitir voucher pela API do aplicativo', () => {
     expect(
       createVoucherInputSchema.parse({
         code: 'MESA-001',
