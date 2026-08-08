@@ -20,6 +20,7 @@ interface OperationsViewState {
   readonly message: string | null;
   readonly reload: () => Promise<void>;
   readonly createTable: (label: string) => Promise<void>;
+  readonly setTablePinned: (servicePointId: string, pinned: boolean) => Promise<void>;
   readonly previewDeleteTable: (servicePointId: string) => Promise<ServicePointDeletePreview>;
   readonly deleteTable: (
     servicePointId: string,
@@ -50,9 +51,10 @@ export function useOperations(): OperationsViewState {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setError(null);
+  const refreshState = useCallback(async (showLoading: boolean): Promise<void> => {
+    if (showLoading) {
+      setLoading(true);
+    }
 
     try {
       const nextState = await window.gtrz.operations.getState();
@@ -69,9 +71,16 @@ export function useOperations(): OperationsViewState {
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError));
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const reload = useCallback(async (): Promise<void> => {
+    setError(null);
+    await refreshState(true);
+  }, [refreshState]);
 
   useEffect(() => {
     void reload();
@@ -85,7 +94,7 @@ export function useOperations(): OperationsViewState {
 
       try {
         const result = await operation();
-        await reload();
+        await refreshState(false);
 
         if (successMessage !== undefined) {
           setMessage(successMessage);
@@ -95,12 +104,12 @@ export function useOperations(): OperationsViewState {
       } catch (operationError: unknown) {
         const failureMessage = getErrorMessage(operationError);
         setError(failureMessage);
-        throw new Error(failureMessage);
+        throw operationError;
       } finally {
         setBusy(false);
       }
     },
-    [reload],
+    [refreshState],
   );
 
   const createTable = useCallback(
@@ -108,6 +117,16 @@ export function useOperations(): OperationsViewState {
       await run(
         () => window.gtrz.operations.createServicePoint({ label, type: 'table' }),
         'Mesa criada.',
+      );
+    },
+    [run],
+  );
+
+  const setTablePinned = useCallback(
+    async (servicePointId: string, pinned: boolean): Promise<void> => {
+      await run(
+        () => window.gtrz.operations.setServicePointPinned({ servicePointId, pinned }),
+        pinned ? 'Mesa fixada.' : 'Mesa desafixada.',
       );
     },
     [run],
@@ -124,7 +143,7 @@ export function useOperations(): OperationsViewState {
       } catch (previewError: unknown) {
         const failureMessage = getErrorMessage(previewError);
         setError(failureMessage);
-        throw new Error(failureMessage);
+        throw previewError;
       } finally {
         setBusy(false);
       }
@@ -146,23 +165,23 @@ export function useOperations(): OperationsViewState {
     [run],
   );
 
-  const openServicePoint = useCallback(
-    async (servicePoint: ServicePoint): Promise<void> => {
-      setSelectedServicePoint(servicePoint);
-      setMessage(null);
-      setError(null);
-      const activeOrderId = servicePoint.activeOrderId;
+  const openServicePoint = useCallback(async (servicePoint: ServicePoint): Promise<void> => {
+    setSelectedServicePoint(servicePoint);
+    setMessage(null);
+    setError(null);
+    const activeOrderId = servicePoint.activeOrderId;
 
-      if (activeOrderId === null) {
-        setOrder(null);
-        return;
-      }
+    if (activeOrderId === null) {
+      setOrder(null);
+      return;
+    }
 
-      const selected = await run(() => window.gtrz.operations.getOrder(activeOrderId));
-      setOrder(selected);
-    },
-    [run],
-  );
+    try {
+      setOrder(await window.gtrz.operations.getOrder(activeOrderId));
+    } catch (loadError: unknown) {
+      setError(getErrorMessage(loadError));
+    }
+  }, []);
 
   const addItem = useCallback(
     async (item: OperationCatalogItem): Promise<void> => {
@@ -287,6 +306,7 @@ export function useOperations(): OperationsViewState {
     message,
     reload,
     createTable,
+    setTablePinned,
     previewDeleteTable,
     deleteTable,
     openServicePoint,
