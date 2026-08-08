@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { _electron as electron } from 'playwright';
 
 const applicationPath = path.join(process.cwd(), 'apps', 'desktop');
@@ -74,7 +74,7 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     const secondTableButton = window
       .locator('button.service-point-card')
       .filter({ hasText: secondTableName });
-    const catalogItem = () =>
+    const catalogItem = (): Locator =>
       window.locator('button.catalog-item').filter({ hasText: productName });
 
     await tableButton.click();
