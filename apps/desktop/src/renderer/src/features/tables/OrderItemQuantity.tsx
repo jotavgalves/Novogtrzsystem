@@ -36,7 +36,7 @@ export function OrderItemQuantity({
   };
 
   return (
-    <div className="order-item__quantity" aria-label={`Quantidade de ${item.itemName}`}>
+    <div className="order-item__quantity">
       <button
         aria-label={`Diminuir ${item.itemName}`}
         className="quantity-button"
