@@ -80,9 +80,11 @@ describe('operational contracts', () => {
   const servicePointId = 'a59108b2-fcad-4a53-989b-e9c2c31b599c';
 
   it('aceita quantidade positiva digitada diretamente no carrinho', () => {
-    expect(
-      setOrderItemQuantityInputSchema.parse({ orderId, orderItemId, quantity: 12 }),
-    ).toEqual({ orderId, orderItemId, quantity: 12 });
+    expect(setOrderItemQuantityInputSchema.parse({ orderId, orderItemId, quantity: 12 })).toEqual({
+      orderId,
+      orderItemId,
+      quantity: 12,
+    });
     expect(() =>
       setOrderItemQuantityInputSchema.parse({ orderId, orderItemId, quantity: 0 }),
     ).toThrow();
