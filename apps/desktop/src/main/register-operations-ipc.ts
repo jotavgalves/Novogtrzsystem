@@ -42,10 +42,12 @@ import {
   unbindOrderVoucher,
 } from '@gtrz/database';
 
-import { handleIpc } from './ipc-handler';
+import { failIpcOperation, handleIpc } from './ipc-handler';
+import type { ReceiptPrinterService } from './receipt-printer-service';
 
 interface RegisterOperationsIpcOptions {
   readonly getDatabase: () => DatabaseContext;
+  readonly receiptPrinter: ReceiptPrinterService;
 }
 
 const OPERATION_CHANNELS = [
@@ -105,7 +107,10 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
     );
 
     if (servicePoint === undefined) {
-      throw new Error('A mesa fixada não pôde ser recarregada.');
+      failIpcOperation('INTEGRITY_ERROR', 'A mesa fixada não pôde ser recarregada.', {
+        servicePointId: input.servicePointId,
+        eventId,
+      });
     }
 
     return servicePointSchema.parse(servicePoint);
@@ -162,14 +167,15 @@ export function registerOperationsIpcHandlers(options: RegisterOperationsIpcOpti
 
   handleIpc(IPC_CHANNELS.operationsCloseOrder, (_event, payload: unknown) => {
     const input = closeOrderInputSchema.parse(payload);
-    return orderSchema.parse(
-      closeOrder(options.getDatabase(), {
-        orderId: input.orderId,
-        discountCents: input.discountCents,
-        payments: input.payments.map(normalizePayment),
-        voucherUses: input.voucherUses,
-      }),
-    );
+    const order = closeOrder(options.getDatabase(), {
+      orderId: input.orderId,
+      discountCents: input.discountCents,
+      payments: input.payments.map(normalizePayment),
+      voucherUses: input.voucherUses,
+    });
+
+    void options.receiptPrinter.printOrder(order.id, true).catch(() => undefined);
+    return orderSchema.parse(order);
   });
 
   handleIpc(IPC_CHANNELS.operationsCancelOrder, (_event, payload: unknown) => {
