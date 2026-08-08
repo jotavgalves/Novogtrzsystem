@@ -10,6 +10,7 @@ import type {
 interface StockMovementFormProps {
   readonly product: InventoryProduct;
   readonly busy: boolean;
+  readonly initialType?: StockMovementType;
   readonly onSubmit: (input: RecordStockMovementInput) => Promise<void>;
   readonly onCancel: () => void;
 }
@@ -25,16 +26,26 @@ const MOVEMENT_LABELS: Readonly<Record<StockMovementType, string>> = {
   return: 'Devolução ao estoque',
 };
 
+const NEGATIVE_MOVEMENTS = new Set<StockMovementType>([
+  'correction-negative',
+  'loss',
+  'breakage',
+  'internal-consumption',
+  'courtesy',
+]);
+
 export function StockMovementForm({
   product,
   busy,
+  initialType = 'purchase',
   onSubmit,
   onCancel,
 }: StockMovementFormProps): React.JSX.Element {
-  const [type, setType] = useState<StockMovementType>('purchase');
+  const [type, setType] = useState<StockMovementType>(initialType);
   const [quantity, setQuantity] = useState('1');
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const decreasesStock = NEGATIVE_MOVEMENTS.has(type);
 
   async function handleSubmit(event: SyntheticEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -67,11 +78,18 @@ export function StockMovementForm({
     <form className="movement-form" onSubmit={(event) => void handleSubmit(event)}>
       <div className="movement-form__heading">
         <div>
-          <span>Movimentar</span>
+          <span>{decreasesStock ? 'Baixar estoque' : 'Movimentar estoque'}</span>
           <strong>{product.name}</strong>
         </div>
         <span className="stock-number">Saldo: {product.quantity}</span>
       </div>
+
+      {decreasesStock ? (
+        <p className="inventory-warning inventory-warning--inline">
+          Esta movimentação reduz o saldo sem registrar uma venda. Use para perda, quebra, consumo
+          interno ou correção de cadastro.
+        </p>
+      ) : null}
 
       <div className="movement-form__grid">
         <label className="form-field">
@@ -112,7 +130,7 @@ export function StockMovementForm({
           onChange={(event) => {
             setNote(event.target.value);
           }}
-          placeholder="Opcional"
+          placeholder={decreasesStock ? 'Ex.: 2 unidades quebradas' : 'Opcional'}
           value={note}
         />
       </label>
@@ -124,9 +142,9 @@ export function StockMovementForm({
           <X size={16} aria-hidden="true" />
           Cancelar
         </button>
-        <button className="button button--primary" disabled={busy} type="submit">
+        <button className={decreasesStock ? 'button button--danger' : 'button button--primary'} disabled={busy} type="submit">
           <ArrowDownToLine size={17} aria-hidden="true" />
-          Registrar movimento
+          {decreasesStock ? 'Confirmar baixa' : 'Registrar movimento'}
         </button>
       </div>
     </form>
