@@ -71,9 +71,11 @@ export const productDeletePreviewSchema = z.object({
   name: z.string().trim().min(2).max(100),
   active: z.boolean(),
   activeEventStockQuantity: z.number().int().nonnegative(),
+  totalStockQuantity: z.number().int().nonnegative(),
   dependentCombos: z.array(z.string().trim().min(2).max(100)),
   historicalSales: z.number().int().nonnegative(),
   stockMovements: z.number().int().nonnegative(),
+  deletionMode: z.enum(['permanent', 'archive']),
 });
 
 export const previewDeleteProductInputSchema = z.object({
