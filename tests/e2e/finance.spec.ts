@@ -64,14 +64,14 @@ test('SMK-FIN-001 — acompanha despesa aberta, parcial, paga e concilia caixa',
     await expenseCard.getByLabel('Pagar parcela').fill('10,00');
     await expenseCard.getByLabel('Forma').selectOption('cash');
     await expenseCard.getByRole('button', { name: 'Registrar pagamento' }).click();
-    await expect(window.getByText('Pagamento registrado.')).toBeVisible();
+    await expect(window.getByText('Pagamento de despesa registrado.')).toBeVisible();
 
     expenseCard = window.locator('article.expense-card').filter({ hasText: expenseName });
     await expect(expenseCard.locator('.expense-status--partial')).toHaveText('Parcial');
     await expect(window.getByRole('button', { name: /Parcial/u })).toContainText('1');
     await expenseCard.getByLabel('Pagar parcela').fill('10,00');
     await expenseCard.getByRole('button', { name: 'Registrar pagamento' }).click();
-    await expect(window.getByText('Pagamento registrado.')).toBeVisible();
+    await expect(window.getByText('Pagamento de despesa registrado.')).toBeVisible();
 
     expenseCard = window.locator('article.expense-card').filter({ hasText: expenseName });
     await expect(expenseCard.locator('.expense-status--paid')).toHaveText('Pago');
