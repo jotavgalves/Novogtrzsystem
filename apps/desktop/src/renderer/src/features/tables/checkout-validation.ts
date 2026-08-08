@@ -8,12 +8,15 @@ export interface PaymentDraft {
   readonly received: string;
 }
 
+export type CheckoutMode = 'single' | 'mixed';
+
 interface CheckoutValidationInput {
   readonly order: Order;
   readonly discount: string;
   readonly payments: readonly PaymentDraft[];
   readonly voucherAmount: string;
   readonly busy: boolean;
+  readonly mode: CheckoutMode;
 }
 
 interface CheckoutValidationResult {
@@ -41,51 +44,84 @@ export function validateCheckout(input: CheckoutValidationInput): CheckoutValida
   const totalCents = Math.max(input.order.subtotalCents - discountCents, 0);
   const allocation = input.order.voucherAllocation;
   const voucherCents = parseCurrencyInput(input.voucherAmount);
-  const cashDrafts = input.payments.filter((payment) => payment.method === 'cash');
-  const digitalPayments = input.payments
-    .filter((payment) => payment.method !== 'cash')
-    .map((payment) => ({
-      method: payment.method,
-      amountCents: parseCurrencyInput(payment.amount),
-    }))
-    .filter((payment) => payment.amountCents > 0);
-  const digitalPaymentCents = digitalPayments.reduce(
-    (total, payment) => total + payment.amountCents,
-    0,
-  );
-  const amountBeforeCashCents = digitalPaymentCents + voucherCents;
-  const overpaidCents = Math.max(amountBeforeCashCents - totalCents, 0);
-  const cashAppliedCents =
-    cashDrafts.length === 1 && overpaidCents === 0
-      ? Math.max(totalCents - amountBeforeCashCents, 0)
-      : 0;
-  const cashReceivedCents = parseCurrencyInput(cashDrafts[0]?.received ?? '');
-  const cashPayment =
-    cashDrafts.length === 1 && cashAppliedCents > 0
-      ? [
-          cashReceivedCents > 0
-            ? {
-                method: 'cash' as const,
-                amountCents: cashAppliedCents,
-                receivedCents: cashReceivedCents,
-              }
-            : { method: 'cash' as const, amountCents: cashAppliedCents },
-        ]
-      : [];
-  const normalizedPayments = [...digitalPayments, ...cashPayment];
-  const paymentCents = digitalPaymentCents + cashAppliedCents;
-  const informedCents = paymentCents + voucherCents;
-  const remainingCents = Math.max(totalCents - informedCents, 0);
-  const totalChangeCents =
-    cashAppliedCents > 0 ? Math.max(cashReceivedCents - cashAppliedCents, 0) : 0;
-  const paymentConfigurationInvalid = cashDrafts.length > 1;
-  const cashInvalid =
-    cashAppliedCents > 0 && (cashReceivedCents <= 0 || cashReceivedCents < cashAppliedCents);
   const voucherInvalid =
     voucherCents > 0 &&
     (allocation?.status !== 'active' ||
       voucherCents > allocation.remainingBalanceCents ||
       voucherCents > totalCents);
+  const amountAfterVoucherCents = Math.max(totalCents - voucherCents, 0);
+  const cashDrafts = input.payments.filter((payment) => payment.method === 'cash');
+  const paymentConfigurationInvalid =
+    input.mode === 'single' ? input.payments.length !== 1 : cashDrafts.length > 1;
+
+  const normalizedPayments: Omit<CloseOrderInput, 'orderId'>['payments'] = [];
+  let paymentCents = 0;
+  let cashAppliedCents = 0;
+  let cashReceivedCents = 0;
+  let cashReceivedWasEntered = false;
+
+  if (!paymentConfigurationInvalid && input.mode === 'single') {
+    const payment = input.payments[0];
+
+    if (payment !== undefined && amountAfterVoucherCents > 0) {
+      if (payment.method === 'cash') {
+        cashAppliedCents = amountAfterVoucherCents;
+        cashReceivedCents = parseCurrencyInput(payment.received);
+        cashReceivedWasEntered = cashReceivedCents > 0;
+        normalizedPayments.push(
+          cashReceivedWasEntered
+            ? {
+                method: 'cash',
+                amountCents: cashAppliedCents,
+                receivedCents: cashReceivedCents,
+              }
+            : { method: 'cash', amountCents: cashAppliedCents },
+        );
+      } else {
+        normalizedPayments.push({
+          method: payment.method,
+          amountCents: amountAfterVoucherCents,
+        });
+      }
+
+      paymentCents = amountAfterVoucherCents;
+    }
+  }
+
+  if (!paymentConfigurationInvalid && input.mode === 'mixed') {
+    for (const payment of input.payments) {
+      const amountCents = parseCurrencyInput(payment.amount);
+
+      if (amountCents <= 0) {
+        continue;
+      }
+
+      if (payment.method === 'cash') {
+        cashAppliedCents = amountCents;
+        cashReceivedCents = parseCurrencyInput(payment.received);
+        cashReceivedWasEntered = cashReceivedCents > 0;
+        normalizedPayments.push(
+          cashReceivedWasEntered
+            ? { method: 'cash', amountCents, receivedCents: cashReceivedCents }
+            : { method: 'cash', amountCents },
+        );
+      } else {
+        normalizedPayments.push({ method: payment.method, amountCents });
+      }
+
+      paymentCents += amountCents;
+    }
+  }
+
+  const informedCents = paymentCents + voucherCents;
+  const remainingCents = Math.max(totalCents - informedCents, 0);
+  const overpaidCents = Math.max(informedCents - totalCents, 0);
+  const cashInvalid =
+    cashAppliedCents > 0 && cashReceivedWasEntered && cashReceivedCents < cashAppliedCents;
+  const totalChangeCents =
+    cashAppliedCents > 0 && cashReceivedWasEntered
+      ? Math.max(cashReceivedCents - cashAppliedCents, 0)
+      : 0;
   const voucherUses =
     allocation !== null && voucherCents > 0
       ? [{ code: allocation.code, amountCents: voucherCents }]
@@ -99,7 +135,7 @@ export function validateCheckout(input: CheckoutValidationInput): CheckoutValida
     !voucherInvalid &&
     overpaidCents === 0 &&
     totalCents > 0 &&
-    informedCents === totalCents &&
+    remainingCents === 0 &&
     normalizedPayments.length + voucherUses.length > 0;
 
   return {
