@@ -19,6 +19,9 @@ interface TicketViewState {
   readonly createSale: (input: CreateTicketSaleInput) => Promise<void>;
   readonly cancelSale: (saleId: string, reason: string) => Promise<void>;
   readonly cancelCode: (codeId: string, reason: string) => Promise<void>;
+  readonly deleteLot: (lotId: string, reason: string) => Promise<void>;
+  readonly deleteSale: (saleId: string, reason: string) => Promise<void>;
+  readonly deleteCode: (codeId: string, reason: string) => Promise<void>;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -103,6 +106,27 @@ export function useTickets(): TicketViewState {
     [run],
   );
 
+  const deleteLot = useCallback(
+    async (lotId: string, reason: string): Promise<void> => {
+      await run(() => window.gtrz.tickets.deleteLot({ lotId, reason }), 'Lote excluído.');
+    },
+    [run],
+  );
+
+  const deleteSale = useCallback(
+    async (saleId: string, reason: string): Promise<void> => {
+      await run(() => window.gtrz.tickets.deleteSale({ saleId, reason }), 'Registro excluído.');
+    },
+    [run],
+  );
+
+  const deleteCode = useCallback(
+    async (codeId: string, reason: string): Promise<void> => {
+      await run(() => window.gtrz.tickets.deleteCode({ codeId, reason }), 'Ingresso excluído.');
+    },
+    [run],
+  );
+
   return {
     state,
     loading,
@@ -115,5 +139,8 @@ export function useTickets(): TicketViewState {
     createSale,
     cancelSale,
     cancelCode,
+    deleteLot,
+    deleteSale,
+    deleteCode,
   };
 }
