@@ -112,11 +112,15 @@ export function setOrderItemQuantity(
   }
 
   if (!Number.isInteger(input.quantity) || input.quantity <= 0) {
-    failDatabaseOperation('VALIDATION_ERROR', 'A quantidade do item deve ser um inteiro positivo.', {
-      orderId: input.orderId,
-      orderItemId: input.orderItemId,
-      quantity: input.quantity,
-    });
+    failDatabaseOperation(
+      'VALIDATION_ERROR',
+      'A quantidade do item deve ser um inteiro positivo.',
+      {
+        orderId: input.orderId,
+        orderItemId: input.orderItemId,
+        quantity: input.quantity,
+      },
+    );
   }
 
   requireAvailableCatalogItem(

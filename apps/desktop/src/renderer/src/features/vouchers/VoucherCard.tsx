@@ -153,8 +153,7 @@ export function VoucherCard({
               voucherId: voucher.id,
               code: code.trim(),
               label: label.trim(),
-              linkedServicePointId:
-                linkedServicePointId.length === 0 ? null : linkedServicePointId,
+              linkedServicePointId: linkedServicePointId.length === 0 ? null : linkedServicePointId,
               addedBalanceCents,
             };
             void onUpdate(input).then(() => {

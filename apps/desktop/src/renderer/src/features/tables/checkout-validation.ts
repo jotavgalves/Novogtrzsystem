@@ -80,8 +80,7 @@ export function validateCheckout(input: CheckoutValidationInput): CheckoutValida
     cashAppliedCents > 0 ? Math.max(cashReceivedCents - cashAppliedCents, 0) : 0;
   const paymentConfigurationInvalid = cashDrafts.length > 1;
   const cashInvalid =
-    cashAppliedCents > 0 &&
-    (cashReceivedCents <= 0 || cashReceivedCents < cashAppliedCents);
+    cashAppliedCents > 0 && (cashReceivedCents <= 0 || cashReceivedCents < cashAppliedCents);
   const voucherInvalid =
     voucherCents > 0 &&
     (allocation?.status !== 'active' ||

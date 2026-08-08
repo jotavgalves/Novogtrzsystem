@@ -193,7 +193,9 @@ export function DashboardPage(): React.JSX.Element {
               <Boxes size={19} aria-hidden="true" />
               <span>Estoque atual</span>
               <strong>{state.inventory.units} un.</strong>
-              <small>{formatCurrency(state.inventory.stockCostCents)} em valor de custo atual</small>
+              <small>
+                {formatCurrency(state.inventory.stockCostCents)} em valor de custo atual
+              </small>
             </article>
             <article className="insight-kpi">
               <Banknote size={19} aria-hidden="true" />

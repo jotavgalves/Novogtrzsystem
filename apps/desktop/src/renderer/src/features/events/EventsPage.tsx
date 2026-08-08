@@ -137,7 +137,10 @@ export function EventsPage(): React.JSX.Element {
             <CalendarPlus size={20} aria-hidden="true" />
             <div>
               <h2>Novo evento</h2>
-              <p>O evento será apenas cadastrado. A operação começa somente ao clicar em “Operar evento”.</p>
+              <p>
+                O evento será apenas cadastrado. A operação começa somente ao clicar em “Operar
+                evento”.
+              </p>
             </div>
           </div>
 

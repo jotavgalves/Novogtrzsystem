@@ -62,7 +62,9 @@ export function useOperations(): OperationsViewState {
           return null;
         }
 
-        return nextState.servicePoints.find((servicePoint) => servicePoint.id === current.id) ?? null;
+        return (
+          nextState.servicePoints.find((servicePoint) => servicePoint.id === current.id) ?? null
+        );
       });
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError));

@@ -58,7 +58,9 @@ export function TablesPage(): React.JSX.Element {
         <div>
           <span className="eyebrow">Operação completa do evento</span>
           <h1>Mesas e balcão</h1>
-          <p>Abra uma mesa, monte o carrinho e conclua vendas sem perder o contexto ou o histórico.</p>
+          <p>
+            Abra uma mesa, monte o carrinho e conclua vendas sem perder o contexto ou o histórico.
+          </p>
         </div>
         <button
           className="button button--secondary"

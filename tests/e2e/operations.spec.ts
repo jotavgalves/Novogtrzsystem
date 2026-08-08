@@ -84,9 +84,13 @@ test('SMK-OPR-001 — vende, mantém histórico na mesa, estorna e devolve o est
     await window.getByLabel('Valor recebido 1').fill('20.00');
     await expect(window.getByText('Troco: R$ 10,00', { exact: true })).toBeVisible();
     await window.getByRole('button', { name: 'Concluir venda' }).click();
-    await expect(window.getByText('Venda concluída e registrada no histórico da mesa.')).toBeVisible();
+    await expect(
+      window.getByText('Venda concluída e registrada no histórico da mesa.'),
+    ).toBeVisible();
     await expect(window.getByRole('heading', { name: tableName })).toBeVisible();
-    const tableHistory = window.locator('article.recent-order-card').filter({ hasText: productName });
+    const tableHistory = window
+      .locator('article.recent-order-card')
+      .filter({ hasText: productName });
     await expect(tableHistory).toContainText('Paga');
 
     await window.getByRole('link', { name: 'Estoque' }).click();
