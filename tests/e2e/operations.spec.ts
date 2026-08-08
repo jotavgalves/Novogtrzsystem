@@ -66,7 +66,9 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     await window.getByRole('button', { name: `Fixar ${tableName}` }).click();
     await expect(window.getByRole('button', { name: `Desafixar ${tableName}` })).toBeVisible();
     await window.getByRole('button', { name: `Fixar ${secondTableName}` }).click();
-    await expect(window.getByRole('button', { name: `Desafixar ${secondTableName}` })).toBeVisible();
+    await expect(
+      window.getByRole('button', { name: `Desafixar ${secondTableName}` }),
+    ).toBeVisible();
 
     const tableButton = window.locator('button.service-point-card').filter({ hasText: tableName });
     const secondTableButton = window
@@ -93,9 +95,9 @@ test('SMK-OPR-001 — vende, projeta estoque por mesa, mantém histórico e esto
     await window.getByRole('button', { name: 'Voltar para mesas' }).click();
     await secondTableButton.click();
     await expect(window.getByRole('heading', { name: secondTableName })).toBeVisible();
-    await expect(
-      window.getByRole('button', { name: new RegExp(productName, 'u') }),
-    ).toContainText('5 disponíveis nesta mesa');
+    await expect(window.getByRole('button', { name: new RegExp(productName, 'u') })).toContainText(
+      '5 disponíveis nesta mesa',
+    );
 
     await window.getByRole('button', { name: 'Voltar para mesas' }).click();
     await tableButton.click();

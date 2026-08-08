@@ -1,11 +1,7 @@
 import { BrowserWindow, type PrinterInfo } from 'electron';
 
 import type { ReceiptPrintResult, ReceiptPrinter } from '@gtrz/contracts';
-import {
-  getReceiptDocument,
-  getReceiptSettings,
-  type DatabaseContext,
-} from '@gtrz/database';
+import { getReceiptDocument, getReceiptSettings, type DatabaseContext } from '@gtrz/database';
 
 import { buildReceiptHtml } from './receipt-template';
 

@@ -48,7 +48,9 @@ describe('dashboard inventory forecast', () => {
     });
     recordStockMovement(database, { productId: product.id, type: 'purchase', quantity: 30 });
 
-    const counter = getOperationState(database).servicePoints.find((item) => item.type === 'counter');
+    const counter = getOperationState(database).servicePoints.find(
+      (item) => item.type === 'counter',
+    );
     if (counter === undefined) {
       throw new Error('Balcão não criado.');
     }

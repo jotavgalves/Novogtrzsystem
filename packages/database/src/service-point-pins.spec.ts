@@ -39,8 +39,8 @@ describe('service point pins', () => {
     setServicePointPinned(database, { servicePointId: tableA.id, pinned: true });
     setServicePointPinned(database, { servicePointId: tableB.id, pinned: true });
     expect(
-      getOperationState(database).servicePoints
-        .filter((item) => item.type === 'table')
+      getOperationState(database)
+        .servicePoints.filter((item) => item.type === 'table')
         .map((item) => [item.label, item.pinned]),
     ).toEqual([
       ['Mesa A', true],

@@ -45,7 +45,13 @@ export function RecentOrdersPanel({
   const hiddenCount = Math.max(orders.length - visibleOrders.length, 0);
 
   return (
-    <article className={compact ? 'panel recent-orders-panel recent-orders-panel--compact' : 'panel recent-orders-panel'}>
+    <article
+      className={
+        compact
+          ? 'panel recent-orders-panel recent-orders-panel--compact'
+          : 'panel recent-orders-panel'
+      }
+    >
       <div className="panel__heading recent-orders-panel__heading">
         <History size={20} aria-hidden="true" />
         <div>
@@ -60,7 +66,11 @@ export function RecentOrdersPanel({
             }}
             type="button"
           >
-            {expanded ? <ChevronUp size={15} aria-hidden="true" /> : <ChevronDown size={15} aria-hidden="true" />}
+            {expanded ? (
+              <ChevronUp size={15} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={15} aria-hidden="true" />
+            )}
             {expanded ? 'Recolher' : `Ver mais (${String(hiddenCount)})`}
           </button>
         ) : null}
@@ -69,9 +79,16 @@ export function RecentOrdersPanel({
       {orders.length === 0 ? (
         <p className="operation-empty">{emptyMessage}</p>
       ) : (
-        <div className={compact ? 'recent-order-list recent-order-list--compact' : 'recent-order-list'}>
+        <div
+          className={compact ? 'recent-order-list recent-order-list--compact' : 'recent-order-list'}
+        >
           {visibleOrders.map((order) => (
-            <article className={compact ? 'recent-order-card recent-order-card--compact' : 'recent-order-card'} key={order.id}>
+            <article
+              className={
+                compact ? 'recent-order-card recent-order-card--compact' : 'recent-order-card'
+              }
+              key={order.id}
+            >
               <div className="recent-order-card__summary">
                 <span>
                   <strong>{order.servicePointLabel}</strong>

@@ -125,9 +125,9 @@ export function getReceiptDocument(
     });
   }
 
-  const event = database.sqlite.prepare('SELECT name FROM events WHERE id = ?').get(order.eventId) as
-    | { readonly name: string }
-    | undefined;
+  const event = database.sqlite
+    .prepare('SELECT name FROM events WHERE id = ?')
+    .get(order.eventId) as { readonly name: string } | undefined;
 
   if (event === undefined) {
     failDatabaseOperation('NOT_FOUND', 'O evento da venda não foi encontrado.', {

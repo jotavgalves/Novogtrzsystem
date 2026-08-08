@@ -49,7 +49,9 @@ describe('physical cash change', () => {
     recordStockMovement(database, { productId: product.id, type: 'purchase', quantity: 5 });
     openCashRegister(database, 1000);
 
-    const counter = getOperationState(database).servicePoints.find((item) => item.type === 'counter');
+    const counter = getOperationState(database).servicePoints.find(
+      (item) => item.type === 'counter',
+    );
     if (counter === undefined) {
       throw new Error('Balcão não criado.');
     }

@@ -66,10 +66,17 @@ function BreakEvenRow({ item }: { readonly item: InventoryBreakEvenItem }): Reac
           </strong>
         </span>
       </div>
-      <div className="inventory-break-even-row__progress" aria-label={`Progresso ${item.productName}`}>
+      <div
+        className="inventory-break-even-row__progress"
+        aria-label={`Progresso ${item.productName}`}
+      >
         <span style={{ width: `${String(progress)}%` }} />
       </div>
-      <small className={paid ? 'inventory-break-even-row__status is-paid' : 'inventory-break-even-row__status'}>
+      <small
+        className={
+          paid ? 'inventory-break-even-row__status is-paid' : 'inventory-break-even-row__status'
+        }
+      >
         {item.breakEvenUnits === null
           ? 'Cadastre um preço de venda para calcular o ponto de equilíbrio.'
           : paid
@@ -127,7 +134,8 @@ export function InventoryForecastPanel({ state }: InventoryForecastPanelProps): 
 
         {categories.length === 0 ? (
           <div className="operation-empty">
-            <Boxes size={18} aria-hidden="true" /> Nenhuma compra de estoque registrada neste evento.
+            <Boxes size={18} aria-hidden="true" /> Nenhuma compra de estoque registrada neste
+            evento.
           </div>
         ) : (
           <div className="inventory-break-even-categories">

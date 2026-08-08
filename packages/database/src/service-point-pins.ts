@@ -11,9 +11,9 @@ export function getPinnedServicePointIds(
   database: DatabaseContext,
   eventId: string,
 ): ReadonlySet<string> {
-  const row = database.sqlite.prepare('SELECT value FROM app_meta WHERE key = ?').get(metaKey(eventId)) as
-    | { readonly value: string }
-    | undefined;
+  const row = database.sqlite
+    .prepare('SELECT value FROM app_meta WHERE key = ?')
+    .get(metaKey(eventId)) as { readonly value: string } | undefined;
 
   if (row === undefined) {
     return new Set<string>();
@@ -95,7 +95,9 @@ export function setServicePointPinned(
   database.sqlite.transaction(() => {
     persistPinnedIds(database, eventId, ids);
     appendAudit(database, {
-      action: input.pinned ? 'operations.service-point-pinned' : 'operations.service-point-unpinned',
+      action: input.pinned
+        ? 'operations.service-point-pinned'
+        : 'operations.service-point-unpinned',
       entityType: 'service-point',
       entityId: servicePoint.id,
       eventId,

@@ -82,7 +82,9 @@ export function ReceiptSettingsPanel(): React.JSX.Element {
       </div>
 
       {settings === null ? (
-        <p className="inventory-helper">{loading ? 'Carregando impressoras…' : 'Configuração indisponível.'}</p>
+        <p className="inventory-helper">
+          {loading ? 'Carregando impressoras…' : 'Configuração indisponível.'}
+        </p>
       ) : (
         <>
           <label className="receipt-toggle">
@@ -115,7 +117,8 @@ export function ReceiptSettingsPanel(): React.JSX.Element {
               <option value="">Impressora padrão do Windows</option>
               {printers.map((printer) => (
                 <option key={printer.name} value={printer.name}>
-                  {printer.displayName}{printer.isDefault ? ' · padrão' : ''}
+                  {printer.displayName}
+                  {printer.isDefault ? ' · padrão' : ''}
                 </option>
               ))}
             </select>
