@@ -46,15 +46,12 @@ export class ReceiptPrinterService {
 
     try {
       const printers = await this.listPrinters();
-      const configuredPrinter =
-        settings.printerName === null
-          ? null
-          : printers.find((item) => item.name === settings.printerName);
+      const deviceName = settings.printerName;
 
-      if (settings.printerName !== null && configuredPrinter === undefined) {
+      if (deviceName !== null && !printers.some((item) => item.name === deviceName)) {
         return {
           status: 'unavailable',
-          printerName: settings.printerName,
+          printerName: deviceName,
           message: 'A impressora térmica configurada não está disponível.',
         };
       }
@@ -77,20 +74,16 @@ export class ReceiptPrinterService {
             {
               silent: true,
               printBackground: true,
-              ...(configuredPrinter === null ? {} : { deviceName: configuredPrinter.name }),
+              ...(deviceName === null ? {} : { deviceName }),
               margins: { marginType: 'none' },
             },
             (success, failureReason) => {
               resolve(
                 success
-                  ? {
-                      status: 'printed',
-                      printerName: configuredPrinter?.name ?? null,
-                      message: null,
-                    }
+                  ? { status: 'printed', printerName: deviceName, message: null }
                   : {
                       status: 'failed',
-                      printerName: configuredPrinter?.name ?? null,
+                      printerName: deviceName,
                       message: failureReason || 'O Windows não confirmou a impressão.',
                     },
               );
