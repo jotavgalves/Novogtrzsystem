@@ -50,7 +50,7 @@ test('SMK-TRF-001 — transfere estoque entre eventos e exibe o histórico', asy
     await productForm.getByRole('button', { name: 'Cadastrar produto' }).click();
 
     let productCard = window.locator('article.inventory-card').filter({ hasText: productName });
-    await productCard.getByRole('button', { name: 'Movimentar' }).click();
+    await productCard.getByRole('button', { name: 'Entrada / ajuste' }).click();
     const movementForm = window.locator('form.movement-form');
     await movementForm.getByLabel('Quantidade', { exact: true }).fill('8');
     await movementForm.getByRole('button', { name: 'Registrar movimento' }).click();
