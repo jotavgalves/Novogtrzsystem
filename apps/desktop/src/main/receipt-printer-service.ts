@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, type PrinterInfo } from 'electron';
 
 import type { ReceiptPrintResult, ReceiptPrinter } from '@gtrz/contracts';
 import {
@@ -13,7 +13,7 @@ interface ReceiptPrinterServiceOptions {
   readonly getDatabase: () => DatabaseContext;
 }
 
-function normalizePrinter(printer: Electron.PrinterInfo): ReceiptPrinter {
+function normalizePrinter(printer: PrinterInfo): ReceiptPrinter {
   return {
     name: printer.name,
     displayName: printer.displayName || printer.name,
