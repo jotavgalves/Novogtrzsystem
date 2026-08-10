@@ -24,7 +24,7 @@ interface VoucherCardProps {
 const STATUS_LABELS = {
   active: 'Ativo',
   exhausted: 'Esgotado',
-  cancelled: 'Cancelado',
+  cancelled: 'Desativado / excluído',
 } as const;
 
 export function VoucherCard({
@@ -106,7 +106,7 @@ export function VoucherCard({
         </button>
         {voucher.status === 'active' ? (
           <button
-            className="button button--ghost button--compact"
+            className="button button--secondary button--compact"
             disabled={busy}
             onClick={() => {
               void onChangeStatus(voucher.id, 'cancelled');
@@ -114,7 +114,7 @@ export function VoucherCard({
             type="button"
           >
             <Ban size={15} aria-hidden="true" />
-            Cancelar
+            Desativar
           </button>
         ) : null}
         <VoucherDeleteSection
