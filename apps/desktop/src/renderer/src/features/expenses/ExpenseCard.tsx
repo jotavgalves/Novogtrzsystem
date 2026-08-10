@@ -50,23 +50,19 @@ export function ExpenseCard({
   return (
     <article className={expanded ? 'expense-card expense-card--expanded' : 'expense-card'}>
       <div className="expense-card__summary">
-        <header className="expense-card__header">
-          <span>
-            <strong>{expense.description}</strong>
-            <small>{expense.category}</small>
-          </span>
-          <span className={`expense-status expense-status--${expense.status}`}>
-            {STATUS_LABELS[expense.status]}
-          </span>
-        </header>
+        <div className="expense-card__identity">
+          <strong>{expense.description}</strong>
+          <small>{expense.category}</small>
+          {expense.note === null || expanded ? null : <small>{expense.note}</small>}
+        </div>
 
-        <div className="expense-card__value">
+        <div className="expense-card__amount">
           <strong>{formatCurrency(expense.totalCents)}</strong>
           <span>
             {expense.paymentMethod === 'cash' ? (
-              <WalletCards size={15} aria-hidden="true" />
+              <WalletCards size={14} aria-hidden="true" />
             ) : (
-              <CreditCard size={15} aria-hidden="true" />
+              <CreditCard size={14} aria-hidden="true" />
             )}
             {expense.paymentMethod === null
               ? 'Sem pagamento'
@@ -74,27 +70,31 @@ export function ExpenseCard({
           </span>
         </div>
 
-        <div className="expense-card__progress">
+        <div className="expense-card__compact-progress">
           <span>
             Pago <strong>{formatCurrency(expense.paidCents)}</strong>
           </span>
           <span>
-            Pendente <strong>{formatCurrency(expense.pendingCents)}</strong>
+            Falta <strong>{formatCurrency(expense.pendingCents)}</strong>
           </span>
         </div>
 
+        <span className={`expense-status expense-status--${expense.status}`}>
+          {STATUS_LABELS[expense.status]}
+        </span>
+
         <button
           aria-expanded={expanded}
-          className="expense-card__manage"
+          className="button button--ghost button--compact expense-card__manage"
           disabled={busy}
           onClick={() => {
             setExpanded((current) => !current);
           }}
           type="button"
         >
-          <Settings2 size={16} aria-hidden="true" />
-          {expanded ? 'Fechar controles' : 'Gerenciar'}
-          <ChevronDown size={16} aria-hidden="true" />
+          <Settings2 size={15} aria-hidden="true" />
+          {expanded ? 'Fechar' : 'Gerenciar'}
+          <ChevronDown size={15} aria-hidden="true" />
         </button>
       </div>
 
