@@ -50,7 +50,7 @@ export function TicketLotCard({
             lot.active ? 'status-badge status-badge--open' : 'status-badge status-badge--archived'
           }
         >
-          {lot.active ? 'Ativo' : 'Inativo'}
+          {lot.active ? 'Ativo' : 'Excluído da operação'}
         </span>
       </header>
 
@@ -148,8 +148,9 @@ export function TicketLotCard({
           }}
         >
           <p>
-            O lote só será removido se não possuir nenhuma venda ou cortesia registrada, inclusive
-            cancelada.
+            {consumed > 0
+              ? 'Este lote possui histórico. Ele será removido da operação e as vendas já registradas serão preservadas.'
+              : 'Se não houver nenhum registro histórico, o lote será removido definitivamente.'}
           </p>
           <input
             aria-label={`Motivo para excluir lote ${lot.name}`}
@@ -188,44 +189,49 @@ export function TicketLotCard({
 
       {!editing && !deleting ? (
         <div className="ticket-lot-card__actions">
-          <button
-            className="button button--ghost button--compact"
-            disabled={busy}
-            onClick={() => {
-              setEditing(true);
-            }}
-            type="button"
-          >
-            <Pencil size={15} aria-hidden="true" />
-            Editar
-          </button>
-          <button
-            className="button button--secondary button--compact"
-            disabled={busy}
-            onClick={() => {
-              void onUpdate({
-                lotId: lot.id,
-                name: lot.name,
-                priceCents: lot.priceCents,
-                capacity: lot.capacity,
-                active: !lot.active,
-              });
-            }}
-            type="button"
-          >
-            {lot.active ? 'Desativar' : 'Ativar'}
-          </button>
-          <button
-            className="button button--danger button--compact"
-            disabled={busy}
-            onClick={() => {
-              setDeleting(true);
-            }}
-            type="button"
-          >
-            <Trash2 size={15} aria-hidden="true" />
-            Excluir
-          </button>
+          {lot.active ? (
+            <>
+              <button
+                className="button button--ghost button--compact"
+                disabled={busy}
+                onClick={() => {
+                  setEditing(true);
+                }}
+                type="button"
+              >
+                <Pencil size={15} aria-hidden="true" />
+                Editar
+              </button>
+              <button
+                className="button button--danger button--compact"
+                disabled={busy}
+                onClick={() => {
+                  setDeleting(true);
+                }}
+                type="button"
+              >
+                <Trash2 size={15} aria-hidden="true" />
+                Excluir
+              </button>
+            </>
+          ) : (
+            <button
+              className="button button--secondary button--compact"
+              disabled={busy}
+              onClick={() => {
+                void onUpdate({
+                  lotId: lot.id,
+                  name: lot.name,
+                  priceCents: lot.priceCents,
+                  capacity: lot.capacity,
+                  active: true,
+                });
+              }}
+              type="button"
+            >
+              Reativar lote
+            </button>
+          )}
         </div>
       ) : null}
     </article>
