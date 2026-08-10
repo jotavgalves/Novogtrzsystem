@@ -18,6 +18,8 @@ function formatMoney(cents: number): string {
   }).format(cents / 100);
 }
 
+type ProductStatusFilter = 'active' | 'archived' | 'all';
+
 export function InventoryPage(): React.JSX.Element {
   const { state: sessionState } = useSession();
   const {
@@ -37,6 +39,7 @@ export function InventoryPage(): React.JSX.Element {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState<ProductKind | 'all'>('all');
   const [categoryId, setCategoryId] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('active');
   const production = sessionState?.profile === 'production';
   const categories = useMemo(() => state?.categories ?? [], [state?.categories]);
   const products = useMemo(() => state?.products ?? [], [state?.products]);
@@ -54,11 +57,15 @@ export function InventoryPage(): React.JSX.Element {
         product.categoryName.toLocaleLowerCase('pt-BR').includes(normalizedSearch);
       const matchesKind = kind === 'all' || product.kind === kind;
       const matchesCategory = categoryId === 'all' || product.categoryId === categoryId;
-      return matchesSearch && matchesKind && matchesCategory;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' ? product.active : !product.active);
+      return matchesSearch && matchesKind && matchesCategory && matchesStatus;
     });
-  }, [categoryId, kind, products, search]);
+  }, [categoryId, kind, products, search, statusFilter]);
 
   const activeProducts = products.filter((product) => product.active).length;
+  const archivedProducts = products.length - activeProducts;
   const lowStockProducts = products.filter((product) => product.lowStock && product.active).length;
   const stockCostCents = products.reduce(
     (total, product) => total + product.quantity * (product.financials?.costCents ?? 0),
@@ -92,6 +99,7 @@ export function InventoryPage(): React.JSX.Element {
         <article className="summary-card">
           <span>Produtos ativos</span>
           <strong>{activeProducts}</strong>
+          <small>{archivedProducts} excluído(s)/arquivado(s)</small>
         </article>
         <article
           className={lowStockProducts > 0 ? 'summary-card summary-card--warning' : 'summary-card'}
@@ -167,6 +175,18 @@ export function InventoryPage(): React.JSX.Element {
             value={search}
           />
         </label>
+
+        <select
+          aria-label="Filtrar por status"
+          onChange={(event) => {
+            setStatusFilter(event.target.value as ProductStatusFilter);
+          }}
+          value={statusFilter}
+        >
+          <option value="active">Ativos</option>
+          <option value="archived">Excluídos / arquivados</option>
+          <option value="all">Todos</option>
+        </select>
 
         <select
           aria-label="Filtrar por tipo"
