@@ -58,8 +58,7 @@ export function InventoryPage(): React.JSX.Element {
       const matchesKind = kind === 'all' || product.kind === kind;
       const matchesCategory = categoryId === 'all' || product.categoryId === categoryId;
       const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' ? product.active : !product.active);
+        statusFilter === 'all' || (statusFilter === 'active' ? product.active : !product.active);
       return matchesSearch && matchesKind && matchesCategory && matchesStatus;
     });
   }, [categoryId, kind, products, search, statusFilter]);

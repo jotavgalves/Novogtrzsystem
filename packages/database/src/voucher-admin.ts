@@ -75,12 +75,16 @@ export function previewDeleteVoucher(
     allAllocations.value === 0 && nonIssueTransactions.value === 0 ? 'permanent' : 'reversal';
 
   if (voucher.status === 'cancelled' && deletionMode !== 'permanent') {
-    failDatabaseOperation('CONFLICT', 'Este voucher já foi excluído da operação e possui histórico.', {
-      voucherId: voucher.id,
-      status: voucher.status,
-      historicalTransactions: historicalTransactions.value,
-      allocations: allAllocations.value,
-    });
+    failDatabaseOperation(
+      'CONFLICT',
+      'Este voucher já foi excluído da operação e possui histórico.',
+      {
+        voucherId: voucher.id,
+        status: voucher.status,
+        historicalTransactions: historicalTransactions.value,
+        allocations: allAllocations.value,
+      },
+    );
   }
 
   return {

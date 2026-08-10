@@ -47,9 +47,7 @@ export function RecentOrdersPanel({
   return (
     <article
       className={
-        compact
-          ? 'recent-orders-panel recent-orders-panel--compact'
-          : 'panel recent-orders-panel'
+        compact ? 'recent-orders-panel recent-orders-panel--compact' : 'panel recent-orders-panel'
       }
     >
       {!compact ? (
