@@ -68,7 +68,7 @@ export function previewDeleteVoucher(
     .get(voucher.id) as { readonly value: number };
   const nonIssueTransactions = database.sqlite
     .prepare(
-      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type != 'issue'",
+      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type IN ('redemption', 'refund')",
     )
     .get(voucher.id) as { readonly value: number };
   const deletionMode =
