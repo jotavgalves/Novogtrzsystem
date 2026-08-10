@@ -98,6 +98,7 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
 
     await window.getByRole('link', { name: 'Estoque' }).click();
     await expect(window.getByRole('heading', { name: /^Estoque$/u })).toBeVisible();
+    await expect(window.getByLabel('Filtrar por status')).toHaveValue('active');
 
     await window.getByPlaceholder('Ex.: Cervejas').fill(categoryName);
     await window.getByRole('button', { name: 'Criar categoria' }).click();
@@ -125,7 +126,7 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
 
     productCard = window.locator('article.inventory-card').filter({ hasText: productName });
     await expect(productCard.getByText('6 un.')).toBeVisible();
-    await productCard.getByRole('button', { name: 'Baixar estoque' }).click();
+    await productCard.getByRole('button', { name: 'Perda / quebra / baixa' }).click();
     movementForm = window.locator('form.movement-form');
     await expect(movementForm.getByRole('combobox')).toHaveValue('loss');
     await movementForm.getByLabel('Quantidade', { exact: true }).fill('2');
@@ -146,8 +147,8 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
       .locator('article.inventory-card')
       .filter({ hasText: wrongProductName });
     await expect(wrongProductCard).toBeVisible();
-    await wrongProductCard.getByRole('button', { name: 'Excluir', exact: true }).click();
-    await expect(wrongProductCard.getByText('Exclusão definitiva disponível')).toBeVisible();
+    await wrongProductCard.getByRole('button', { name: 'Excluir produto' }).click();
+    await expect(wrongProductCard.getByText('O produto será excluído definitivamente')).toBeVisible();
     await wrongProductCard
       .getByPlaceholder('Ex.: item cadastrado por engano')
       .fill('Cadastro duplicado');
@@ -168,7 +169,7 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
     await expect(productCard.getByText('Custo')).toHaveCount(0);
     await expect(productCard.getByRole('button', { name: 'Editar' })).toHaveCount(0);
     await expect(productCard.getByRole('button', { name: 'Entrada / ajuste' })).toHaveCount(0);
-    await expect(productCard.getByRole('button', { name: 'Baixar estoque' })).toHaveCount(0);
+    await expect(productCard.getByRole('button', { name: 'Perda / quebra / baixa' })).toHaveCount(0);
   } finally {
     await electronApplication.close();
   }
