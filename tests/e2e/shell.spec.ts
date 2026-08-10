@@ -148,7 +148,9 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
       .filter({ hasText: wrongProductName });
     await expect(wrongProductCard).toBeVisible();
     await wrongProductCard.getByRole('button', { name: 'Excluir produto' }).click();
-    await expect(wrongProductCard.getByText('O produto será excluído definitivamente')).toBeVisible();
+    await expect(
+      wrongProductCard.getByText('O produto será excluído definitivamente'),
+    ).toBeVisible();
     await wrongProductCard
       .getByPlaceholder('Ex.: item cadastrado por engano')
       .fill('Cadastro duplicado');
@@ -169,7 +171,9 @@ test('SMK-EST-001 — baixa estoque, exclui cadastro virgem e protege custos no 
     await expect(productCard.getByText('Custo')).toHaveCount(0);
     await expect(productCard.getByRole('button', { name: 'Editar' })).toHaveCount(0);
     await expect(productCard.getByRole('button', { name: 'Entrada / ajuste' })).toHaveCount(0);
-    await expect(productCard.getByRole('button', { name: 'Perda / quebra / baixa' })).toHaveCount(0);
+    await expect(productCard.getByRole('button', { name: 'Perda / quebra / baixa' })).toHaveCount(
+      0,
+    );
   } finally {
     await electronApplication.close();
   }
