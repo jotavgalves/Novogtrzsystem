@@ -11,8 +11,8 @@ import {
   type DatabaseVoucherDeletePaymentImpact,
   type DatabaseVoucherDeleteStockImpact,
 } from './voucher-delete-impact';
-import type { DatabaseVoucher, DatabaseVoucherStatus } from './voucher-types';
 import { resolveLinkedServicePoint } from './voucher-service-points';
+import type { DatabaseVoucher, DatabaseVoucherStatus } from './voucher-types';
 import {
   insertTransaction,
   mapVoucher,
@@ -59,13 +59,6 @@ export function previewDeleteVoucher(
     });
   }
 
-  if (voucher.status === 'cancelled') {
-    failDatabaseOperation('CONFLICT', 'Este voucher já está cancelado.', {
-      voucherId: voucher.id,
-      status: voucher.status,
-    });
-  }
-
   const impact = calculateVoucherDeleteImpact(database, voucher.id);
   const allAllocations = database.sqlite
     .prepare('SELECT COUNT(*) AS value FROM order_voucher_allocations WHERE voucher_id = ?')
@@ -75,11 +68,24 @@ export function previewDeleteVoucher(
     .get(voucher.id) as { readonly value: number };
   const nonIssueTransactions = database.sqlite
     .prepare(
-      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type != 'issue'",
+      "SELECT COUNT(*) AS value FROM voucher_transactions WHERE voucher_id = ? AND type IN ('redemption', 'refund')",
     )
     .get(voucher.id) as { readonly value: number };
   const deletionMode =
     allAllocations.value === 0 && nonIssueTransactions.value === 0 ? 'permanent' : 'reversal';
+
+  if (voucher.status === 'cancelled' && deletionMode !== 'permanent') {
+    failDatabaseOperation(
+      'CONFLICT',
+      'Este voucher já foi excluído da operação e possui histórico.',
+      {
+        voucherId: voucher.id,
+        status: voucher.status,
+        historicalTransactions: historicalTransactions.value,
+        allocations: allAllocations.value,
+      },
+    );
+  }
 
   return {
     voucherId: voucher.id,

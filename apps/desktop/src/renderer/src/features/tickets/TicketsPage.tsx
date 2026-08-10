@@ -1,4 +1,5 @@
-import { RefreshCw, Ticket, TriangleAlert } from 'lucide-react';
+import { Archive, RefreshCw, Ticket, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
 
 import { formatCurrency } from '@gtrz/domain';
 
@@ -25,7 +26,11 @@ export function TicketsPage(): React.JSX.Element {
     deleteSale,
     deleteCode,
   } = useTickets();
+  const [showArchivedLots, setShowArchivedLots] = useState(false);
   const lots = state?.lots ?? [];
+  const activeLots = lots.filter((lot) => lot.active);
+  const archivedLots = lots.filter((lot) => !lot.active);
+  const visibleLots = showArchivedLots ? archivedLots : activeLots;
   const sales = state?.sales ?? [];
   const activeSales = sales.filter((sale) => sale.status === 'active');
   const soldQuantity = activeSales
@@ -34,9 +39,7 @@ export function TicketsPage(): React.JSX.Element {
   const courtesyQuantity = activeSales
     .filter((sale) => sale.source === 'courtesy')
     .reduce((total, sale) => total + sale.quantity, 0);
-  const availableQuantity = lots
-    .filter((lot) => lot.active)
-    .reduce((total, lot) => total + lot.availableQuantity, 0);
+  const availableQuantity = activeLots.reduce((total, lot) => total + lot.availableQuantity, 0);
   const initialLoading = loading && state === null;
 
   return (
@@ -98,12 +101,37 @@ export function TicketsPage(): React.JSX.Element {
               <TicketLotForm busy={busy} onSubmit={createLot} />
             </article>
             <article className="panel">
-              <TicketSaleForm busy={busy} lots={lots} onSubmit={createSale} />
+              <TicketSaleForm busy={busy} lots={activeLots} onSubmit={createSale} />
             </article>
           </div>
 
+          <div className="ticket-lot-toolbar">
+            <button
+              aria-pressed={!showArchivedLots}
+              className={!showArchivedLots ? 'button button--secondary' : 'button button--ghost'}
+              onClick={() => {
+                setShowArchivedLots(false);
+              }}
+              type="button"
+            >
+              <Ticket size={16} aria-hidden="true" />
+              Lotes ativos ({activeLots.length})
+            </button>
+            <button
+              aria-pressed={showArchivedLots}
+              className={showArchivedLots ? 'button button--secondary' : 'button button--ghost'}
+              onClick={() => {
+                setShowArchivedLots(true);
+              }}
+              type="button"
+            >
+              <Archive size={16} aria-hidden="true" />
+              Excluídos ({archivedLots.length})
+            </button>
+          </div>
+
           <div className="ticket-lot-list">
-            {lots.map((lot) => (
+            {visibleLots.map((lot) => (
               <TicketLotCard
                 busy={busy}
                 key={lot.id}
@@ -120,8 +148,8 @@ export function TicketsPage(): React.JSX.Element {
               <div>
                 <h2>Vendas e cortesias</h2>
                 <p>
-                  Cancelar devolve capacidade e receita. Depois do cancelamento, o registro pode ser
-                  excluído definitivamente.
+                  Cancelar mantém o registro. Excluir remove o registro e aplica automaticamente o
+                  estorno necessário antes da exclusão.
                 </p>
               </div>
             </div>

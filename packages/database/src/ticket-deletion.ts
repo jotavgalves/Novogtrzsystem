@@ -9,6 +9,7 @@ import {
   requireTicketProduction,
   requireTicketSale,
 } from './ticket-repository';
+import { cancelTicketCode, cancelTicketSale } from './ticket-sales';
 import type { DatabaseContext } from './types';
 
 interface TicketCodeRow {
@@ -31,13 +32,38 @@ export function deleteTicketLot(
   const sales = database.sqlite
     .prepare('SELECT COUNT(*) AS value FROM ticket_sales WHERE lot_id = ?')
     .get(lot.id) as { readonly value: number };
+  const correlationId = randomUUID();
 
   if (sales.value > 0) {
-    failDatabaseOperation(
-      'CONFLICT',
-      'Este lote possui vendas ou cortesias registradas. Exclua esses registros primeiro.',
-      { lotId: lot.id, saleRecords: sales.value },
-    );
+    if (!lot.active) {
+      failDatabaseOperation('CONFLICT', 'Este lote já foi excluído da operação.', {
+        lotId: lot.id,
+        saleRecords: sales.value,
+      });
+    }
+
+    const now = Date.now();
+    database.sqlite.transaction(() => {
+      database.sqlite
+        .prepare('UPDATE ticket_lots SET active = 0, updated_at = ? WHERE id = ?')
+        .run(now, lot.id);
+      appendAudit(database, {
+        action: 'ticket.lot-archived',
+        entityType: 'ticket-lot',
+        entityId: lot.id,
+        eventId,
+        correlationId,
+        details: { reason },
+        before: lot,
+        after: { ...lot, active: false, updatedAt: now },
+        impact: {
+          deletedFromOperation: true,
+          preservedSaleRecords: sales.value,
+        },
+      });
+    })();
+
+    return { success: true };
   }
 
   database.sqlite.transaction(() => {
@@ -47,7 +73,7 @@ export function deleteTicketLot(
       entityType: 'ticket-lot',
       entityId: lot.id,
       eventId,
-      correlationId: randomUUID(),
+      correlationId,
       details: { reason },
       before: lot,
       after: null,
@@ -64,7 +90,7 @@ export function deleteTicketSale(
 ): { readonly success: true } {
   requireTicketProduction(database);
   const eventId = requireTicketEvent(database);
-  const sale = requireTicketSale(database, input.saleId);
+  let sale = requireTicketSale(database, input.saleId);
   const reason = requireOperationReason(input.reason);
 
   if (sale.event_id !== eventId) {
@@ -75,12 +101,12 @@ export function deleteTicketSale(
     });
   }
 
-  if (sale.status !== 'cancelled') {
-    failDatabaseOperation(
-      'INVALID_STATE',
-      'Cancele a venda antes de excluir definitivamente o registro.',
-      { saleId: sale.id, status: sale.status, requiredStatus: 'cancelled' },
-    );
+  if (sale.status === 'active') {
+    cancelTicketSale(database, {
+      saleId: sale.id,
+      reason: `Exclusão do registro: ${reason}`,
+    });
+    sale = requireTicketSale(database, sale.id);
   }
 
   const codes = database.sqlite
@@ -105,7 +131,11 @@ export function deleteTicketSale(
       details: { reason },
       before: { sale, codes },
       after: null,
-      impact: { deletedCodeRecords: codes.length, deletedPermanently: true },
+      impact: {
+        deletedCodeRecords: codes.length,
+        deletedPermanently: true,
+        revenueRemovedCents: sale.total_cents,
+      },
     });
   })();
 
@@ -119,7 +149,7 @@ export function deleteTicketCode(
   requireTicketProduction(database);
   const eventId = requireTicketEvent(database);
   const reason = requireOperationReason(input.reason);
-  const code = database.sqlite
+  let code = database.sqlite
     .prepare(
       `SELECT id, event_id, sale_id, code, status, created_at
        FROM ticket_codes
@@ -141,12 +171,24 @@ export function deleteTicketCode(
     });
   }
 
-  if (code.status !== 'cancelled') {
-    failDatabaseOperation(
-      'INVALID_STATE',
-      'Cancele o ingresso antes de excluir definitivamente o código.',
-      { codeId: code.id, status: code.status, requiredStatus: 'cancelled' },
-    );
+  if (code.status === 'valid') {
+    cancelTicketCode(database, {
+      codeId: code.id,
+      reason: `Exclusão do ingresso: ${reason}`,
+    });
+    code = database.sqlite
+      .prepare(
+        `SELECT id, event_id, sale_id, code, status, created_at
+         FROM ticket_codes
+         WHERE id = ?`,
+      )
+      .get(input.codeId) as TicketCodeRow | undefined;
+
+    if (code === undefined) {
+      failDatabaseOperation('NOT_FOUND', 'O ingresso informado não existe.', {
+        codeId: input.codeId,
+      });
+    }
   }
 
   database.sqlite.transaction(() => {

@@ -1,4 +1,5 @@
-import { CreditCard, Split } from 'lucide-react';
+import { Banknote, Calculator, CreditCard, Split, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import type { PaymentMethod } from '@gtrz/contracts';
 import { formatCurrency } from '@gtrz/domain';
@@ -28,6 +29,14 @@ export function SimplePaymentSection({
   onReceivedChange,
   onUseMixed,
 }: SimplePaymentSectionProps): React.JSX.Element {
+  const [showCashReceived, setShowCashReceived] = useState(false);
+
+  useEffect(() => {
+    if (method !== 'cash') {
+      setShowCashReceived(false);
+    }
+  }, [method]);
+
   return (
     <div className="payment-simple">
       <label className="form-field">
@@ -35,7 +44,9 @@ export function SimplePaymentSection({
         <select
           disabled={busy}
           onChange={(event) => {
-            onMethodChange(event.target.value as PaymentMethod);
+            const nextMethod = event.target.value as PaymentMethod;
+            onMethodChange(nextMethod);
+            setShowCashReceived(false);
           }}
           value={method}
         >
@@ -47,37 +58,69 @@ export function SimplePaymentSection({
         </select>
       </label>
 
-      {method === 'cash' ? (
-        <label className="form-field cash-received-field">
-          <span>Valor recebido em dinheiro · opcional</span>
-          <input
-            aria-invalid={cashInvalid}
-            aria-label="Valor recebido em dinheiro"
-            disabled={busy}
-            inputMode="decimal"
-            onChange={(event) => {
-              onReceivedChange(event.target.value);
-            }}
-            placeholder="Deixe vazio se recebeu o valor exato"
-            value={received}
-          />
-          <small className={cashInvalid ? 'checkout-warning' : undefined}>
-            {cashInvalid
-              ? `O valor recebido é menor que ${formatCurrency(appliedCents)}.`
-              : changeCents > 0
-                ? `Troco: ${formatCurrency(changeCents)}`
-                : 'Se o cliente pagar o valor exato, não precisa preencher este campo.'}
-          </small>
-        </label>
-      ) : (
-        <div className="payment-simple__automatic">
+      <div className="payment-simple__automatic payment-simple__automatic--primary">
+        {method === 'cash' ? (
+          <Banknote size={17} aria-hidden="true" />
+        ) : (
           <CreditCard size={17} aria-hidden="true" />
-          <span>
-            <small>Valor aplicado automaticamente</small>
-            <strong>{formatCurrency(appliedCents)}</strong>
-          </span>
-        </div>
-      )}
+        )}
+        <span>
+          <small>Valor assumido como recebido</small>
+          <strong>{formatCurrency(appliedCents)}</strong>
+        </span>
+      </div>
+
+      {method === 'cash' ? (
+        showCashReceived ? (
+          <div className="cash-received-box">
+            <label className="form-field cash-received-field">
+              <span>Quanto o cliente entregou?</span>
+              <input
+                aria-invalid={cashInvalid}
+                aria-label="Valor recebido em dinheiro"
+                disabled={busy}
+                inputMode="decimal"
+                onChange={(event) => {
+                  onReceivedChange(event.target.value);
+                }}
+                placeholder={formatCurrency(appliedCents)}
+                value={received}
+              />
+              <small className={cashInvalid ? 'checkout-warning' : undefined}>
+                {cashInvalid
+                  ? `O valor recebido é menor que ${formatCurrency(appliedCents)}.`
+                  : changeCents > 0
+                    ? `Troco: ${formatCurrency(changeCents)}`
+                    : 'Use este campo apenas quando precisar calcular troco.'}
+              </small>
+            </label>
+            <button
+              aria-label="Fechar cálculo de troco"
+              className="icon-button"
+              disabled={busy}
+              onClick={() => {
+                setShowCashReceived(false);
+                onReceivedChange('');
+              }}
+              type="button"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <button
+            className="button button--ghost payment-simple__change-button"
+            disabled={busy}
+            onClick={() => {
+              setShowCashReceived(true);
+            }}
+            type="button"
+          >
+            <Calculator size={16} aria-hidden="true" />
+            Calcular troco
+          </button>
+        )
+      ) : null}
 
       <button
         className="button button--secondary"

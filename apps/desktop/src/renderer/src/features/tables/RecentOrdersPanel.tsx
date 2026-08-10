@@ -41,40 +41,24 @@ export function RecentOrdersPanel({
   onReprint,
 }: RecentOrdersPanelProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
-  const visibleOrders = compact && !expanded ? orders.slice(0, 3) : orders;
+  const visibleOrders = compact && !expanded ? orders.slice(0, 5) : orders;
   const hiddenCount = Math.max(orders.length - visibleOrders.length, 0);
 
   return (
     <article
       className={
-        compact
-          ? 'panel recent-orders-panel recent-orders-panel--compact'
-          : 'panel recent-orders-panel'
+        compact ? 'recent-orders-panel recent-orders-panel--compact' : 'panel recent-orders-panel'
       }
     >
-      <div className="panel__heading recent-orders-panel__heading">
-        <History size={20} aria-hidden="true" />
-        <div>
-          <h2>{title}</h2>
-          <p>{description}</p>
+      {!compact ? (
+        <div className="panel__heading recent-orders-panel__heading">
+          <History size={20} aria-hidden="true" />
+          <div>
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </div>
         </div>
-        {compact && orders.length > 3 ? (
-          <button
-            className="button button--ghost button--compact"
-            onClick={() => {
-              setExpanded((current) => !current);
-            }}
-            type="button"
-          >
-            {expanded ? (
-              <ChevronUp size={15} aria-hidden="true" />
-            ) : (
-              <ChevronDown size={15} aria-hidden="true" />
-            )}
-            {expanded ? 'Recolher' : `Ver mais (${String(hiddenCount)})`}
-          </button>
-        ) : null}
-      </div>
+      ) : null}
 
       {orders.length === 0 ? (
         <p className="operation-empty">{emptyMessage}</p>
@@ -112,38 +96,57 @@ export function RecentOrdersPanel({
                   .join(' · ')}
               </p>
 
-              {order.status === 'paid' && onReprint !== undefined ? (
-                <button
-                  className="button button--ghost button--compact recent-order-card__print"
-                  disabled={busy}
-                  onClick={() => {
-                    void onReprint(order.id);
-                  }}
-                  type="button"
-                >
-                  <Printer size={14} aria-hidden="true" />
-                  Reimprimir
-                </button>
-              ) : null}
+              <div className="recent-order-card__actions">
+                {order.status === 'paid' && onReprint !== undefined ? (
+                  <button
+                    className="button button--ghost button--compact recent-order-card__print"
+                    disabled={busy}
+                    onClick={() => {
+                      void onReprint(order.id);
+                    }}
+                    type="button"
+                  >
+                    <Printer size={14} aria-hidden="true" />
+                    Reimprimir
+                  </button>
+                ) : null}
 
-              {allowCancel && order.status === 'paid' ? (
-                <details className="recent-order-card__cancel-details" open={!compact}>
-                  <summary>
-                    <RotateCcw size={14} aria-hidden="true" /> Estornar venda
-                  </summary>
-                  <div className="recent-order-card__cancel">
-                    <CancellationForm
-                      busy={busy}
-                      label="Estornar venda"
-                      onSubmit={(reason) => onCancel(order.id, reason)}
-                    />
-                  </div>
-                </details>
-              ) : null}
+                {allowCancel && order.status === 'paid' ? (
+                  <details className="recent-order-card__cancel-details">
+                    <summary>
+                      <RotateCcw size={14} aria-hidden="true" /> Estornar
+                    </summary>
+                    <div className="recent-order-card__cancel">
+                      <CancellationForm
+                        busy={busy}
+                        label="Estornar venda"
+                        onSubmit={(reason) => onCancel(order.id, reason)}
+                      />
+                    </div>
+                  </details>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>
       )}
+
+      {compact && orders.length > 5 ? (
+        <button
+          className="button button--ghost button--compact recent-orders-panel__more"
+          onClick={() => {
+            setExpanded((current) => !current);
+          }}
+          type="button"
+        >
+          {expanded ? (
+            <ChevronUp size={15} aria-hidden="true" />
+          ) : (
+            <ChevronDown size={15} aria-hidden="true" />
+          )}
+          {expanded ? 'Mostrar menos' : `Mostrar mais (${String(hiddenCount)})`}
+        </button>
+      ) : null}
     </article>
   );
 }

@@ -137,9 +137,9 @@ export function ProductCard({
           {product.kind === 'drink' ? 'Bebida' : 'Comida'}
         </span>
         {!product.active ? (
-          <span className="status-badge status-badge--archived">Arquivado</span>
+          <span className="status-badge status-badge--archived">Excluído / arquivado</span>
         ) : null}
-        {production ? (
+        {production && product.active ? (
           <div className="inventory-card__actions">
             <button
               className="button button--ghost button--compact"
@@ -177,26 +177,24 @@ export function ProductCard({
                   ? 'Selecione um evento aberto.'
                   : product.quantity <= 0
                     ? 'Este produto não possui saldo para baixar.'
-                    : 'Registre perda, quebra, consumo interno ou correção negativa.'
+                    : 'Reduz estoque sem criar venda.'
               }
               type="button"
             >
               <MinusCircle size={15} aria-hidden="true" />
-              Baixar estoque
+              Perda / quebra / baixa
             </button>
-            {product.active ? (
-              <button
-                className="button button--ghost button--compact"
-                disabled={busy}
-                onClick={() => {
-                  void onPreviewDelete(product.id).then(setDeletePreview);
-                }}
-                type="button"
-              >
-                <Trash2 size={15} aria-hidden="true" />
-                Excluir
-              </button>
-            ) : null}
+            <button
+              className="button button--ghost button--compact"
+              disabled={busy}
+              onClick={() => {
+                void onPreviewDelete(product.id).then(setDeletePreview);
+              }}
+              type="button"
+            >
+              <Trash2 size={15} aria-hidden="true" />
+              Excluir produto
+            </button>
           </div>
         ) : null}
       </div>
@@ -220,13 +218,13 @@ export function ProductCard({
           <div className="inventory-delete__mode">
             <strong>
               {deletePreview.deletionMode === 'permanent'
-                ? 'Exclusão definitiva disponível'
-                : 'Este produto possui histórico e será arquivado'}
+                ? 'O produto será excluído definitivamente'
+                : 'O produto será removido do catálogo operacional'}
             </strong>
             <small>
               {deletePreview.deletionMode === 'permanent'
-                ? 'O item nunca teve estoque, vendas, transferências ou dependências e será removido do cadastro.'
-                : 'Para não apagar vendas, estoque, transferências ou composição de combos, ele sairá do catálogo ativo sem destruir o histórico.'}
+                ? 'O item nunca teve estoque, vendas, transferências ou dependências e poderá ser removido por completo.'
+                : 'Como existe histórico, o cadastro será arquivado para preservar auditoria, vendas e estoque anteriores. Ele desaparecerá da lista de produtos ativos.'}
             </small>
           </div>
           <div className="inventory-delete__impact">
@@ -270,7 +268,7 @@ export function ProductCard({
               <Trash2 size={15} aria-hidden="true" />
               {deletePreview.deletionMode === 'permanent'
                 ? 'Excluir definitivamente'
-                : 'Arquivar produto'}
+                : 'Remover dos ativos'}
             </button>
             <button
               className="button button--secondary button--compact"

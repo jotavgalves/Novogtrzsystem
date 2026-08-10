@@ -20,10 +20,6 @@ export function VoucherDeleteSection({
   const [preview, setPreview] = useState<VoucherDeletePreview | null>(null);
   const [reason, setReason] = useState('');
 
-  if (voucher.status === 'cancelled') {
-    return <></>;
-  }
-
   if (preview === null) {
     return (
       <button
@@ -35,7 +31,7 @@ export function VoucherDeleteSection({
         type="button"
       >
         <Trash2 size={15} aria-hidden="true" />
-        Excluir
+        Excluir voucher
       </button>
     );
   }
@@ -61,7 +57,7 @@ export function VoucherDeleteSection({
         <strong>
           {preview.deletionMode === 'permanent'
             ? 'Este voucher será apagado definitivamente'
-            : 'Este voucher já possui histórico e será excluído da operação'}
+            : 'Este voucher possui histórico e será excluído da operação'}
         </strong>
         <small>
           {preview.deletionMode === 'permanent'
