@@ -100,7 +100,7 @@ export function useVouchers(): VoucherViewState {
     async (voucherId: string, status: 'active' | 'cancelled'): Promise<void> => {
       await run(
         () => window.gtrz.vouchers.changeStatus({ voucherId, status }),
-        status === 'active' ? 'Voucher reativado.' : 'Voucher cancelado.',
+        status === 'active' ? 'Voucher reativado.' : 'Voucher desativado.',
       );
     },
     [run],
