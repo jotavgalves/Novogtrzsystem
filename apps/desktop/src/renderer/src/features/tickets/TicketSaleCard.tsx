@@ -103,21 +103,23 @@ export function TicketSaleCard({
                 <code>{ticketCode.code}</code>
                 <Copy size={14} aria-hidden="true" />
               </button>
-              {sale.status === 'active' && ticketCode.status === 'valid' ? (
-                <>
-                  <input
-                    aria-label="Motivo do cancelamento do ingresso"
-                    disabled={busy}
-                    maxLength={240}
-                    onChange={(event) => {
-                      setCodeReasons((current) => ({
-                        ...current,
-                        [ticketCode.id]: event.target.value,
-                      }));
-                    }}
-                    placeholder="Motivo"
-                    value={codeReason}
-                  />
+
+              <input
+                aria-label={`Motivo da ação no ingresso ${ticketCode.code}`}
+                disabled={busy}
+                maxLength={240}
+                onChange={(event) => {
+                  setCodeReasons((current) => ({
+                    ...current,
+                    [ticketCode.id]: event.target.value,
+                  }));
+                }}
+                placeholder="Motivo"
+                value={codeReason}
+              />
+
+              <div className="ticket-code-control__actions">
+                {sale.status === 'active' && ticketCode.status === 'valid' ? (
                   <button
                     className="button button--ghost button--compact"
                     disabled={busy || codeReason.trim().length < 3}
@@ -129,83 +131,68 @@ export function TicketSaleCard({
                     type="button"
                   >
                     <Ban size={15} aria-hidden="true" />
-                    Cancelar ingresso
+                    Cancelar
                   </button>
-                </>
-              ) : null}
-              {ticketCode.status === 'cancelled' && sale.status === 'active' ? (
-                <>
-                  <input
-                    aria-label="Motivo da exclusão do ingresso"
-                    disabled={busy}
-                    maxLength={240}
-                    onChange={(event) => {
-                      setCodeReasons((current) => ({
-                        ...current,
-                        [ticketCode.id]: event.target.value,
-                      }));
-                    }}
-                    placeholder="Motivo para excluir"
-                    value={codeReason}
-                  />
-                  <button
-                    className="button button--danger button--compact"
-                    disabled={busy || codeReason.trim().length < 3}
-                    onClick={() => {
-                      void onDeleteCode(ticketCode.id, codeReason.trim()).then(() => {
-                        setCodeReasons((current) => ({ ...current, [ticketCode.id]: '' }));
-                      });
-                    }}
-                    type="button"
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                    Excluir ingresso
-                  </button>
-                </>
-              ) : null}
+                ) : null}
+                <button
+                  className="button button--danger button--compact"
+                  disabled={busy || codeReason.trim().length < 3}
+                  onClick={() => {
+                    void onDeleteCode(ticketCode.id, codeReason.trim()).then(() => {
+                      setCodeReasons((current) => ({ ...current, [ticketCode.id]: '' }));
+                    });
+                  }}
+                  type="button"
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  Excluir ingresso
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {sale.status === 'active' ? (
-        <form
-          className="ticket-sale-cancel"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const normalizedReason = reason.trim();
+      <div className="ticket-sale-card__admin">
+        {sale.status === 'active' ? (
+          <form
+            className="ticket-sale-cancel"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const normalizedReason = reason.trim();
 
-            if (normalizedReason.length < 3) {
-              return;
-            }
+              if (normalizedReason.length < 3) {
+                return;
+              }
 
-            void onCancel(sale.id, normalizedReason).then(() => {
-              setReason('');
-            });
-          }}
-        >
-          <label className="form-field">
-            <span>Motivo do cancelamento</span>
-            <input
-              disabled={busy}
-              maxLength={240}
-              onChange={(event) => {
-                setReason(event.target.value);
-              }}
-              placeholder="Ex.: venda duplicada"
-              value={reason}
-            />
-          </label>
-          <button
-            className="button button--danger"
-            disabled={busy || reason.trim().length < 3}
-            type="submit"
+              void onCancel(sale.id, normalizedReason).then(() => {
+                setReason('');
+              });
+            }}
           >
-            <Ban size={15} aria-hidden="true" />
-            Cancelar venda
-          </button>
-        </form>
-      ) : (
+            <label className="form-field">
+              <span>Cancelar sem excluir</span>
+              <input
+                disabled={busy}
+                maxLength={240}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                }}
+                placeholder="Ex.: venda duplicada"
+                value={reason}
+              />
+            </label>
+            <button
+              className="button button--secondary"
+              disabled={busy || reason.trim().length < 3}
+              type="submit"
+            >
+              <Ban size={15} aria-hidden="true" />
+              Cancelar venda
+            </button>
+          </form>
+        ) : null}
+
         <form
           className="ticket-sale-cancel ticket-sale-delete"
           onSubmit={(event) => {
@@ -222,14 +209,14 @@ export function TicketSaleCard({
           }}
         >
           <label className="form-field">
-            <span>Excluir registro cancelado</span>
+            <span>{sale.status === 'active' ? 'Excluir e estornar' : 'Excluir registro'}</span>
             <input
               disabled={busy}
               maxLength={240}
               onChange={(event) => {
                 setDeleteReason(event.target.value);
               }}
-              placeholder="Motivo da exclusão definitiva"
+              placeholder="Motivo da exclusão"
               value={deleteReason}
             />
           </label>
@@ -239,10 +226,10 @@ export function TicketSaleCard({
             type="submit"
           >
             <Trash2 size={15} aria-hidden="true" />
-            Excluir registro
+            {sale.status === 'active' ? 'Excluir venda' : 'Excluir registro'}
           </button>
         </form>
-      )}
+      </div>
     </article>
   );
 }
